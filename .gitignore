@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.runtime/
+artifacts/
+recordings/
+.env
+.env.*
+!.env.example
+*.log
+*.pem
+id_ed25519*
+*.key
+.DS_Store

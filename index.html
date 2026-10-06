@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="google" content="notranslate">
+  <meta name="theme-color" content="#7857a5">
+  <title>神經共振 · EEG 互動控制台</title>
+  <link rel="icon" type="image/svg+xml" href="./public/mark.svg">
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+  <div id="app" class="console-shell">
+    <header class="topbar">
+      <a class="identity" href="./" aria-label="神經共振首頁">
+        <img src="./public/mark.svg" alt="" width="42" height="42">
+        <div><span class="eyebrow">NEURAL RESONANCE / EEG</span><h1>神經共振控制台</h1></div>
+      </a>
+      <nav class="top-actions" aria-label="工作台操作">
+        <span class="version">研究介面 <b>v0.1</b></span>
+        <label class="sr-only" for="brand">品牌主題</label>
+        <select id="brand"><option value="must">澳科大 · 紫白</option><option value="shcm">上音 · 藍白</option></select>
+        <label class="sr-only" for="export-format">匯出格式</label>
+        <select id="export-format"><option value="json">JSON</option><option value="csv">CSV</option></select>
+        <button id="export" class="quiet-button" disabled>匯出記錄 ↗</button>
+      </nav>
+    </header>
+
+    <div class="page-heading">
+      <div><p class="eyebrow">01 / BRAIN → INTERACTION → MUSIC</p><h2>讓腦波，成為音樂的起點。</h2></div>
+      <div id="connection-badge" class="status-badge" role="status"><i></i><span>尚未連接</span></div>
+    </div>
+
+    <main class="workspace">
+      <section class="input-panel panel" aria-labelledby="input-title">
+        <div class="section-heading"><span class="section-number">01</span><h3 id="input-title">腦波輸入</h3><span class="label-tag">EEG ONLY</span></div>
+        <div class="source-tabs" role="tablist" aria-label="資料來源">
+          <button role="tab" id="live-tab" aria-selected="true" data-mode="live">即時</button>
+          <button role="tab" id="demo-tab" aria-selected="false" data-mode="demo">示範</button>
+          <button role="tab" id="replay-tab" aria-selected="false" data-mode="replay">回放</button>
+        </div>
+        <div id="live-controls">
+          <label class="field-label" for="endpoint">感測器接口</label>
+          <input id="endpoint" type="url" value="ws://127.0.0.1:8002/ws/live" spellcheck="false" autocomplete="off">
+          <div class="connection-actions"><button id="connect" class="primary-button">連接腦波</button><button id="disconnect" class="quiet-button" disabled>停止</button></div>
+        </div>
+        <div id="demo-controls" hidden>
+          <p class="support-copy">用內建示範資料體驗互動；可調整兩項指數。</p>
+          <label class="demo-range">專注度 <output id="demo-attention-value">62</output><input id="demo-attention" type="range" min="0" max="100" value="62"></label>
+          <label class="demo-range">放鬆度 <output id="demo-relaxation-value">74</output><input id="demo-relaxation" type="range" min="0" max="100" value="74"></label>
+          <button id="start-demo" class="primary-button">開始示範</button>
+        </div>
+        <div id="replay-controls" hidden>
+          <label class="file-button" for="replay-file">匯入本控制台的 JSON 記錄<input type="file" id="replay-file" accept=".json,application/json"></label>
+          <p id="replay-info" class="support-copy">尚未匯入記錄。</p>
+          <div class="connection-actions"><button id="start-replay" class="primary-button" disabled>播放回放</button><button id="pause-replay" class="quiet-button" disabled>暫停</button></div>
+        </div>
+        <p id="source-note" class="source-note">僅讀取腦波。未接入時不產生指數。</p>
+        <div class="signal-summary">
+          <div><span>資料來源</span><strong id="source-label">—</strong></div>
+          <div><span>新鮮度</span><strong id="freshness">—</strong></div>
+          <div><span>有效腦波封包</span><strong id="packet-count">—</strong></div>
+        </div>
+        <div class="metric attention">
+          <div class="metric-caption"><span>專注度</span><small>ATTENTION</small></div>
+          <div class="metric-readout"><strong id="attention">—</strong><span>/ 100</span></div>
+          <div class="meter-track"><i id="attention-meter"></i></div>
+        </div>
+        <div class="metric relaxation">
+          <div class="metric-caption"><span>放鬆度</span><small>RELAXATION</small></div>
+          <div class="metric-readout"><strong id="relaxation">—</strong><span>/ 100</span></div>
+          <div class="meter-track"><i id="relaxation-meter"></i></div>
+        </div>
+        <p id="metric-origin" class="support-copy">指數待接入。</p>
+        <div id="ratio-panel" class="ratio-panel" hidden><b>USB 頻段比值</b><p id="ratios">—</p><small>顯示原始比值，尚未映射為 0–100 指數。</small></div>
+      </section>
+
+      <section class="interaction-panel panel" aria-labelledby="interaction-title">
+        <div class="section-heading"><span class="section-number">02</span><h3 id="interaction-title">二維神經軌跡</h3><span id="mode-label" class="label-tag">WAITING</span></div>
+        <div class="interaction-toolbar">
+          <div class="view-tabs" aria-label="互動模式"><button id="trajectory-view" aria-pressed="true">軌跡</button><button id="snake-view" aria-pressed="false">貪吃蛇</button></div>
+          <span class="axis-key"><i></i> 專注 × 放鬆</span>
+          <button id="reset" class="text-button">重置軌跡 ↺</button>
+        </div>
+        <div class="interaction-stage">
+          <canvas id="field" aria-label="X 軸專注度、Y 軸放鬆度的二維軌跡"></canvas>
+          <div id="stage-empty"><span class="empty-orbit"></span><strong>等待一段腦波</strong><p>接入裝置，或從左側開始示範。</p></div>
+          <span class="stage-corner top-left">放鬆度 100</span><span class="stage-corner bottom-right">專注度 100 →</span>
+          <span class="stage-corner bottom-left">0</span>
+          <span id="snake-score" class="snake-score" hidden>已捕獲 <b>0</b></span>
+        </div>
+        <div class="stage-footer"><div><span class="legend-dot attention"></span> 專注度決定橫向位置</div><div><span class="legend-dot relaxation"></span> 放鬆度決定縱向位置</div></div>
+        <div class="recording-strip">
+          <div><span id="recording-dot" class="recording-dot"></span><strong id="recording-label">準備記錄</strong><small id="recording-count">0 個樣本</small></div>
+          <button id="record" class="quiet-button">開始記錄</button>
+        </div>
+        <p id="interaction-note" class="support-copy interaction-note">二維軌跡直接取自有效指數；資料中斷時停止移動。</p>
+      </section>
+
+      <section class="music-panel panel" aria-labelledby="music-title">
+        <div class="section-heading"><span class="section-number">03</span><h3 id="music-title">音樂要素</h3><span class="label-tag">MAPPING v1</span></div>
+        <div class="music-feature"><span>即時速度</span><strong id="bpm">—<small>BPM</small></strong><p>專注度 × 放鬆度 → 聲音參數</p></div>
+        <div id="music-elements" class="music-elements"></div>
+        <div class="preview-actions"><button id="listen" class="primary-button" disabled>開啟聲音預覽 ♫</button><button id="mute" class="quiet-button" disabled>靜音</button></div>
+        <details class="mapping-details"><summary>查看／修改映射</summary><label>速度範圍（BPM）<span class="mapping-pair"><input id="bpm-min" type="number" min="30" max="180" value="48" aria-label="最低速度"><input id="bpm-max" type="number" min="30" max="180" value="108" aria-label="最高速度"></span></label><p>十项参数为研究用规则映射；PRO 正式要素定义與蒸馏模型可在此模块替换。</p><a href="./docs/MAPPING.md" target="_blank" rel="noopener">映射與接入說明 ↗</a></details>
+      </section>
+    </main>
+
+    <section class="observation panel" aria-labelledby="observation-title">
+      <div class="observation-head"><div class="section-heading"><span class="section-number">04</span><h3 id="observation-title">頻段觀察</h3></div><span id="band-units">原始頻段值 · 保留來源單位</span><span class="observation-duration">最近 60 秒</span></div>
+      <div class="band-rows" id="band-rows"></div>
+      <div class="observation-bottom"><span id="stream-detail">frontal-live-v1 · 只讀接口</span><button id="toggle-log" class="text-button" aria-expanded="false">操作紀錄 ↓</button></div>
+      <ol id="event-log" hidden></ol>
+    </section>
+    <footer class="page-footer"><span>EEG RESEARCH INTERFACE</span><p>資料保留於本機瀏覽器；匯出後再與標註流程銜接。</p><span>MUST / SHCM</span></footer>
+    <div id="notice" role="status" class="notice" hidden></div>
+  </div>
+  <script type="module" src="./src/app.mjs"></script>
+</body>
+</html>
