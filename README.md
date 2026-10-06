@@ -26,6 +26,18 @@ npm run build
 GitHub 工作流在创建仓库后需在 Settings → Pages 选择 GitHub Actions。
 `.dev` 域名绑定到所选静态主机；域名与供应商尚未配置。
 
+源码已同步至独立私有仓库：
+
+```text
+https://github.com/Sco-QianC01/neural-resonance-console
+https://github.dev/Sco-QianC01/neural-resonance-console
+```
+
+第二个地址是在线代码编辑器，不是运行网站。
+2026-10-06 实测仓库推送/重新克隆/自动构建通过；
+GitHub Pages 建站返回 HTTP 422，提示当前账户方案不支持此私有仓库。
+尚未公开源码或购买方案；可为完成的静态站配置其他部署平台。
+
 ## 云端页面与本机设备
 
 HTTPS 页面访问本机 WS 可能被浏览器安全策略拦截；不能将云端部署成功等同于设备接入成功。

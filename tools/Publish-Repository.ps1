@@ -1,4 +1,4 @@
-param([ValidateSet('inspect','create','status')][string]$Mode='inspect')
+param([ValidateSet('inspect','create','status','pages')][string]$Mode='inspect')
 $ErrorActionPreference='Stop'
 if($PSVersionTable.PSVersion.Major -lt 7){throw 'PowerShell 7 is required'}
 $root=Split-Path $PSScriptRoot -Parent
@@ -39,7 +39,17 @@ function Request-GitHub([string]$Method,[string]$ApiPath,[object]$Body=$null){
     }catch{
         $status=[int]$_.Exception.Response.StatusCode
         if($status -eq 404){return $null}
-        throw "GitHub API request failed (HTTP $status)"
+        $message='Request rejected'
+        try{
+            $detail=$_.ErrorDetails.Message|ConvertFrom-Json
+            if($detail.message){$message=[string]$detail.message}
+        }catch{}
+        if($message.Length -gt 300){$message=$message.Substring(0,300)}
+        $directory=Join-Path $root 'artifacts'
+        [IO.Directory]::CreateDirectory($directory)|Out-Null
+        [IO.File]::WriteAllText((Join-Path $directory 'github-api-error.json'),
+            (@{path=$ApiPath;status=$status;message=$message}|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
+        throw "GitHub API request failed (HTTP $status): $message"
     }
 }
 try{
@@ -57,15 +67,22 @@ try{
     }
     $result=[ordered]@{account=$user.login;repository="$account/$name";exists=[bool]$repository}
     if($repository){$result.url=$repository.html_url;$result.private=$repository.private;$result.defaultBranch=$repository.default_branch}
-    if($repository -and $Mode -eq 'status'){
+    if($repository -and $Mode -in @('status','pages')){
         $runs=Request-GitHub GET "/repos/$account/$name/actions/runs?per_page=4"
         $result.runs=@($runs.workflow_runs | ForEach-Object {
             [ordered]@{id=$_.id;name=$_.name;head=$_.head_sha;status=$_.status;conclusion=$_.conclusion;url=$_.html_url}
         })
         $pages=Request-GitHub GET "/repos/$account/$name/pages"
+        if(!$pages -and $Mode -eq 'pages'){
+            $pages=Request-GitHub POST "/repos/$account/$name/pages" @{build_type='workflow'}
+        }
         $result.pagesConfigured=[bool]$pages
         if($pages){$result.pagesUrl=$pages.html_url;$result.pagesStatus=$pages.status}
         $result.accountPlan=$user.plan.name
+        if($pages -and $Mode -eq 'pages'){
+            Request-GitHub POST "/repos/$account/$name/actions/workflows/pages.yml/dispatches" @{ref='main'}|Out-Null
+            $result.deploymentRequested=$true
+        }
     }
     $directory=Join-Path $root 'artifacts'
     [IO.Directory]::CreateDirectory($directory)|Out-Null

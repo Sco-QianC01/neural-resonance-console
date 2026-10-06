@@ -51,14 +51,18 @@ function setMode(next) {
   render();
 }
 function safePacket(input) {
+  const number = value => typeof value === 'number' && Number.isFinite(value) ? value : null;
   const fields = ['attention','meditation','delta','theta','alpha','beta','delta_mean','theta_mean','alpha_mean','beta_mean',
-    'lowAlpha','highAlpha','lowBeta','highBeta','focus_index','relaxation_index','poor_signal','poorSignal'];
+    'lowAlpha','highAlpha','lowBeta','highBeta','lowGamma','midGamma','highGamma','gamma',
+    'delta_power','theta_power','alpha_power','beta_power','delta_dominant_freq','theta_dominant_freq',
+    'alpha_dominant_freq','beta_dominant_freq','focus_index','relaxation_index','poor_signal','poorSignal'];
   const eeg = Object.fromEntries(fields.filter(key => Object.hasOwn(input.eeg || {}, key))
     .map(key => [key, typeof input.eeg[key] === 'number' && Number.isFinite(input.eeg[key]) ? input.eeg[key] : null]));
-  return { schemaVersion: input.schemaVersion, ts: input.ts, source: input.source,
-    originalTimestamp: input.originalTimestamp ?? input.ts * 1000,
-    quality: { eegPackets: input.quality?.eegPackets ?? 0 },
-    eeg, attention: input.attention ?? null, meditation: input.meditation ?? null };
+  return { schemaVersion: input.schemaVersion, ts: input.ts,
+    source: ['core','mock','demo','replay'].includes(input.source) ? input.source : 'unknown',
+    originalTimestamp: number(input.originalTimestamp) ?? input.ts * 1000,
+    quality: { eegPackets: Math.max(0, number(input.quality?.eegPackets) ?? 0) },
+    eeg, attention: number(input.attention), meditation: number(input.meditation) };
 }
 function mappingFor(snapshot) {
   try { return mapMusic(snapshot, { bpmMin:Number($('bpm-min').value), bpmMax:Number($('bpm-max').value) }); }
