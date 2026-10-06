@@ -58,7 +58,7 @@ test('socket reconnect resumes and manual stop cancels both active and scheduled
     socketFactory:()=>{const socket={close(){this.closed=true;}};sockets.push(socket);return socket;},
     schedule:(fn,delay)=>{const task={fn,delay};scheduled.push(task);return task;},
     cancel:task=>{if(task)task.cancelled=true;}});
-  client.connect('ws://127.0.0.1:8002/ws/live');
+  client.connect('ws://device.example/eeg');
   sockets[0].onopen(); sockets[0].onmessage({data:JSON.stringify(packet())});
   assert.equal(messages.length,1);
   sockets[0].onclose(); assert.equal(scheduled[0].delay,1000);

@@ -1,4 +1,5 @@
-export const SCHEMA = 'frontal-live-v1';
+export const SCHEMA = 'neural-resonance-live-v1';
+const supportedSchemas = [SCHEMA, 'frontal-live-v1'];
 export const STALE_MS = 3000;
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const index = value => finite(value) && value >= 0 && value <= 100 ? value : null;
@@ -6,8 +7,8 @@ const positive = value => finite(value) && value >= 0 ? value : null;
 
 /** Read native fields without turning USB spectral ratios into device scores. */
 export function normalizeSnapshot(input, now = Date.now()) {
-  if (!input || typeof input !== 'object' || input.schemaVersion !== SCHEMA)
-    throw new Error('不支援的資料格式；需要 frontal-live-v1。');
+  if (!input || typeof input !== 'object' || !supportedSchemas.includes(input.schemaVersion))
+    throw new Error('不支援的資料格式；請使用 neural-resonance-live-v1。');
   if (!finite(input.ts)) throw new Error('缺少有效的時間戳。');
   const timestamp = input.ts * 1000;
   const age = now - timestamp;
@@ -31,11 +32,12 @@ export function normalizeSnapshot(input, now = Date.now()) {
   }));
   return {
     timestamp, originalTimestamp: input.originalTimestamp ?? timestamp,
-    source: ['core', 'mock', 'demo', 'replay'].includes(input.source) ? input.source : 'unknown',
+    source: ['device', 'core', 'mock', 'demo', 'replay'].includes(input.source) ? input.source : 'unknown',
     sessionId: typeof input.sessionId === 'string' ? input.sessionId : null,
     attention, relaxation, bands, packets,
     ratios: { focus: positive(eeg.focus_index), relaxation: positive(eeg.relaxation_index) },
-    bandUnits: Object.keys(eeg).some(key => key.endsWith('_mean')) ? 'RMS · 相對值' : '裝置頻段值',
+    bandUnits: Object.keys(eeg).some(key => key.endsWith('_mean')) ? 'RMS · 相對值'
+      : input.source==='demo' ? '示範相對值' : '來源頻段值',
     metricOrigin: 'device-index',
     signalValid, valid: signalValid && attention !== null && relaxation !== null,
     raw: input,

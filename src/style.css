@@ -4,7 +4,7 @@ button { cursor:pointer; border:1px solid var(--border); border-radius:7px; back
 button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 [hidden] { display:none !important; } input,select { min-width:0; border:1px solid var(--border); border-radius:6px; background:white; padding:9px 10px; color:inherit; }
 .console-shell { max-width:1660px; margin:auto; padding:0 32px; }
-.console-shell[data-brand="shcm"] { --accent:#2464ac; --accent-soft:#eaf2fb; --border:#dce6f1; }
+.console-shell[data-theme="blue"] { --accent:#2464ac; --accent-soft:#eaf2fb; --border:#dce6f1; }
 .topbar { display:flex; justify-content:space-between; gap:18px; align-items:center; border-bottom:1px solid var(--border); padding:22px 0; }
 .identity { display:flex; gap:12px; color:inherit; text-decoration:none; align-items:center; } .identity h1 { font-size:19px; margin:3px 0 0; letter-spacing:.05em; font-weight:620; }
 .eyebrow { font-size:9px; letter-spacing:.19em; color:var(--muted); margin:0; }
@@ -49,17 +49,10 @@ button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible,su
 .page-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; color:#938d9a; font-size:8px; letter-spacing:.09em; padding:17px 0; } .page-footer p { letter-spacing:0; font-size:9px; margin:0; }
 .notice { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:12px 18px; border:1px solid var(--border); box-shadow:0 8px 24px #30233c14; border-radius:7px; background:white; z-index:10; font-size:12px; max-width:90vw; }
 .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
-.system-panel { padding:14px 20px; margin-bottom:19px; }
-.system-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
-.system-heading > span { color:var(--muted); font-size:10px; }
-.program-status { display:flex; flex-wrap:wrap; gap:7px; }
-.program-chip { font-size:10px; padding:6px 9px; border:1px solid var(--border); border-radius:5px; color:var(--muted); background:#fbfafc; }
-.program-chip::before { content:""; display:inline-block; width:5px; height:5px; background:#c6c1cd; border-radius:50%; margin-right:6px; }
-.program-chip[data-state="running"]::before { background:var(--accent); }
-.program-chip[data-state="partial"]::before { background:#b68c62; }
-.system-details { font-size:10px; color:var(--muted); line-height:1.8; margin-top:11px; }
-.system-details summary,.eeg-details summary { cursor:pointer; }
-.system-details p { margin:7px 0; overflow-wrap:anywhere; }
+.demo-toggle { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); margin-top:12px; }
+.demo-toggle input { accent-color:var(--accent); }
+.optional-sensors { cursor:pointer; font-size:12px; color:var(--muted); }
+.sensor-panel[open] .sensor-values { margin-top:16px; }
 .sensor-panel { margin-top:19px; padding:17px 22px; }
 .sensor-values { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; }
 .sensor-value { border-left:1px solid var(--border); padding-left:18px; min-width:0; }
@@ -72,7 +65,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible,su
 #eeg-fields { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px 20px; margin:12px 0; }
 #eeg-fields > div { min-width:0; } #eeg-fields dt { font-size:9px; overflow-wrap:anywhere; }
 #eeg-fields dd { margin:4px 0 0; font-family:Consolas,monospace; color:var(--accent); }
-@media (max-width:760px) { .system-panel { padding:14px 17px; } .system-heading { flex-wrap:wrap; gap:7px; }
+@media (max-width:760px) {
   .sensor-panel { padding:16px 17px; } .sensor-values { grid-template-columns:1fr 1fr; gap:17px; }
   .sensor-value:nth-child(odd) { border-left:0; padding-left:0; } #eeg-fields { grid-template-columns:1fr 1fr; } }
 @media (min-width:1500px) { .workspace { grid-template-columns:290px minmax(460px,1fr) 310px; } .interaction-stage { min-height:350px; } }

@@ -1,108 +1,89 @@
-# 神經共振控制台
+# 神经共振控制台 · Neural Resonance
 
-独立的 EEG 脑机接口前端：脑波输入 → 专注/放松二维轨迹与贪吃蛇 → 十项实验音乐参数。
-与夜莺四模型网站分开开发。v0.2 接入本地音疗启动链，
-EEG 负责互动；血氧、脉率、HRV、GSR 独立显示和记录。
+一个可以独立运行的脑波交互网页：把专注度、放松度变成二维轨迹、贪吃蛇和音乐控制参数。
 
-## 本机运行
+**打开就能看到动态可视化。** 无设备时使用明确标注的示范数据；
+有设备时可以接入自己的 WebSocket 数据源。
 
-需要 Node.js 20+。无第三方依赖，无需 `npm install`。
+## 直接体验
 
-```powershell
+[打开在线控制台](https://sco-qianc01.github.io/neural-resonance-console/)
+
+页面默认运行示范。拖动「专注度」「放松度」滑杆，观察轨迹和音乐参数变化。
+取消「自动变化」后，滑杆直接控制两个数值；也可切换到贪吃蛇。
+声音需要主动点击开启，页面不会自动播放。
+
+![控制台：左侧输入、中央互动轨迹、右侧音乐参数、下方频段曲线](public/console.png)
+
+## 能做什么
+
+- 显示专注度／放松度的二维轨迹与四个 EEG 频段曲线。
+- 用同一份输入驱动贪吃蛇和十项可修改的音乐参数。
+- 连接自己的实时数据源，并处理断线、过期和缺值。
+- 记录当前输入，导出 JSON／CSV，导入 JSON 回放。
+- 在桌面、平板和手机浏览器中使用。
+
+## 在自己的电脑上运行
+
+安装 Node.js 20 或更新版本，然后执行：
+
+```bash
+git clone https://github.com/Sco-QianC01/neural-resonance-console.git
+cd neural-resonance-console
 npm start
-# 或者使用 PowerShell 7
-./tools/Start-Console.ps1
 ```
 
-打开 `http://127.0.0.1:8767/` 后自动连接。没有设备数据时显示等待，
-可主动选择“示范 → 开始示范”体验。不会自动切换到模拟数据。
+打开终端显示的地址，默认是 `http://127.0.0.1:5173/`。
+运行没有第三方依赖，无需另外安装实验室软件或设备驱动。
+Windows、macOS、Linux 使用相同的命令。
 
-### 与本地音疗系统一起启动
+需要换端口：
 
-PowerShell 7 执行现有入口：
-
-```powershell
-& 'Q:\音疗系统\澳门科技大学\01_核心系统\music-therapy-pod-sensors\运行澳门版.ps1'
+```bash
+npm start -- --port 6123
 ```
 
-统一启动器启动主服务、控制台、Max、Resolume、MuMu 和既有视觉程序，
-并打开控制台网页。主服务和控制台默认背景运行；
-需要原来的传感器终端时为上述入口添加 `-Visible`。
-已有控制台服务会复用；端口被其他程序占用时拒绝重复启动。
+需要让同一局域网的手机打开：
 
-本机网页通过自身 `/ws/live` 只读代理到 `127.0.0.1:8002/ws/live`，
-避免依赖局域网 IP。连接断开后退避重连；手动停止会取消重连。
-静态云端网页保留可编辑的直接接口，须另行配置安全设备网关。
-
-后台面板每 5 秒读取状态，程序清单最多每 10 秒检查一次，
-通过隐藏的 PowerShell 7 子进程核对程序与所属端口，不反复弹终端。
-程序运行、接口可用、设备出数据分别显示；不把进程存在当作设备成功。
-
-停止原系统时控制台也会停止：
-
-```powershell
-& 'Q:\音疗系统\澳门科技大学\01_核心系统\music-therapy-pod-sensors\停止澳门版.ps1'
+```bash
+npm start -- --host 0.0.0.0 --port 6123
 ```
 
-原有停止器仍保护未确认独占的 Max、Resolume、MuMu 和共用上音图表进程。
-页面只读取数据，不自动开始疗程或创建正式受试记录。
+手机访问这台电脑的局域网 IP 和所选端口。
 
-```powershell
+## 接自己的数据
+
+左侧选择「接入数据」，填写你的 `ws://` 或 `wss://` 地址，再点击连接。
+不预设任何人的电脑路径、设备名称或服务器地址。
+
+[数据格式与接入示例](docs/DATA-INPUT.md) · [音乐参数映射](docs/MAPPING.md)
+
+真实 USB／BLE 设备需要自己的驱动或网关把数据转成约定的 JSON 格式。
+控制台不会自动扫描设备，也不替代各厂商的驱动。
+
+## 开发与部署
+
+```bash
 npm test
 npm run build
 ```
 
-`dist/` 是独立静态网站，可部署 GitHub Pages、Cloudflare Pages 或其他静态主机。
-本仓库已在 Settings → Pages 启用 GitHub Actions；
-`main` 更新后自动测试、构建和发布网页。Fork 默认只运行测试与构建，
-发布自己的网页需配置自己的 Pages 并修改 deploy 的仓库条件。
-`.dev` 自定义域名尚未配置；当前可直接使用下方 GitHub Pages 地址。
+`dist/` 可部署到任意静态网站主机。本仓库的 `main` 更新会自动测试并发布 GitHub Pages。
+自己的部署可编辑 `public/config.json` 配置默认来源、资料地址和主题。
 
-源码以 MIT 授权开源至独立公开仓库，无需加入协作者即可查看、下载和 Fork：
+主要代码：
 
-```text
-https://github.com/Sco-QianC01/neural-resonance-console
-https://github.dev/Sco-QianC01/neural-resonance-console
-```
+| 文件 | 负责什么 |
+| --- | --- |
+| `src/app.mjs` | 界面、轨迹、记录与回放 |
+| `src/eeg.mjs` | 输入校验、新鲜度与连接 |
+| `src/music.mjs` | 音乐映射、贪吃蛇与声音 |
+| `src/config.mjs` | 可配置的启动方式和示范数据 |
+| `src/style.css` | 主题和响应式布局 |
 
-第二个地址是在线代码编辑器，不是运行网站。
-公开在线体验（无需登录）：
+欢迎 Fork 后提交 Pull Request。[开发约定](docs/HANDOFF.md)
 
-```text
-https://sco-qianc01.github.io/neural-resonance-console/
-```
+## 授权与范围
 
-访客可选择“示范 → 开始示范”体验轨迹和音乐参数。
-真实设备数据由访问者自己的本机音疗主服务提供，未托管到公开网站。
-
-2026-10-06 已检查全部 Git 历史并公开源码；正式受试记录、
-本地 artifacts、设备数据库和凭证均未包含在仓库中。
-本机后端仍在本机运行；公开网页只提供前端。
-
-## 云端页面与本机设备
-
-HTTPS 页面访问本机 WS 可能被浏览器安全策略拦截；不能将云端部署成功等同于设备接入成功。
-现场接设备请先使用本机 HTTP 页面，或给设备网关配置可信 `wss://` 后填写地址。
-设备仅在内网时，云端服务器不能直接访问它。
-
-## 协作
-
-按 Fork/branch → pull request 协作，维护者审核后合并。
-代码授权见 `LICENSE`；现有 `package.json` 的 `private: true`
-仅用于防止意外发布至 npm，不限制 GitHub 仓库公开访问。
-`.gitignore` 排除实验记录、构建产物与凭证。不要把真实受试者记录提交 GitHub。
-主要编辑入口：
-
-- `src/app.mjs`：界面、录制/回放与交互。
-- `src/eeg.mjs`：主服务协议、新鲜度、重连与数据校验。
-- `src/sensors.mjs`：血氧、脉率、HRV、GSR 的独立缺值/新鲜度处理。
-- `tools/serve.mjs`、`tools/runtime.mjs`：本机只读 WebSocket 和后台状态。
-- `src/music.mjs`：音乐参数映射和声预览，后续替换蒸馏模型。
-- `src/style.css`：MUST 紫白/SHCM 蓝白和响应式布局。
-- `docs/MAPPING.md`：字段、单位与映射契约。
-- `tests/`：数据与状态验证。
-
-2026-10-06 已实际启动本机主服务和九个登记程序，确认所需端口归属，
-并在 Edge 核验自动连接、全部接收字段显示、重连与手机布局；
-详见 `docs/ACCEPTANCE.md`。尚未完成真实设备验收、正式 PRO 要素定义、完整音乐合成、
-大模型蒸馏或受试数据临床验证。当前版本将这些边界保留在接入文档中。
+[MIT License](LICENSE)。这是数据交互与音乐参数研究工具，未实现医疗诊断或正式疗效评估。
+记录只保留在当前页面；刷新或关闭前请先导出。
