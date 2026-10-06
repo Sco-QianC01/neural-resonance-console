@@ -7,7 +7,7 @@
   "engines": { "node": ">=20" },
   "scripts": {
     "start": "node tools/serve.mjs",
-    "test": "node --test",
+    "test": "node --test tests/eeg.test.mjs tests/music.test.mjs",
     "build": "node tools/build.mjs"
   }
 }
