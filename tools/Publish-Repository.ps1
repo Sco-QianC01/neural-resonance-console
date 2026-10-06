@@ -1,4 +1,4 @@
-param([ValidateSet('inspect','create')][string]$Mode='inspect')
+param([ValidateSet('inspect','create','status')][string]$Mode='inspect')
 $ErrorActionPreference='Stop'
 if($PSVersionTable.PSVersion.Major -lt 7){throw 'PowerShell 7 is required'}
 $root=Split-Path $PSScriptRoot -Parent
@@ -57,6 +57,16 @@ try{
     }
     $result=[ordered]@{account=$user.login;repository="$account/$name";exists=[bool]$repository}
     if($repository){$result.url=$repository.html_url;$result.private=$repository.private;$result.defaultBranch=$repository.default_branch}
+    if($repository -and $Mode -eq 'status'){
+        $runs=Request-GitHub GET "/repos/$account/$name/actions/runs?per_page=4"
+        $result.runs=@($runs.workflow_runs | ForEach-Object {
+            [ordered]@{id=$_.id;name=$_.name;head=$_.head_sha;status=$_.status;conclusion=$_.conclusion;url=$_.html_url}
+        })
+        $pages=Request-GitHub GET "/repos/$account/$name/pages"
+        $result.pagesConfigured=[bool]$pages
+        if($pages){$result.pagesUrl=$pages.html_url;$result.pagesStatus=$pages.status}
+        $result.accountPlan=$user.plan.name
+    }
     $directory=Join-Path $root 'artifacts'
     [IO.Directory]::CreateDirectory($directory)|Out-Null
     [IO.File]::WriteAllText((Join-Path $directory 'github-repository.json'),($result|ConvertTo-Json),[Text.UTF8Encoding]::new($false))

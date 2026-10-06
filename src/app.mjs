@@ -123,6 +123,7 @@ function render() {
   $('stage-empty').querySelector('p').textContent = signal ? '頻段仍可觀察；百分制映射尚未接入。' : '接入裝置，或從左側開始示範。';
   const mapping = mappingFor(latest);
   lastMapping = mapping;
+  if (!mapping) audio.mute();
   $('bpm').replaceChildren(document.createTextNode(mapping ? String(mapping.parameters.tempo) : '—'),
     Object.assign(document.createElement('small'), { textContent:'BPM' }));
   for (const [key,,unit] of ELEMENTS.slice(1)) {
@@ -131,6 +132,7 @@ function render() {
       Object.assign(document.createElement('small'), { textContent:unit }));
   }
   $('listen').disabled = !mapping; $('mute').disabled = !audio.enabled;
+  $('listen').textContent = audio.enabled ? '聲音預覽已開啟 ♫' : '開啟聲音預覽 ♫';
   $('export').disabled = records.length === 0;
   $('record').textContent = recording ? '停止記錄' : '開始記錄';
   $('recording-dot').classList.toggle('is-active', recording);
