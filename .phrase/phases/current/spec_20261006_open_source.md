@@ -19,3 +19,6 @@
 
 開源前 7 次提交、55 個 blob、261312 bytes，指定敏感資料檢查無命中。
 具體 GitHub 設定、匿名存取、Pages 與提交結果以本機 artifacts 及交付摘要記錄。
+已確認 visibility=public、private=false、MIT 授權；
+匿名 API 及 Pages 首次部署通過。主庫 main 更新自動測試/构建/發布；
+Fork 預設不執行主站部署。

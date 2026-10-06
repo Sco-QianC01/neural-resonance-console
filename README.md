@@ -53,8 +53,10 @@ npm run build
 ```
 
 `dist/` 是独立静态网站，可部署 GitHub Pages、Cloudflare Pages 或其他静态主机。
-GitHub 工作流在创建仓库后需在 Settings → Pages 选择 GitHub Actions。
-`.dev` 域名绑定到所选静态主机；域名与供应商尚未配置。
+本仓库已在 Settings → Pages 启用 GitHub Actions；
+`main` 更新后自动测试、构建和发布网页。Fork 默认只运行测试与构建，
+发布自己的网页需配置自己的 Pages 并修改 deploy 的仓库条件。
+`.dev` 自定义域名尚未配置；当前可直接使用下方 GitHub Pages 地址。
 
 源码以 MIT 授权开源至独立公开仓库，无需加入协作者即可查看、下载和 Fork：
 
@@ -64,6 +66,15 @@ https://github.dev/Sco-QianC01/neural-resonance-console
 ```
 
 第二个地址是在线代码编辑器，不是运行网站。
+公开在线体验（无需登录）：
+
+```text
+https://sco-qianc01.github.io/neural-resonance-console/
+```
+
+访客可选择“示范 → 开始示范”体验轨迹和音乐参数。
+真实设备数据由访问者自己的本机音疗主服务提供，未托管到公开网站。
+
 2026-10-06 已检查全部 Git 历史并公开源码；正式受试记录、
 本地 artifacts、设备数据库和凭证均未包含在仓库中。
 本机后端仍在本机运行；公开网页只提供前端。

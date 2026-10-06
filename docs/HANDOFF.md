@@ -20,6 +20,8 @@ npm start
 
 更新：
 
+外部貢獻者先 Fork，再 clone 自己的倉庫；有主庫寫入權限者可直接使用以下流程。
+
 ```powershell
 git pull --ff-only
 git switch -c feature/my-change

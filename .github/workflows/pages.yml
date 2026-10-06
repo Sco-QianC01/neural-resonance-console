@@ -24,7 +24,7 @@ jobs:
         with:
           path: dist
   deploy:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.repository == 'Sco-QianC01/neural-resonance-console'
     needs: build
     runs-on: ubuntu-latest
     environment:
