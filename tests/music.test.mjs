@@ -28,4 +28,6 @@ test('snake follows EEG target and stops without valid indices',()=>{
   snake.step({valid:true,attention:100,relaxation:100},.1);
   assert.ok(snake.head.x>original.x);assert.ok(snake.head.y<original.y);
   assert.equal(snake.tail.length,1);
+  snake.step({valid:true,attention:100,relaxation:100},0,true);
+  assert.deepEqual(snake.head,{x:1,y:0});
 });

@@ -180,7 +180,7 @@ function drawField(delta) {
   const current = stream.current();
   const trail = view === 'snake' ? snake.tail.map(pos) : history.filter(p=>p.valid).slice(-90).map(pointFor).map(pos);
   if (view === 'snake') {
-    snake.step(current, delta);
+    snake.step(current, delta, reduced);
     const food = pos(snake.food);
     if (current?.valid) {
       context.strokeStyle=accent; context.fillStyle='#ffffff'; context.beginPath(); context.arc(food.x,food.y,5,0,Math.PI*2); context.fill(); context.stroke();
@@ -325,7 +325,9 @@ for(const id of ['bpm-min','bpm-max']) $(id).onchange=()=>{
 $('toggle-log').onclick=()=>{$('event-log').hidden=!$('event-log').hidden;$('toggle-log').setAttribute('aria-expanded',String(!$('event-log').hidden));};
 window.addEventListener('pagehide',()=>{ stopSource(); audio.mute(); });
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){audio.mute(); render();} });
-const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
+let reduced=motionQuery.matches;
+motionQuery.addEventListener('change',event=>{reduced=event.matches;});
 function animate(now) {
   if (document.hidden || now-frameTime < (reduced ? 250 : 33)) { requestAnimationFrame(animate); return; }
   const delta=(now-frameTime)/1000; frameTime=now;

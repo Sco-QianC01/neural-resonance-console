@@ -38,11 +38,11 @@ export function pointFor(snapshot) {
 export class Snake {
   constructor() { this.reset(); }
   reset() { this.head = { x: .5, y: .5 }; this.tail = []; this.score = 0; this.food = { x: .72, y: .35 }; this.stepIndex = 0; }
-  step(snapshot, deltaSeconds) {
+  step(snapshot, deltaSeconds, instant = false) {
     const target = pointFor(snapshot);
     if (!target) return;
     const distance = Math.hypot(target.x - this.head.x, target.y - this.head.y);
-    const step = Math.min(distance, Math.max(0, Math.min(deltaSeconds, .1)) * .22);
+    const step = instant ? distance : Math.min(distance, Math.max(0, Math.min(deltaSeconds, .1)) * .22);
     if (distance > .005) {
       this.head = { x: this.head.x + (target.x - this.head.x) / distance * step,
         y: this.head.y + (target.y - this.head.y) / distance * step };

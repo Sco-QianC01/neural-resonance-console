@@ -15,7 +15,7 @@
 - USB β/α、θ/α 比值只作比值顯示，指數空白。
 - 記錄並導出 JSON/CSV；匯入、暫停、續播與結束清空讀數。
 - MUST 紫白與 SHCM 藍白切換；同一資料鏈路。
-- 低刺激軌跡；reduced-motion 降低繪製頻率並停止蛇的追隨動畫。
+- 低刺激軌跡；reduced-motion 降低繪製頻率，蛇改為跳點以保留資料互動。
 - 靜態構建只複製 index/src/public/docs，PowerShell 工具解析通過。
 
 ## 未宣稱通過
