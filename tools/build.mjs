@@ -5,7 +5,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const out=path.join(root,'dist');
 await mkdir(out,{recursive:true});
 // Only copy deployable public source; no recordings, credentials or work logs.
-for(const name of ['index.html','src','public','docs']) {
+for(const name of ['index.html','src','public','docs','neural-worm']) {
   await rm(path.join(out,name),{recursive:true,force:true});
   await cp(path.join(root,name),path.join(out,name),{recursive:true});
 }

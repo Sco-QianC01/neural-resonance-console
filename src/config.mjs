@@ -1,11 +1,10 @@
 export const DEFAULT_CONFIG=Object.freeze({
-  startupMode:'demo',endpoint:'',autoConnect:false,theme:'violet',
+  startupMode:'demo',endpoint:'',autoConnect:false,
 });
 
 export function normalizeConfig(value={},baseUrl) {
   const config={...DEFAULT_CONFIG};
   if(value.startupMode==='live')config.startupMode='live';
-  if(value.theme==='blue')config.theme='blue';
   if(typeof value.endpoint==='string'&&value.endpoint.trim()){
     const text=value.endpoint.trim();
     const url=text.startsWith('/')?new URL(text,baseUrl):new URL(text);

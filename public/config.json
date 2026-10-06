@@ -1,6 +1,5 @@
 {
   "startupMode": "demo",
   "endpoint": "",
-  "autoConnect": false,
-  "theme": "violet"
+  "autoConnect": false
 }

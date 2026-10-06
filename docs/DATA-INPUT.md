@@ -54,8 +54,7 @@ HTTPS 网站使用 `wss://`；本机 HTTP 页面也可以使用 `ws://`。
 {
   "startupMode": "live",
   "endpoint": "wss://your-gateway.example/eeg",
-  "autoConnect": true,
-  "theme": "violet"
+  "autoConnect": true
 }
 ```
 

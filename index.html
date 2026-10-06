@@ -1,129 +1,72 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="google" content="notranslate">
-  <meta name="theme-color" content="#7857a5">
-  <title>神經共振 · EEG 互動控制台</title>
-  <link rel="icon" type="image/svg+xml" href="./public/mark.svg">
-  <link rel="stylesheet" href="./src/style.css">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0c1117">
+  <title>神經共振 · 波形、蠕蟲與設備</title>
+  <link rel="stylesheet" href="./neural-worm/style.css">
 </head>
 <body>
-  <div id="app" class="console-shell">
-    <header class="topbar">
-      <a class="identity" href="./" aria-label="神經共振首頁">
-        <img src="./public/mark.svg" alt="" width="42" height="42">
-        <div><span class="eyebrow">NEURAL RESONANCE / EEG</span><h1>神經共振控制台</h1></div>
-      </a>
-      <nav class="top-actions" aria-label="工作台操作">
-        <span class="version">獨立控制台 <b>v0.3</b></span>
-        <label class="sr-only" for="brand">品牌主題</label>
-        <select id="brand"><option value="violet">紫白</option><option value="blue">藍白</option></select>
-        <label class="sr-only" for="export-format">匯出格式</label>
-        <select id="export-format"><option value="json">JSON</option><option value="csv">CSV</option></select>
-        <button id="export" class="quiet-button" disabled>匯出記錄 ↗</button>
-      </nav>
-    </header>
-
-    <div class="page-heading">
-      <div><p class="eyebrow">01 / BRAIN → INTERACTION → MUSIC</p><h2>讓腦波，成為音樂的起點。</h2></div>
-      <div id="connection-badge" class="status-badge" role="status"><i></i><span>尚未連接</span></div>
-    </div>
-
-    <main class="workspace">
-      <section class="input-panel panel" aria-labelledby="input-title">
-        <div class="section-heading"><span class="section-number">01</span><h3 id="input-title">腦波輸入</h3><span class="label-tag">EEG INTERACTION</span></div>
-        <div class="source-tabs" role="tablist" aria-label="資料來源">
-          <button role="tab" id="demo-tab" aria-selected="true" data-mode="demo">示範</button>
-          <button role="tab" id="live-tab" aria-selected="false" data-mode="live">接入資料</button>
-          <button role="tab" id="replay-tab" aria-selected="false" data-mode="replay">回放</button>
+  <header class="header"><a href="./" class="wordmark"><span class="mark">✳</span> NEURAL RESONANCE</a><nav class="view-nav" aria-label="三個介面"><button data-view="waveforms" aria-pressed="true">01 波形捕獲</button><button data-view="worm" aria-pressed="false">02 神經蠕蟲</button><button data-view="settings" aria-pressed="false">03 設備設定</button></nav></header>
+  <main>
+    <div class="heading"><div><p class="eyebrow">TEN ELEMENTS. ONE NEURAL FIELD.</p><h1 id="page-title">波形捕獲<span>EEG / LIVE SIGNAL</span></h1></div><div id="status" class="status" role="status">示範資料</div></div>
+    <div class="workspace">
+      <aside class="input">
+        <div class="section-line"><span>01 / SIGNAL</span><small id="source">DEMO</small></div>
+        <h2>腦波輸入</h2>
+        <div class="tabs"><button id="demo" aria-pressed="true">示範</button><button id="live" aria-pressed="false">實時</button><button id="replay" aria-pressed="false">回放</button></div>
+        <div id="demo-input">
+          <label>專注度 <output id="attention-value">62</output><input id="attention" type="range" min="0" max="100" value="62"></label>
+          <label>放鬆度 <output id="relaxation-value">74</output><input id="relaxation" type="range" min="0" max="100" value="74"></label>
+          <label class="checkbox"><input id="auto" type="checkbox" checked> 自動變化</label>
+          <button id="pause" class="outline">暫停示範</button>
         </div>
-        <div id="live-controls" hidden>
-          <label class="field-label" for="endpoint">你的 WebSocket 資料源</label>
-          <input id="endpoint" type="url" placeholder="wss://your-gateway.example/eeg" spellcheck="false" autocomplete="off">
-          <div class="connection-actions"><button id="connect" class="primary-button">連接資料源</button><button id="disconnect" class="quiet-button" disabled>停止</button></div>
-          <p class="support-copy"><a href="./docs/DATA-INPUT.md" target="_blank" rel="noopener">資料格式與接入範例 ↗</a></p>
+        <div id="live-input" hidden>
+          <label for="endpoint">WebSocket 資料源</label>
+          <input id="endpoint" type="url" autocomplete="off" placeholder="wss://your-gateway/eeg">
+          <button id="connect" class="outline">連接</button><button id="disconnect" class="text-button">停止連接</button>
         </div>
-        <div id="demo-controls">
-          <p class="support-copy">示範正在本頁生成。拖動滑桿，觀察軌跡與音樂參數的變化。</p>
-          <label class="demo-toggle"><input id="demo-animate" type="checkbox" checked> 自動變化</label>
-          <label class="demo-range">專注度 <output id="demo-attention-value">62</output><input id="demo-attention" type="range" min="0" max="100" value="62"></label>
-          <label class="demo-range">放鬆度 <output id="demo-relaxation-value">74</output><input id="demo-relaxation" type="range" min="0" max="100" value="74"></label>
-          <button id="start-demo" class="primary-button">開始示範</button>
-        </div>
-        <div id="replay-controls" hidden>
-          <label class="file-button" for="replay-file">匯入本控制台的 JSON 記錄<input type="file" id="replay-file" accept=".json,application/json"></label>
-          <p id="replay-info" class="support-copy">尚未匯入記錄。</p>
-          <div class="connection-actions"><button id="start-replay" class="primary-button" disabled>播放回放</button><button id="pause-replay" class="quiet-button" disabled>暫停</button></div>
-        </div>
-        <p id="source-note" class="source-note">示範資料用於體驗互動，並非實際測量。</p>
-        <div class="signal-summary">
-          <div><span>資料來源</span><strong id="source-label">—</strong></div>
-          <div><span>新鮮度</span><strong id="freshness">—</strong></div>
-          <div><span>有效腦波封包</span><strong id="packet-count">—</strong></div>
-        </div>
-        <div class="metric attention">
-          <div class="metric-caption"><span>專注度</span><small>ATTENTION</small></div>
-          <div class="metric-readout"><strong id="attention">—</strong><span>/ 100</span></div>
-          <div class="meter-track"><i id="attention-meter"></i></div>
-        </div>
-        <div class="metric relaxation">
-          <div class="metric-caption"><span>放鬆度</span><small>RELAXATION</small></div>
-          <div class="metric-readout"><strong id="relaxation">—</strong><span>/ 100</span></div>
-          <div class="meter-track"><i id="relaxation-meter"></i></div>
-        </div>
-        <p id="metric-origin" class="support-copy">指數待接入。</p>
-        <div id="ratio-panel" class="ratio-panel" hidden><b>頻段比值</b><p id="ratios">—</p><small>保留來源比值，不換算成百分制指數。</small></div>
-      </section>
-
-      <section class="interaction-panel panel" aria-labelledby="interaction-title">
-        <div class="section-heading"><span class="section-number">02</span><h3 id="interaction-title">二維神經軌跡</h3><span id="mode-label" class="label-tag">WAITING</span></div>
-        <div class="interaction-toolbar">
-          <div class="view-tabs" aria-label="互動模式"><button id="trajectory-view" aria-pressed="true">軌跡</button><button id="snake-view" aria-pressed="false">貪吃蛇</button></div>
-          <span class="axis-key"><i></i> 專注 × 放鬆</span>
-          <button id="reset" class="text-button">重置軌跡 ↺</button>
-        </div>
-        <div class="interaction-stage">
-          <canvas id="field" aria-label="X 軸專注度、Y 軸放鬆度的二維軌跡"></canvas>
-          <div id="stage-empty"><span class="empty-orbit"></span><strong>等待一段腦波</strong><p>接入裝置，或從左側開始示範。</p></div>
-          <span class="stage-corner top-left">放鬆度 100</span><span class="stage-corner bottom-right">專注度 100 →</span>
-          <span class="stage-corner bottom-left">0</span>
-          <span id="snake-score" class="snake-score" hidden>已捕獲 <b>0</b></span>
-        </div>
-        <div class="stage-footer"><div><span class="legend-dot attention"></span> 專注度決定橫向位置</div><div><span class="legend-dot relaxation"></span> 放鬆度決定縱向位置</div></div>
-        <div class="recording-strip">
-          <div><span id="recording-dot" class="recording-dot"></span><strong id="recording-label">準備記錄</strong><small id="recording-count">0 個樣本</small></div>
-          <button id="record" class="quiet-button">開始記錄</button>
-        </div>
-        <p id="interaction-note" class="support-copy interaction-note">二維軌跡直接取自有效指數；資料中斷時停止移動。</p>
-      </section>
-
-      <section class="music-panel panel" aria-labelledby="music-title">
-        <div class="section-heading"><span class="section-number">03</span><h3 id="music-title">音樂要素</h3><span class="label-tag">MAPPING v1</span></div>
-        <div class="music-feature"><span>即時速度</span><strong id="bpm">—<small>BPM</small></strong><p>專注度 × 放鬆度 → 聲音參數</p></div>
-        <div id="music-elements" class="music-elements"></div>
-        <div class="preview-actions"><button id="listen" class="primary-button" disabled>開啟聲音預覽 ♫</button><button id="mute" class="quiet-button" disabled>靜音</button></div>
-        <details class="mapping-details"><summary>查看／修改映射</summary><label>速度範圍（BPM）<span class="mapping-pair"><input id="bpm-min" type="number" min="30" max="180" value="48" aria-label="最低速度"><input id="bpm-max" type="number" min="30" max="180" value="108" aria-label="最高速度"></span></label><p>十項參數採用公開的可修改規則，隨有效輸入即時變化。</p><a href="./docs/MAPPING.md" target="_blank" rel="noopener">映射規則 ↗</a></details>
-      </section>
-    </main>
-
-    <details class="sensor-panel panel">
-      <summary class="optional-sensors">其他生理訊號（選填資料）</summary>
-      <p id="sensor-note" class="support-copy">依各感測器實際輸入更新</p>
-      <div id="sensor-values" class="sensor-values"></div>
-    </details>
-
-    <section class="observation panel" aria-labelledby="observation-title">
-      <div class="observation-head"><div class="section-heading"><span class="section-number">04</span><h3 id="observation-title">頻段觀察</h3></div><span id="band-units">原始頻段值 · 保留來源單位</span><span class="observation-duration">最近 60 秒</span></div>
-      <div class="band-rows" id="band-rows"></div>
-      <details class="eeg-details"><summary>查看所有已接收的 EEG 欄位</summary><dl id="eeg-fields"><dt>等待腦波資料</dt></dl></details>
-      <div class="observation-bottom"><span id="stream-detail">NEURAL RESONANCE · 本頁互動</span><button id="toggle-log" class="text-button" aria-expanded="false">操作紀錄 ↓</button></div>
-      <ol id="event-log" hidden></ol>
-    </section>
-    <footer class="page-footer"><span>EEG INTERACTION</span><p>記錄保留於目前頁面，重新載入前請先匯出。</p><span>OPEN SOURCE / MIT</span></footer>
-    <div id="notice" role="status" class="notice" hidden></div>
+        <div id="replay-input" hidden><label for="replay-file">匯入 EEG JSON<input id="replay-file" type="file" accept=".json"></label><button id="replay-start" class="outline" disabled>播放記錄</button><button id="replay-stop" class="text-button">暫停</button><p id="replay-info"></p></div>
+<div class="readouts"><div><span>專注度</span><strong id="read-attention">—</strong><small>/ 100</small></div><div><span>放鬆度</span><strong id="read-relaxation">—</strong><small>/ 100</small></div></div>
+        <div class="signal-meta"><span>有效封包</span><b id="packets">—</b><span>資料狀態</span><b id="freshness">等待</b></div>
+        <p id="source-note">示範由本頁生成，並非實際測量。</p>
+        <div class="capture"><button id="record" class="outline">開始記錄</button><button id="export" class="text-button" disabled>匯出 JSON ↗</button><span id="count">0 個樣本</span></div>
+        <details><summary>映射規則</summary><p>十項音樂控制量各自映射為節點密集度和空間離散度。這是可修改的互動規則。</p><a href="./docs/NEURAL-WORM.md" target="_blank" rel="noopener">完整定義 ↗</a></details>
+      </aside>
+      <div class="field">
+<section id="view-waveforms" class="view-panel">
+  <div class="wave-head"><div><p class="eyebrow">01 / WAVEFORM CAPTURE</p><h2>四頻段 · 實時波形</h2></div><span id="wave-units">來源頻段值</span></div>
+  <div id="wave-grid" class="wave-grid"></div>
+  <div class="wave-actions"><button id="wave-snapshot" class="outline">保存波形 PNG</button><button id="mask-snapshot" class="outline">保存透明遮罩</button><button id="csv-export" class="text-button" disabled>匯出 CSV ↗</button><span>最近 60 秒 · 收到多少，顯示多少</span></div>
+  <section class="raw-section"><div class="section-line"><span>RAW EEG / 原始腦波</span><small id="raw-status">等待原始樣本</small></div><canvas id="raw-wave" aria-label="原始腦波時間曲線"></canvas></section>
+  <p class="view-note">完整 Spout 即時輸出由獨立桌面波形工具提供。瀏覽器可保存透明 PNG；不宣稱瀏覽器直接輸出 Spout。</p>
+</section>
+<div id="view-worm" class="view-panel" hidden>
+        <section class="hero" aria-labelledby="selected-name">
+          <div class="hero-header"><div><p class="eyebrow">02 / NEURAL FIELD</p><h2 id="selected-name">旋律 <span>MELODY</span></h2></div><div class="hero-value"><b id="selected-value">—</b><span id="selected-unit">MIDI</span></div></div>
+          <div class="worm-space"><label for="worm-space">座標</label><select id="worm-space"><option value="eeg">專注度 × 放鬆度</option><option value="music">速度 × 力度</option></select><span>依時間順序連接樣本點</span></div>
+<canvas id="hero" aria-label="神經蠕蟲光粒子和節點連線"></canvas>
+          <div id="waiting" class="waiting" hidden>等待有效腦波</div>
+          <div class="hero-footer"><div><span>密集度</span><b id="density">—</b></div><div><span>離散度</span><b id="dispersion">—</b></div><div><span>神經節點</span><b id="nodes">—</b></div><span class="flow">SIGNAL → NODES → MUSIC</span></div>
+        </section>
+        <section class="networks" aria-labelledby="networks-title"><div class="networks-header"><h2 id="networks-title">十個網 · 十種音樂組織</h2><span>選擇一個網，展開觀察</span></div><div id="networks" class="network-grid"></div></section>
+      </div>
+<section id="view-settings" class="view-panel" hidden>
+  <div class="wave-head"><div><p class="eyebrow">03 / DEVICE &amp; INTERFACES</p><h2>設備與資料接口</h2></div><button id="check-capabilities" class="outline">重新檢查</button></div>
+  <div id="capabilities" class="capabilities"></div>
+  <div class="settings-grid">
+    <section class="setting-section"><h3>USB / 串口</h3><p>標準 ThinkGear 封包。專有協議設備可改接原廠驅動的 WebSocket。</p><label for="baud">波特率</label><select id="baud"><option>115200</option><option>57600</option><option>9600</option></select><button id="serial-connect" class="outline">選擇 USB 串口</button></section>
+    <section class="setting-section"><h3>藍牙 / BLE</h3><label>設備名稱前綴<input id="ble-name" placeholder="選填"></label><label>服務 UUID<input id="ble-service" placeholder="由設備文件提供"></label><label>通知特徵 UUID<input id="ble-characteristic" placeholder="由設備文件提供"></label><button id="ble-connect" class="outline">選擇藍牙設備</button><p>接收相容 ThinkGear 通知流；其他協議保持原始 bytes 狀態，不冒充已解析腦波。</p></section>
+    <section class="setting-section"><h3>連線與驅動檢查</h3><p>Web API 可用不等於硬體已連接。系統驅動由作業系統管理，網頁不會自行安裝驅動。</p><label>橋接器健康檢查地址<input id="health-url" type="url" placeholder="https://your-gateway/health"></label><button id="health-check" class="outline">檢查接口</button><button id="device-stop" class="text-button">停止設備連線</button><pre id="device-status" role="status">尚未選擇設備</pre><pre id="health-result">尚未檢查</pre></section>
+    <section class="setting-section"><h3>設定與上傳 / 下載</h3><button id="save-settings" class="outline">保存設定</button><button id="download-settings" class="text-button">下載設定 JSON ↗</button><label>匯入設定<input id="settings-file" type="file" accept=".json"></label><label>上傳接口<input id="upload-url" type="url" placeholder="https://your-gateway/recordings"></label><button id="upload-recording" class="outline" disabled>上傳已記錄資料</button><p id="upload-result">只有點擊上傳才發送；接口需支援 JSON POST 和 CORS。</p></section>
   </div>
-  <script type="module" src="./src/app.mjs"></script>
+  <p class="view-note">實時資料源共用左侧接口。切換這三個介面不會停止接收。設定僅保存在此瀏覽器，不含作者電腦路徑。</p>
+</section>
+</div>
+    </div>
+    <footer><span>NEURAL RESONANCE / v0.5</span><p>光粒子呈現互動映射。斷流時停止更新，保留最後畫面。</p><span>OPEN SOURCE</span></footer>
+  </main>
+  <div id="notice" role="status" hidden></div>
+  <script type="module" src="./neural-worm/app.mjs"></script>
 </body>
 </html>
