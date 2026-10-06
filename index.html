@@ -17,7 +17,7 @@
         <div><span class="eyebrow">NEURAL RESONANCE / EEG</span><h1>神經共振控制台</h1></div>
       </a>
       <nav class="top-actions" aria-label="工作台操作">
-        <span class="version">研究介面 <b>v0.1</b></span>
+        <span class="version">研究介面 <b>v0.2</b></span>
         <label class="sr-only" for="brand">品牌主題</label>
         <select id="brand"><option value="must">澳科大 · 紫白</option><option value="shcm">上音 · 藍白</option></select>
         <label class="sr-only" for="export-format">匯出格式</label>
@@ -31,9 +31,15 @@
       <div id="connection-badge" class="status-badge" role="status"><i></i><span>尚未連接</span></div>
     </div>
 
+    <section class="system-panel panel" aria-labelledby="system-title">
+      <div class="system-heading"><div class="section-heading"><span class="section-number">SYSTEM</span><h3 id="system-title">音療後台</h3></div><span id="system-summary">正在讀取本機狀態</span></div>
+      <div id="program-status" class="program-status"></div>
+      <details class="system-details"><summary>執行緒與連接狀態</summary><p id="core-detail">等待感測器主服務。</p><div id="worker-status" class="program-status"></div><p id="program-note">程序及端口狀態按本機實際讀取；感測器是否出資料另行顯示。</p></details>
+    </section>
+
     <main class="workspace">
       <section class="input-panel panel" aria-labelledby="input-title">
-        <div class="section-heading"><span class="section-number">01</span><h3 id="input-title">腦波輸入</h3><span class="label-tag">EEG ONLY</span></div>
+        <div class="section-heading"><span class="section-number">01</span><h3 id="input-title">腦波輸入</h3><span class="label-tag">EEG INTERACTION</span></div>
         <div class="source-tabs" role="tablist" aria-label="資料來源">
           <button role="tab" id="live-tab" aria-selected="true" data-mode="live">即時</button>
           <button role="tab" id="demo-tab" aria-selected="false" data-mode="demo">示範</button>
@@ -42,7 +48,7 @@
         <div id="live-controls">
           <label class="field-label" for="endpoint">感測器接口</label>
           <input id="endpoint" type="url" value="ws://127.0.0.1:8002/ws/live" spellcheck="false" autocomplete="off">
-          <div class="connection-actions"><button id="connect" class="primary-button">連接腦波</button><button id="disconnect" class="quiet-button" disabled>停止</button></div>
+          <div class="connection-actions"><button id="connect" class="primary-button">重新連接</button><button id="disconnect" class="quiet-button" disabled>停止</button></div>
         </div>
         <div id="demo-controls" hidden>
           <p class="support-copy">用內建示範資料體驗互動；可調整兩項指數。</p>
@@ -55,7 +61,7 @@
           <p id="replay-info" class="support-copy">尚未匯入記錄。</p>
           <div class="connection-actions"><button id="start-replay" class="primary-button" disabled>播放回放</button><button id="pause-replay" class="quiet-button" disabled>暫停</button></div>
         </div>
-        <p id="source-note" class="source-note">僅讀取腦波。未接入時不產生指數。</p>
+        <p id="source-note" class="source-note">開頁自動連接音療主服務；設備接入後資料自動顯示。</p>
         <div class="signal-summary">
           <div><span>資料來源</span><strong id="source-label">—</strong></div>
           <div><span>新鮮度</span><strong id="freshness">—</strong></div>
@@ -106,9 +112,15 @@
       </section>
     </main>
 
+    <section class="sensor-panel panel" aria-labelledby="sensor-title">
+      <div class="observation-head"><div class="section-heading"><span class="section-number">04</span><h3 id="sensor-title">其他生理訊號</h3></div><span id="sensor-note">依各感測器實際輸入更新</span></div>
+      <div id="sensor-values" class="sensor-values"></div>
+    </section>
+
     <section class="observation panel" aria-labelledby="observation-title">
-      <div class="observation-head"><div class="section-heading"><span class="section-number">04</span><h3 id="observation-title">頻段觀察</h3></div><span id="band-units">原始頻段值 · 保留來源單位</span><span class="observation-duration">最近 60 秒</span></div>
+      <div class="observation-head"><div class="section-heading"><span class="section-number">05</span><h3 id="observation-title">頻段觀察</h3></div><span id="band-units">原始頻段值 · 保留來源單位</span><span class="observation-duration">最近 60 秒</span></div>
       <div class="band-rows" id="band-rows"></div>
+      <details class="eeg-details"><summary>查看所有已接收的 EEG 欄位</summary><dl id="eeg-fields"><dt>等待腦波資料</dt></dl></details>
       <div class="observation-bottom"><span id="stream-detail">frontal-live-v1 · 只讀接口</span><button id="toggle-log" class="text-button" aria-expanded="false">操作紀錄 ↓</button></div>
       <ol id="event-log" hidden></ol>
     </section>

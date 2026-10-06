@@ -1,8 +1,11 @@
 import { StreamState, LiveConnection, demoSnapshot, parseRecording } from './eeg.mjs';
 import { ELEMENTS, MAPPING_VERSION, mapMusic, pointFor, Snake, AudioPreview } from './music.mjs';
+import { SensorState, SENSOR_FIELDS } from './sensors.mjs';
 
 const $ = id => document.getElementById(id);
 const stream = new StreamState(), snake = new Snake(), audio = new AudioPreview();
+const sensors = new SensorState();
+let systemState = null, systemReceivedAt = 0, systemTimer, leaving = false, runtimeRequest;
 let mode = 'live', transport = 'stopped', timer, tick = 0, recording = false;
 let replay, replayIndex = 0;
 let view = 'trajectory', history = [], records = [], mappings = [], lastMapping = null;
@@ -14,7 +17,7 @@ const connection = new LiveConnection({
   onState(state, detail) {
     const changed = state !== transport;
     transport = state;
-    if (state !== 'connected') { stream.reset(); audio.mute(); }
+    if (state !== 'connected') { stream.reset(); sensors.reset(); audio.mute(); }
     if (changed && mode === 'live') log({ connected:'接口已連接，等待有效腦波。', connecting:'正在連接接口。',
       reconnecting:'接口斷開，正在自動重連。', stopped:'已停止連接。',
       error:'接口無法連接，請檢查主服務或安全連線設定。', invalid:'資料格式無效。' }[state] || state);
@@ -35,7 +38,7 @@ function notify(message) {
 }
 function stopSource() {
   clearTimeout(timer); clearInterval(timer); timer = null;
-  connection.stop(); stream.reset(); audio.mute(); previousValid = false;
+  connection.stop(); stream.reset(); sensors.reset(); audio.mute(); previousValid = false;
   $('listen').textContent = '開啟聲音預覽 ♫';
   $('disconnect').disabled = true; $('pause-replay').disabled = true;
 }
@@ -45,10 +48,11 @@ function setMode(next) {
     $(`${id}-controls`).hidden = id !== mode;
     $(`${id}-tab`).setAttribute('aria-selected', String(id === mode));
   }
-  $('source-note').textContent = mode === 'live' ? '僅讀取腦波。未接入時不產生指數。'
+  $('source-note').textContent = mode === 'live' ? '開頁自動連接音療主服務；設備接入後資料自動顯示。'
     : mode === 'demo' ? '示範資料僅用於測試互動，不是受試者腦波。' : '回放保留原始時間間隔與缺值。';
   log(`切換至${{ live:'即時腦波', demo:'示範', replay:'記錄回放' }[mode]}。`);
   render();
+  if (mode === 'live') connectLive();
 }
 function safePacket(input) {
   const number = value => typeof value === 'number' && Number.isFinite(value) ? value : null;
@@ -61,8 +65,10 @@ function safePacket(input) {
   return { schemaVersion: input.schemaVersion, ts: input.ts,
     source: ['core','mock','demo','replay'].includes(input.source) ? input.source : 'unknown',
     originalTimestamp: number(input.originalTimestamp) ?? input.ts * 1000,
-    quality: { eegPackets: Math.max(0, number(input.quality?.eegPackets) ?? 0) },
-    eeg, attention: number(input.attention), meditation: number(input.meditation) };
+    quality: Object.fromEntries(['eegPackets','spo2Samples','prSamples','hrvSamples','gsrSamples']
+      .map(key=>[key,number(input.quality?.[key])])),
+    eeg, attention: number(input.attention), meditation: number(input.meditation),
+    ...Object.fromEntries(Object.keys(SENSOR_FIELDS).map(key=>[key,number(input[key])])) };
 }
 function mappingFor(snapshot) {
   try { return mapMusic(snapshot, { bpmMin:Number($('bpm-min').value), bpmMax:Number($('bpm-max').value) }); }
@@ -70,6 +76,7 @@ function mappingFor(snapshot) {
 }
 function ingest(packet) {
   if (!stream.accept(packet)) return;
+  sensors.accept(packet);
   if (mode === 'live') transport = 'connected';
   const latest = stream.current();
   const mapping = mappingFor(latest);
@@ -90,7 +97,7 @@ function ingest(packet) {
 function toggleRecord() {
   recording = !recording;
   if (recording && records.length >= 20000) { recording = false; notify('請先匯出並重新載入頁面，開始下一段。'); }
-  log(recording ? '開始記錄 EEG 和音樂參數。' : '停止記錄；已收集的資料仍可匯出。');
+  log(recording ? '開始記錄生理訊號和音樂參數。' : '停止記錄；已收集的資料仍可匯出。');
   render();
 }
 function render() {
@@ -110,7 +117,8 @@ function render() {
   $('connection-badge').querySelector('span').textContent = stateLabel;
   $('mode-label').textContent = !signal ? 'WAITING' : latest.source === 'core' ? 'LIVE EEG' : latest.source.toUpperCase();
   $('source-label').textContent = latest ? { core:'感測器主服務', mock:'主服務模擬', demo:'內建示範', replay:'匯入回放', unknown:'未確認來源' }[latest.source] : '—';
-  $('freshness').textContent = latest ? `${Math.max(0, (Date.now() - latest.timestamp) / 1000).toFixed(1)} s${signal ? '' : ' · 超時/無效'}` : '—';
+  $('freshness').textContent = !latest ? '—' : latest.packets===0 ? '等待有效腦波'
+    : `${(Math.max(0,Date.now()-latest.timestamp,Date.now()-stream.lastAdvance)/1000).toFixed(1)} s${signal?'':' · 超時/接觸不良'}`;
   $('packet-count').textContent = latest ? String(latest.packets) : '—';
   for (const [key, value] of [['attention', latest?.attention], ['relaxation', latest?.relaxation]]) {
     $(key).textContent = signal && value !== null && value !== undefined ? Math.round(value) : '—';
@@ -153,6 +161,87 @@ function render() {
       ? ({delta:'<4 Hz',theta:'4–8 Hz',alpha:'8–13 Hz',beta:'13–30 Hz'})[key]
       : '裝置分段';
   }
+  renderSensors(latest, signal);
+  renderSystem();
+}
+function renderSensors(latest, signal) {
+  const values = sensors.current();
+  const localCore = mode === 'live' && !runtimeStale() ? systemState?.core : null;
+  $('sensor-note').textContent = mode === 'live' ? '獨立判斷新鮮度 · 缺值不補零'
+    : mode === 'replay' ? '回放中的生理訊號' : '示範模式 · 未模擬其他感測器';
+  for (const [key, field] of Object.entries(SENSOR_FIELDS)) {
+    const item = values[key];
+    $(`sensor-${key}`).replaceChildren(document.createTextNode(item.valid
+      ? Number(item.value.toFixed(2)).toString() : '—'),
+      Object.assign(document.createElement('small'),{textContent:field.unit}));
+    $(`sensor-status-${key}`).textContent = item.valid ? '資料接收中'
+      : key === 'gsr' && localCore?.reachable && !localCore.features.gsr ? '目前設定未啟用'
+      : key === 'hrv' ? '等待獨立 HRV 資料' : '等待有效資料';
+  }
+  const fields = signal ? Object.entries(latest?.raw.eeg || {})
+    .filter(([,value])=>typeof value==='number'&&Number.isFinite(value)) : [];
+  $('eeg-fields').replaceChildren(...(fields.length ? fields.map(([key,value])=>{
+    const cell=document.createElement('div'),name=document.createElement('dt'),data=document.createElement('dd');
+    name.textContent=key;data.textContent=Number(value.toPrecision(6)).toString();cell.append(name,data);return cell;
+  }) : [Object.assign(document.createElement('dt'),{textContent:'等待有效腦波資料'})]));
+}
+function runtimeStale() { return !systemState || Date.now()-systemReceivedAt>15000; }
+function chip(label,state) {
+  const item=document.createElement('span');item.className='program-chip';item.dataset.state=state;
+  item.textContent=label;return item;
+}
+function renderSystem() {
+  const state=runtimeStale()?null:systemState;
+  const audit=state?.audit;
+  const freshAudit=audit?.checkedAt&&Date.now()-Date.parse(audit.checkedAt)<30000;
+  const programs=freshAudit?audit.programs:[];
+  $('system-summary').textContent = !state ? '本機狀態暫不可用'
+    : !state.core.reachable ? '感測器主服務尚未就緒'
+    : state.core.source==='mock' ? '主服務運行中 · 模擬來源' : '感測器主服務運行中';
+  $('program-status').replaceChildren(...(programs.length?programs.map(item=>chip(
+    `${item.label} · ${item.infrastructureReady?'運行中':item.running?'端口待就緒':item.ports?.some(p=>p.bound)?'端口被佔用':item.pathValid?'未啟動':'路徑缺失'}`,
+    item.infrastructureReady?'running':item.running?'partial':'stopped')):[chip('等待本機程序清單','stopped')]));
+  if(state?.model) $('program-status').append(chip(
+    `Ollama 報告服務 · ${state.model.reachable?'接口就緒':'未就緒'}`,
+    state.model.reachable?'running':'stopped'));
+  const core=state?.core;
+  $('core-detail').textContent=core?.reachable
+    ? `腦波來源：${{usb:'USB',phone_ble:'手機 BLE',none:'等待設備'}[core.eegSource]??core.eegSource}；腦電串口：${core.ports.brainlink??'未偵測'}；血氧串口：${core.ports.bloodOxygen??'未偵測'}。`
+    : '等待感測器主服務；接口恢復後自動重連。';
+  $('worker-status').replaceChildren(...(core?.workers||[]).map(item=>chip(
+    `${item.name} · ${item.alive?'運行':'已停止'}`,item.alive?'running':'stopped')));
+  $('program-note').textContent=programs.length
+    ? `檢查時間 ${new Date(audit.checkedAt).toLocaleTimeString('zh-TW',{hour12:false})} · 程序與所屬端口；資料、音訊及畫面需分別驗收。`
+    : '本機程序狀態不可讀取；不影響直接連接感測器接口。';
+}
+async function pollSystem() {
+  if (leaving) return;
+  try {
+    runtimeRequest=new AbortController();
+    const timeout=setTimeout(()=>runtimeRequest?.abort(),10000);
+    try {
+      const response=await fetch('./api/runtime',{cache:'no-store',signal:runtimeRequest.signal});
+      if(!response.ok)throw new Error('No local runtime adapter');
+      const value=await response.json();
+      if(value.schemaVersion!=='music-therapy-runtime-v1')throw new Error('Unsupported runtime status');
+      systemState=value;systemReceivedAt=Date.now();
+    } finally {clearTimeout(timeout);}
+  } catch {systemState=null;}
+  renderSystem();
+  if(!leaving) systemTimer=setTimeout(pollSystem,5000);
+}
+function connectLive() {
+  try {history=[];snake.reset();connection.connect($('endpoint').value);$('disconnect').disabled=false;}
+  catch(error){notify(error.message);}
+}
+async function autoConnect() {
+  try {
+    const response=await fetch('./api/health',{signal:AbortSignal.timeout(1500),cache:'no-store'});
+    const health=await response.json();
+    if(health.app==='neural-resonance-console'&&health.websocketPath==='/ws/live')
+      $('endpoint').value=`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/ws/live`;
+  } catch {/* Static hosting keeps the editable direct core endpoint. */}
+  if(!leaving&&mode==='live'&&transport==='stopped')connectLive();
 }
 function resizeCanvas(canvas) {
   const ratio = Math.min(2, devicePixelRatio || 1);
@@ -238,9 +327,9 @@ function exportRecord() {
   const prefix=$('brand').value.toUpperCase();
   if ($('export-format').value === 'csv') {
     const keys=ELEMENTS.map(([key])=>key);
-    const header=['ts','originalTimestamp','source','attention','meditation','eegPackets',...keys];
+    const header=['ts','originalTimestamp','source','attention','meditation','eegPackets',...Object.keys(SENSOR_FIELDS),...keys];
     const rows=records.map((p,i)=>[p.ts,p.originalTimestamp,p.source,p.attention,p.meditation,p.quality.eegPackets,
-      ...keys.map(k=>mappings[i]?.parameters[k]??'')].map(v=>v??'').join(','));
+      ...Object.keys(SENSOR_FIELDS).map(k=>p[k]),...keys.map(k=>mappings[i]?.parameters[k]??'')].map(v=>v??'').join(','));
     download(`${prefix}_music_eeg_${stamp}.csv`,[header.join(','),...rows].join('\r\n'),'text/csv; charset=utf-8');
   } else {
     download(`${prefix}_music_eeg_${stamp}.json`,JSON.stringify(value,null,2),'application/json');
@@ -249,7 +338,7 @@ function exportRecord() {
 }
 function replayNext() {
   if (!replay || replayIndex>=replay.snapshots.length) {
-    stream.reset(); audio.mute(); transport='complete'; $('pause-replay').disabled=true; render(); log('回放完成。'); return;
+    stream.reset(); sensors.reset(); audio.mute(); transport='complete'; $('pause-replay').disabled=true; render(); log('回放完成。'); return;
   }
   const packet=replay.snapshots[replayIndex];
   ingest({...packet,source:'replay',originalTimestamp:packet.originalTimestamp??packet.ts*1000,
@@ -268,11 +357,13 @@ for (const [key,label] of [['delta','δ Delta'],['theta','θ Theta'],['alpha','�
   div.innerHTML=`<div class="band-label">${label}<span id="band-range-${key}">裝置分段</span><strong id="band-value-${key}">—</strong></div><canvas id="band-${key}" aria-label="${label} 時序"></canvas>`;
   $('band-rows').append(div);
 }
+for (const [key,field] of Object.entries(SENSOR_FIELDS)) {
+  const cell=document.createElement('div');cell.className='sensor-value';
+  cell.innerHTML=`<span>${field.label}</span><strong id="sensor-${key}">—<small>${field.unit}</small></strong><p id="sensor-status-${key}">等待有效資料</p>`;
+  $('sensor-values').append(cell);
+}
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>setMode(button.dataset.mode)));
-$('connect').onclick=()=>{
-  try { history=[]; snake.reset(); connection.connect($('endpoint').value); $('disconnect').disabled=false; }
-  catch(error) { notify(error.message); }
-};
+$('connect').onclick=connectLive;
 $('disconnect').onclick=()=>{stopSource(); render();};
 $('start-demo').onclick=()=>{
   stopSource(); tick=0; transport='connected';
@@ -298,7 +389,7 @@ $('start-replay').onclick=()=>{
   transport='connected'; $('pause-replay').disabled=false; replayNext(); log('開始回放。');
 };
 $('pause-replay').onclick=()=>{
-  clearTimeout(timer); stream.reset(); audio.mute(); transport='paused'; render(); log('回放已暫停。');
+  clearTimeout(timer); stream.reset(); sensors.reset(); audio.mute(); transport='paused'; render(); log('回放已暫停。');
 };
 $('record').onclick=toggleRecord;
 $('export').onclick=exportRecord;
@@ -323,7 +414,7 @@ for(const id of ['bpm-min','bpm-max']) $(id).onchange=()=>{
   catch(error){notify(error.message);audio.mute();render();}
 };
 $('toggle-log').onclick=()=>{$('event-log').hidden=!$('event-log').hidden;$('toggle-log').setAttribute('aria-expanded',String(!$('event-log').hidden));};
-window.addEventListener('pagehide',()=>{ stopSource(); audio.mute(); });
+window.addEventListener('pagehide',()=>{leaving=true;clearTimeout(systemTimer);runtimeRequest?.abort();stopSource();audio.mute();});
 document.addEventListener('visibilitychange',()=>{ if(document.hidden){audio.mute(); render();} });
 const motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
 let reduced=motionQuery.matches;
@@ -336,5 +427,6 @@ function animate(now) {
   requestAnimationFrame(animate);
 }
 setInterval(render,250);
-log('控制台已準備，尚未啟動任何感測器。');
+log('控制台已準備，正在自動連接既有音療主服務。');
 render(); requestAnimationFrame(animate);
+autoConnect();pollSystem();

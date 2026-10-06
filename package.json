@@ -1,13 +1,13 @@
 {
   "name": "neural-resonance-console",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Independent EEG interaction console for music research",
   "engines": { "node": ">=20" },
   "scripts": {
     "start": "node tools/serve.mjs",
-    "test": "node --test tests/eeg.test.mjs tests/music.test.mjs",
+    "test": "node --test tests/eeg.test.mjs tests/music.test.mjs tests/sensors.test.mjs",
     "build": "node tools/build.mjs"
   }
 }
