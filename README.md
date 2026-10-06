@@ -56,7 +56,7 @@ npm run build
 GitHub 工作流在创建仓库后需在 Settings → Pages 选择 GitHub Actions。
 `.dev` 域名绑定到所选静态主机；域名与供应商尚未配置。
 
-源码已同步至独立私有仓库：
+源码以 MIT 授权开源至独立公开仓库，无需加入协作者即可查看、下载和 Fork：
 
 ```text
 https://github.com/Sco-QianC01/neural-resonance-console
@@ -64,9 +64,9 @@ https://github.dev/Sco-QianC01/neural-resonance-console
 ```
 
 第二个地址是在线代码编辑器，不是运行网站。
-2026-10-06 实测仓库推送/重新克隆/自动构建通过；
-GitHub Pages 建站返回 HTTP 422，提示当前账户方案不支持此私有仓库。
-尚未公开源码或购买方案；可为完成的静态站配置其他部署平台。
+2026-10-06 已检查全部 Git 历史并公开源码；正式受试记录、
+本地 artifacts、设备数据库和凭证均未包含在仓库中。
+本机后端仍在本机运行；公开网页只提供前端。
 
 ## 云端页面与本机设备
 
@@ -76,7 +76,9 @@ HTTPS 页面访问本机 WS 可能被浏览器安全策略拦截；不能将云�
 
 ## 协作
 
-建议使用独立 GitHub 仓库，初始推送后双方按 branch → pull request 合并。
+按 Fork/branch → pull request 协作，维护者审核后合并。
+代码授权见 `LICENSE`；现有 `package.json` 的 `private: true`
+仅用于防止意外发布至 npm，不限制 GitHub 仓库公开访问。
 `.gitignore` 排除实验记录、构建产物与凭证。不要把真实受试者记录提交 GitHub。
 主要编辑入口：
 

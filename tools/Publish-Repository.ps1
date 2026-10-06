@@ -1,4 +1,7 @@
-param([ValidateSet('inspect','create','status','pages')][string]$Mode='inspect')
+param(
+    [ValidateSet('inspect','create','status','pages','public')][string]$Mode='inspect',
+    [string]$PublicRepository
+)
 $ErrorActionPreference='Stop'
 if($PSVersionTable.PSVersion.Major -lt 7){throw 'PowerShell 7 is required'}
 $root=Split-Path $PSScriptRoot -Parent
@@ -65,8 +68,26 @@ try{
     if($repository -and (!$repository.permissions.push -or $repository.owner.login -ne $account)){
         throw 'Target repository ownership or write access differs'
     }
+    if($Mode -eq 'public'){
+        if($PublicRepository -cne "$account/$name"){
+            throw 'Public mode requires the exact repository name in -PublicRepository'
+        }
+        if(!$repository -or !$repository.permissions.admin){
+            throw 'Repository administrative access is required to change visibility'
+        }
+        if($repository.private){
+            Request-GitHub PATCH "/repos/$account/$name" @{private=$false;visibility='public'}|Out-Null
+        }
+        $repository=Request-GitHub GET "/repos/$account/$name"
+        if($repository.private -or $repository.visibility -ne 'public'){
+            throw 'Repository public visibility was not confirmed'
+        }
+    }
     $result=[ordered]@{account=$user.login;repository="$account/$name";exists=[bool]$repository}
-    if($repository){$result.url=$repository.html_url;$result.private=$repository.private;$result.defaultBranch=$repository.default_branch}
+    if($repository){
+        $result.url=$repository.html_url;$result.private=$repository.private
+        $result.visibility=$repository.visibility;$result.defaultBranch=$repository.default_branch
+    }
     if($repository -and $Mode -in @('status','pages')){
         $runs=Request-GitHub GET "/repos/$account/$name/actions/runs?per_page=4"
         $result.runs=@($runs.workflow_runs | ForEach-Object {

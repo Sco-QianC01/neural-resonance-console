@@ -2,6 +2,7 @@
   "name": "neural-resonance-console",
   "version": "0.2.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Independent EEG interaction console for music research",
   "engines": { "node": ">=20" },
