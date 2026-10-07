@@ -36,6 +36,8 @@
       <div class="field">
 <section id="view-waveforms" class="view-panel">
   <div class="wave-head"><div><p class="eyebrow">01 / WAVEFORM CAPTURE</p><h2>四頻段 · 實時波形</h2></div><span id="wave-units">來源頻段值</span></div>
+  <div class="stream-strip" aria-label="即時采集狀態"><div><span>采集來源</span><b id="signal-transport">—</b></div><div><span>最後樣本</span><b id="signal-age">—</b></div><div><span>原始樣本累計</span><b id="signal-raw-count">—</b></div><div><span>接觸狀態</span><b id="signal-contact">—</b></div></div>
+  <section class="indices-section"><div class="section-line"><span>NATIVE INDICES / 設備原生指數</span><small><i class="attention-key"></i> 專注度　<i class="relaxation-key"></i> 放鬆度</small></div><canvas id="indices-wave" aria-label="專注度與放鬆度的零至一百時間曲線"></canvas><p>僅繪製接觸良好且有效的設備指數；下方頻段和原始波形保留采集數值，接觸不良時不做音樂映射。</p></section>
   <div id="wave-grid" class="wave-grid"></div>
   <div class="wave-actions"><button id="wave-snapshot" class="outline">保存波形 PNG</button><button id="mask-snapshot" class="outline">保存透明遮罩</button><button id="csv-export" class="text-button" disabled>匯出 CSV ↗</button><span>最近 60 秒 · 收到多少，顯示多少</span></div>
   <section class="raw-section"><div class="section-line"><span>RAW EEG / 原始腦波</span><small id="raw-status">等待原始樣本</small></div><canvas id="raw-wave" aria-label="原始腦波時間曲線"></canvas></section>
@@ -63,6 +65,7 @@
       </div>
 <section id="view-settings" class="view-panel" hidden>
   <div class="wave-head"><div><p class="eyebrow">03 / DEVICE &amp; INTERFACES</p><h2>設備與資料接口</h2></div><button id="check-capabilities" class="outline">重新檢查</button></div>
+  <section class="bridge-guide"><h3>本機自動采集</h3><p id="runtime-summary" role="status">在本機采集入口開啟後，自動接入核心資料；USB 和藍牙由核心統一管理。</p><a class="outline" href="http://127.0.0.1:8767/" target="_blank" rel="noopener">開啟本機采集入口 ↗</a><p>公開網頁不會自行取得設備權限。直接使用瀏覽器 USB／BLE 前需選擇並授權設備；與核心采集擇一使用。</p></section>
   <div id="capabilities" class="capabilities"></div>
   <div class="settings-grid">
     <section class="setting-section"><h3>USB / 串口</h3><p>標準 ThinkGear 封包。專有協議設備可改接原廠驅動的 WebSocket。</p><label for="baud">波特率</label><select id="baud"><option>115200</option><option>57600</option><option>9600</option></select><button id="serial-connect" class="outline">選擇 USB 串口</button></section>
@@ -74,7 +77,7 @@
 </section>
 </div>
     </div>
-    <footer><span>NEURAL RESONANCE / v0.6</span><p>光粒子呈現互動映射。斷流時停止更新，保留最後畫面。</p><span>OPEN SOURCE</span></footer>
+    <footer><span>NEURAL RESONANCE / v0.7</span><p>光粒子呈現互動映射。斷流時停止更新，保留最後畫面。</p><span>OPEN SOURCE</span></footer>
   </main>
   <div id="notice" role="status" hidden></div>
   <script type="module" src="./neural-worm/app.mjs"></script>

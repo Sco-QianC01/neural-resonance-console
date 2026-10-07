@@ -4,6 +4,10 @@ export function captureSnapshot(packet, snapshot, networks=null) {
   return {
     schemaVersion: packet.schemaVersion, ts: packet.ts, source: snapshot.source,
     metricOrigin: snapshot.metricOrigin,
+    transport: packet.transport ?? null, connectionEpoch: packet.connectionEpoch ?? null,
+    fieldTimestamps: packet.fieldTimestamps ?? null, sampleRate: packet.sampleRate ?? null,
+    originalFieldTimestamps: packet.originalFieldTimestamps ?? packet.fieldTimestamps ?? null,
+    rawSequence: packet.rawSequence ?? null, rawDropped: packet.rawDropped ?? 0,
     sessionId: snapshot.sessionId, originalTimestamp: snapshot.originalTimestamp,
     attention: packet.attention ?? null, meditation: packet.meditation ?? null,
     inputs: snapshot.valid ? {attention:snapshot.attention,relaxation:snapshot.relaxation} : null,
@@ -12,9 +16,18 @@ export function captureSnapshot(packet, snapshot, networks=null) {
     rawUnit: packet.rawUnit ?? '',
   };
 }
+/** Shift replay clocks together, retaining both the original time and field ages. */
+export function replayPacket(packet,now=Date.now()){
+  const shift=now/1000-packet.ts;
+  return {...packet,source:'replay',originalTimestamp:packet.originalTimestamp??packet.ts*1000,ts:now/1000,
+    originalFieldTimestamps:packet.originalFieldTimestamps??packet.fieldTimestamps??null,
+    fieldTimestamps:packet.fieldTimestamps?Object.fromEntries(Object.entries(packet.fieldTimestamps)
+      .map(([key,value])=>[key,typeof value==='number'&&Number.isFinite(value)?value+shift:value])):null};
+}
 export function recordingCsv(records) {
   const header=['ts','source','attention','meditation','focus_ratio','relaxation_ratio',
-    'delta','theta','alpha','beta','signal_valid','indices_valid','raw_unit','raw_samples'];
+    'delta','theta','alpha','beta','signal_valid','indices_valid','raw_unit','raw_samples',
+    'transport','connection_epoch','sample_rate','raw_dropped'];
   const quote=value=>{
     const text=String(value??'');
     return /[",\r\n]/.test(text)?`"${text.replaceAll('"','""')}"`:text;
@@ -25,6 +38,7 @@ export function recordingCsv(records) {
       native.ratios.focus,native.ratios.relaxation,
       ...['delta','theta','alpha','beta'].map(key=>native.bands[key]),
       native.signalValid,native.valid,packet.rawUnit,JSON.stringify(packet.rawEegSamples??[]),
+      packet.transport,packet.connectionEpoch,packet.sampleRate,packet.rawDropped,
     ].map(quote).join(',');
   })].join('\r\n');
 }

@@ -1,10 +1,23 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {ThinkGearDecoder} from '../src/device-input.mjs';
+import {ThinkGearDecoder,BrowserDeviceInput} from '../src/device-input.mjs';
 import {normalizeSnapshot} from '../src/eeg.mjs';
 import {captureSnapshot} from '../src/recording.mjs';
 const now=1791378000000;
 const frame=payload=>Uint8Array.from([170,170,payload.length,...payload,(~payload.reduce((a,b)=>a+b,0))&255]);
+test('manual stop closes a GATT connection that finishes after cancellation',async()=>{
+  let finishConnect,disconnected=0;
+  const device={removeEventListener(){},gatt:{connected:false,connect(){
+    return new Promise(resolve=>{finishConnect=()=>{this.connected=true;resolve({});};});
+  },disconnect(){this.connected=false;disconnected++;}}};
+  const input=new BrowserDeviceInput({onPacket(){},onStatus(){}});
+  input.device=device;input.bleOptions={service:'service',characteristic:'char'};
+  const connecting=input.openBluetooth(input.generation);
+  await input.stop();
+  finishConnect();await connecting;
+  assert.equal(device.gatt.connected,false);
+  assert.equal(disconnected,1);
+});
 test('ThinkGear fragmented input preserves raw signed values and native indices',()=>{
   const d=new ThinkGearDecoder(),packet=frame([2,0,4,60,5,70,128,2,255,219]);
   assert.equal(d.push(packet.slice(0,5),1000).length,0);

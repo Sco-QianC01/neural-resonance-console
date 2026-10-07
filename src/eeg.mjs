@@ -13,21 +13,24 @@ export function normalizeSnapshot(input, now = Date.now()) {
   const timestamp = input.ts * 1000;
   const age = now - timestamp;
   const eeg = input.eeg && typeof input.eeg === 'object' ? input.eeg : {};
+  const fieldFresh = key => !input.fieldTimestamps || !Object.hasOwn(input.fieldTimestamps,key)
+    || (finite(input.fieldTimestamps[key]) && now-input.fieldTimestamps[key]*1000>=-5000
+        && now-input.fieldTimestamps[key]*1000<=STALE_MS);
   const has = key => Object.hasOwn(eeg, key);
   // The core's top-level fields can alias focus_index/relaxation_index. They
   // are ratios, not a calibrated 0–100 score; preserve them separately.
-  const attention = index(has('attention') ? eeg.attention
-    : has('focus_index') ? null : input.attention);
-  const relaxation = index(has('meditation') ? eeg.meditation
-    : has('relaxation_index') ? null : input.meditation);
+  const attention = fieldFresh('attention') ? index(has('attention') ? eeg.attention
+    : has('focus_index') ? null : input.attention) : null;
+  const relaxation = fieldFresh('meditation') ? index(has('meditation') ? eeg.meditation
+    : has('relaxation_index') ? null : input.meditation) : null;
   const metricOrigin = input.metricOrigin==='thinkgear-esense' ? 'thinkgear-esense' : 'device-index';
   // ThinkGear reserves zero for an unavailable eSense computation. Other
   // adapters and the explicit demo can still define valid zero-valued indices.
   const indicesAvailable = metricOrigin!=='thinkgear-esense' || (attention>0 && relaxation>0);
   const packets = positive(input.quality?.eegPackets) ?? 0;
   const poorSignal = positive(eeg.poor_signal ?? eeg.poorSignal);
-  const signalValid = age >= -5000 && age <= STALE_MS && packets > 0
-    && !(poorSignal !== null && poorSignal > 0);
+  const transportFresh = age >= -5000 && age <= STALE_MS && packets > 0;
+  const signalValid = transportFresh && !(poorSignal !== null && poorSignal > 0);
   const bands = Object.fromEntries(['delta', 'theta', 'alpha', 'beta'].map(key => {
     const direct = positive(eeg[`${key}_mean`]) ?? positive(eeg[key]);
     const low = positive(eeg[`low${key[0].toUpperCase()}${key.slice(1)}`]);
@@ -38,12 +41,13 @@ export function normalizeSnapshot(input, now = Date.now()) {
     timestamp, originalTimestamp: input.originalTimestamp ?? timestamp,
     source: ['device', 'core', 'mock', 'demo', 'replay'].includes(input.source) ? input.source : 'unknown',
     sessionId: typeof input.sessionId === 'string' ? input.sessionId : null,
+    transport: input.transport ?? null, connectionEpoch: input.connectionEpoch ?? null,
     attention, relaxation, bands, packets,
     ratios: { focus: positive(eeg.focus_index), relaxation: positive(eeg.relaxation_index) },
     bandUnits: Object.keys(eeg).some(key => key.endsWith('_mean')) ? 'RMS · 相對值'
       : input.source==='demo' ? '示範相對值' : '來源頻段值',
     metricOrigin,
-    signalValid, valid: signalValid && attention !== null && relaxation !== null && indicesAvailable,
+    transportFresh, signalValid, valid: signalValid && attention !== null && relaxation !== null && indicesAvailable,
     raw: input,
   };
 }
@@ -51,9 +55,11 @@ export function normalizeSnapshot(input, now = Date.now()) {
 /** The heartbeat is not proof of incoming hardware samples. */
 export class StreamState {
   constructor() { this.reset(); }
-  reset() { this.latest = null; this.lastAdvance = 0; this.lastPackets = null; this.lastTimestamp = -Infinity; }
+  reset() { this.latest = null; this.lastAdvance = 0; this.lastPackets = null; this.lastTimestamp = -Infinity; this.identity=null; }
   accept(input, now = Date.now()) {
     const snapshot = normalizeSnapshot(input, now);
+    const identity=JSON.stringify([snapshot.source,snapshot.sessionId,snapshot.transport,snapshot.connectionEpoch]);
+    if(this.identity!==identity){this.reset();this.identity=identity;}
     if (snapshot.timestamp <= this.lastTimestamp) return false;
     if (snapshot.packets !== this.lastPackets) this.lastAdvance = now;
     this.lastPackets = snapshot.packets;
@@ -65,7 +71,8 @@ export class StreamState {
     if (!this.latest) return null;
     const fresh = now - this.latest.timestamp <= STALE_MS
       && now - this.lastAdvance <= STALE_MS;
-    return { ...this.latest, signalValid: this.latest.signalValid && fresh,
+    return { ...this.latest, transportFresh: this.latest.transportFresh && fresh,
+      signalValid: this.latest.signalValid && fresh,
       valid: this.latest.valid && fresh };
   }
 }
@@ -73,9 +80,9 @@ export class StreamState {
 export class LiveConnection {
   constructor({ onState, onSnapshot, socketFactory = url => new WebSocket(url),
     schedule = (callback, delay) => setTimeout(callback, delay),
-    cancel = handle => clearTimeout(handle) }) {
-    Object.assign(this, { onState, onSnapshot, socketFactory, schedule, cancel });
-    this.generation = 0; this.retry = 0; this.socket = null; this.timer = null;
+    cancel = handle => clearTimeout(handle),clock=()=>Date.now(),idleMs=10000 }) {
+    Object.assign(this, { onState, onSnapshot, socketFactory, schedule, cancel,clock,idleMs });
+    this.generation = 0; this.retry = 0; this.socket = null; this.timer = null;this.idleTimer=null;this.socketEpoch=0;
   }
   connect(endpoint) {
     const url = new URL(endpoint);
@@ -91,26 +98,42 @@ export class LiveConnection {
     let socket;
     try { socket = this.socketFactory(this.endpoint); } catch { this.queue(generation); return; }
     this.socket = socket;
-    socket.onopen = () => { if (generation === this.generation) { this.retry = 0; this.onState('connected'); } };
+    const epoch=++this.socketEpoch;
+    const current=()=>generation===this.generation && epoch===this.socketEpoch && socket===this.socket;
+    const watchdog=()=>{
+      this.cancel(this.idleTimer);
+      this.idleTimer=this.schedule(()=>{
+        if(!current())return;
+        this.socketEpoch++;socket.onclose=null;socket.close();
+        this.onState('error','接口没有继续发送数据，正在重新连接。');
+        this.queue(generation);
+      },this.idleMs);
+    };
+    socket.onopen = () => { if (current()) { this.onState('connected');watchdog(); } };
     socket.onmessage = event => {
-      if (generation !== this.generation) return;
+      if (!current()) return;
       try {
         if (typeof event.data !== 'string' || event.data.length > 131072)
           throw new Error('無效或過大的腦波封包。');
         this.onSnapshot(JSON.parse(event.data));
+        this.retry=0;watchdog();
       } catch (error) { this.onState('invalid', error.message); }
     };
-    socket.onerror = () => { if (generation === this.generation) this.onState('error'); };
-    socket.onclose = () => { if (generation === this.generation) this.queue(generation); };
+    socket.onerror = () => { if (current()) this.onState('error'); };
+    socket.onclose = () => { if (current()) {this.socketEpoch++;this.cancel(this.idleTimer);this.queue(generation);} };
   }
   queue(generation) {
+    if(generation!==this.generation)return;
+    this.cancel(this.timer);
     this.onState('reconnecting');
     const delay = Math.min(15000, 1000 * 2 ** this.retry++);
     this.timer = this.schedule(() => this.open(generation), delay);
   }
   stop() {
     this.generation += 1;
+    this.socketEpoch++;
     this.cancel(this.timer); this.timer = null;
+    this.cancel(this.idleTimer);this.idleTimer=null;
     if (this.socket) { this.socket.onclose = null; this.socket.close(); this.socket = null; }
     this.onState('stopped');
   }

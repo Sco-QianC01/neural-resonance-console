@@ -2,18 +2,20 @@ import {StreamState,LiveConnection,demoSnapshot,parseRecording} from '../src/eeg
 import {DEFAULT_CONFIG,normalizeConfig,demoValues} from '../src/config.mjs';
 import {ELEMENTS} from '../src/music.mjs';
 import {networkStates,drawNetwork,NETWORK_VERSION} from '../src/neural-networks.mjs';
-import {drawWaveforms,drawWorm} from '../src/waveform-view.mjs';
+import {drawWaveforms,drawWorm,drawIndices} from '../src/waveform-view.mjs';
 import {BrowserDeviceInput} from '../src/device-input.mjs';
-import {captureSnapshot,recordingCsv} from '../src/recording.mjs';
+import {captureSnapshot,recordingCsv,replayPacket} from '../src/recording.mjs';
 import {createMusicPrompt} from '../src/prompt.mjs';
 const $=id=>document.getElementById(id),stream=new StreamState();
 const english=['MELODY','RHYTHM','HARMONY','DYNAMICS','TEMPO','MODE','FORM','TEXTURE','TIMBRE','ARTICULATION'];
 let mode='demo',tick=0,timer=null,selected=0,states=null,recording=false,records=[],frame=0,time=0,paused=false,leaving=false;
 let view='waveforms',history=[],rawSamples=[],rawUnit='',replay=null,replayIndex=0,recordBytes=0;
+let liveIdentity=null;
+const bandTitles={delta:'Delta · δ',theta:'Theta · θ',alpha:'Alpha · α',beta:'Beta · β'};
 const waveKeys=['delta','theta','alpha','beta'];
 for(const key of waveKeys){
   const cell=document.createElement('section');cell.className='wave-chart';
-  cell.innerHTML=`<div><h3>${key[0].toUpperCase()+key.slice(1)}</h3><span id="wave-value-${key}">—</span></div><canvas id="wave-${key}" aria-label="${key}頻段的時間波形"></canvas>`;
+  cell.innerHTML=`<div><h3>${bandTitles[key]}<small id="wave-range-${key}"></small></h3><span id="wave-value-${key}">—</span></div><canvas id="wave-${key}" aria-label="${key}頻段的時間波形"></canvas>`;
   $('wave-grid').append(cell);
 }
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -39,12 +41,14 @@ function ingest(packet,{capture=true,now=Date.now()}={}){
   try{
     if(!stream.accept(packet,now))return;
     const snapshot=stream.current(now);
+    const identity=JSON.stringify([snapshot.source,snapshot.sessionId,snapshot.transport,snapshot.connectionEpoch]);
+    if(identity!==liveIdentity){history=[];rawSamples=[];states=null;liveIdentity=identity;}
     states=networkStates(snapshot);
     history.push(snapshot);history=history.filter(p=>p.timestamp>=Date.now()-60000).slice(-2048);
     const raw=packet.rawEegSamples??packet.eeg?.rawSamples;
-    if(Array.isArray(raw)&&raw.length<=2048&&raw.every(Number.isFinite)){
+    if(Array.isArray(raw)&&raw.length<=8192&&raw.every(Number.isFinite)){
       rawSamples.push(...raw);rawSamples=rawSamples.slice(-4096);rawUnit=packet.rawUnit||'來源原始值';
-      $('raw-status').textContent=`${rawSamples.length} 個樣本 · ${rawUnit}`;
+      $('raw-status').textContent=`${rawSamples.length} 個樣本 · ${rawUnit}${packet.sampleRate?` · ${packet.sampleRate} Hz`:''}${packet.rawDropped?` · 缺失 ${packet.rawDropped}`:''}`;
     }
     if(recording&&capture){
       const entry=captureSnapshot(packet,snapshot,states);
@@ -81,7 +85,8 @@ function update(){
   $('read-attention').textContent=valid?Math.round(current.attention):'—';
   $('read-relaxation').textContent=valid?Math.round(current.relaxation):'—';
   $('packets').textContent=current?.packets??'—';
-  $('freshness').textContent=valid?'有效資料':current?.signalValid?'缺少設備指數':'等待 / 暫停';
+  $('freshness').textContent=valid?'有效資料':current?.transportFresh&&!current.signalValid?'接觸不良':
+    current?.signalValid?'缺少設備指數':'等待 / 暫停';
   $('waiting').hidden=Boolean(states);
   $('count').textContent=`${records.length} 個樣本`;$('record').textContent=recording?'停止記錄':'開始記錄';
   for(const id of ['export','csv-export','upload-recording'])$(id).disabled=!records.length;
@@ -99,8 +104,21 @@ function update(){
     cells[0].textContent=`密集 ${valid&&states?states[i].density.toFixed(2):'—'}`;
     cells[1].textContent=`離散 ${valid&&states?states[i].dispersion.toFixed(2):'—'}`;
   });
-  for(const key of waveKeys)$(`wave-value-${key}`).textContent=current?.signalValid&&current.bands[key]!==null?current.bands[key].toPrecision(4):'—';
+  for(const key of waveKeys)$(`wave-value-${key}`).textContent=current?.transportFresh&&current.bands[key]!==null?current.bands[key].toPrecision(4):'—';
   $('wave-units').textContent=current?.bandUnits||'保留來源單位';
+  for(const key of waveKeys){
+    const range=current?.raw?.bandRanges?.[key];
+    $(`wave-range-${key}`).textContent=range?` ${range[0]}–${range[1]} Hz`:'';
+  }
+  if(mode==='live'&&current){
+    $('signal-transport').textContent=current.raw.transport==='none'?'等待有效包':current.raw.transport||'外部接口';
+    $('signal-age').textContent=Number.isFinite(current.raw.lastSampleAt)?`${Math.max(0,Date.now()/1000-current.raw.lastSampleAt).toFixed(1)} s`:'—';
+    $('signal-raw-count').textContent=current.raw.rawSequence??'—';
+    $('signal-contact').textContent=current.raw.eeg?.poor_signal===0?'良好':
+      current.raw.eeg?.poor_signal>0?`接觸 ${current.raw.eeg.poor_signal}`:'未回報';
+  }else{
+    for(const id of ['signal-transport','signal-age','signal-raw-count','signal-contact'])$(id).textContent=mode==='demo'?'示範':'—';
+  }
   for(const id of ['make-prompt','copy-prompt','download-prompt']){
     $(id).disabled=!valid || (id!=='make-prompt'&&!lastPrompt);
   }
@@ -117,6 +135,7 @@ $('connect').onclick=()=>{
     const text=$('endpoint').value.trim();
     if(!text)throw new Error('請填入 WebSocket 資料源。');
     if(location.protocol==='https:'&&text.startsWith('ws:'))throw new Error('HTTPS 頁面需要 wss://；本機 HTTP 頁面可使用 ws://。');
+    if(mode!=='live')setMode('live');
     stop();stream.reset();states=null;history=[];connection.connect(text);paused=false;
   }catch(error){notice(error.message);}
 };
@@ -162,7 +181,7 @@ $('replay-file').onchange=async()=>{
 function replayNext(){
   if(!replay||replayIndex>=replay.snapshots.length){stream.reset();$('status').textContent='回放完成';update();return;}
   const packet=replay.snapshots[replayIndex++];
-  ingest({...packet,source:'replay',originalTimestamp:packet.ts*1000,ts:Date.now()/1000});
+  ingest(replayPacket(packet));
   const next=replay.snapshots[replayIndex];timer=setTimeout(replayNext,next?Math.max(1,(next.ts-packet.ts)*1000):300);
 }
 $('replay-start').onclick=()=>{if(!replay)return;stop();if(replayIndex>=replay.snapshots.length)replayIndex=0;paused=false;$('status').textContent='記錄回放';replayNext();};
@@ -197,6 +216,19 @@ for(const [id,mask] of [['wave-snapshot',false],['mask-snapshot',true]])$(id).on
   const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download=`neural-${mask?'mask':'waveforms'}-${Date.now()}.png`;a.click();
 };
 const devices=new BrowserDeviceInput({onPacket:ingest,onStatus:text=>{$('device-status').textContent=text;}});
+let runtimeTimer=null;
+async function refreshRuntime(){
+  try{
+    const response=await fetch('/api/runtime',{cache:'no-store',signal:AbortSignal.timeout(3000)});
+    if(!response.ok)return;
+    const state=await response.json();if(state.schemaVersion!=='music-therapy-runtime-v1')return;
+    const core=state.core;
+    $('runtime-summary').textContent=core?.reachable
+      ?`核心運行中 · ${core.eegSource==='none'?'尚未收到有效腦波':`來源 ${core.eegSource}`} · USB ${core.ports?.brainlink||'未識別'} · 血氧 ${core.ports?.bloodOxygen||'未識別'}`
+      :'核心未運行；接口保持重連。';
+    $('health-result').textContent=JSON.stringify({core:state.core,checkedAt:state.checkedAt},null,2);
+  }catch{$('runtime-summary').textContent='本機橋接器暫不可用；等待接口恢復。';}
+}
 function capabilities(){
   const data=[['執行環境',isSecureContext?'安全來源':'非安全來源：硬體 API 可能不可用'],
     ['USB / Web Serial',navigator.serial?'瀏覽器接口可用':'此瀏覽器未提供接口'],
@@ -258,10 +290,10 @@ function animate(now){
       if(bounds.bottom>0&&bounds.top<innerHeight)drawNetwork(card.querySelector('canvas'),states?.[i],time,{active:Boolean(valid)});
     });
   }
-  if(view==='waveforms'){for(const key of waveKeys)drawWaveforms($(`wave-${key}`),history,key);drawRaw();}
+  if(view==='waveforms'){drawIndices($('indices-wave'),history);for(const key of waveKeys)drawWaveforms($(`wave-${key}`),history,key);drawRaw();}
   requestAnimationFrame(animate);
 }
-window.addEventListener('pagehide',()=>{leaving=true;stop();});
+window.addEventListener('pagehide',()=>{leaving=true;clearInterval(runtimeTimer);stop();});
 setInterval(update,250);requestAnimationFrame(animate);
 async function initialize(){
   let config=DEFAULT_CONFIG;
@@ -271,7 +303,14 @@ async function initialize(){
   if(leaving)return;
   $('endpoint').value=config.endpoint;setMode(config.startupMode);
   try{const local=localStorage.getItem('neural-resonance-settings');if(local)applySettings(JSON.parse(local));}catch{/* Bad saved settings do not prevent startup. */}
+  // The local integration owns its endpoint; an old saved remote address must
+  // not redirect automatic startup away from the current same-origin core.
+  if(config.startupMode==='live'&&config.autoConnect)$('endpoint').value=config.endpoint;
   setView(location.hash.slice(1));
   if(config.startupMode==='live'&&config.autoConnect)$('connect').click();
+  if(config.startupMode==='live'&&config.autoConnect){
+    $('health-url').value=new URL('/api/runtime',location.href).href;
+    refreshRuntime();runtimeTimer=setInterval(refreshRuntime,5000);
+  }
 }
 initialize();

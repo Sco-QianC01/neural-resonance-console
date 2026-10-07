@@ -46,6 +46,7 @@ npm start -- --host 0.0.0.0
 HTTPS 網站使用 `wss://`，本地 HTTP 頁面可使用 `ws://`。
 
 詳見 [資料格式](docs/DATA-INPUT.md) 和 [設備接入](docs/DEVICES.md)。
+連線恢復、四條縱向波形與來源時間戳見 [即時采集合同](docs/STREAM-RELIABILITY.md)。
 `public/config.json` 可以配置啟動模式、資料源與自動連接。
 預設不探測、不連接任何私人服務。
 

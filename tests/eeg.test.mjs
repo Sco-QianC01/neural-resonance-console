@@ -61,11 +61,14 @@ test('socket reconnect resumes and manual stop cancels both active and scheduled
   client.connect('ws://device.example/eeg');
   sockets[0].onopen(); sockets[0].onmessage({data:JSON.stringify(packet())});
   assert.equal(messages.length,1);
-  sockets[0].onclose(); assert.equal(scheduled[0].delay,1000);
-  scheduled[0].fn(); assert.equal(sockets.length,2);
+  sockets[0].onclose();
+  const firstRetry=scheduled.find(task=>task.delay===1000&&!task.cancelled);
+  assert.ok(firstRetry);
+  firstRetry.fn(); assert.equal(sockets.length,2);
   sockets[1].onclose(); client.stop();
-  assert.equal(scheduled[1].cancelled,true);
-  scheduled[1].fn(); assert.equal(sockets.length,2);
+  const secondRetry=scheduled.filter(task=>task.delay===1000).at(-1);
+  assert.equal(secondRetry.cancelled,true);
+  secondRetry.fn(); assert.equal(sockets.length,2);
   assert.equal(sockets[1].closed,true); assert.equal(states.at(-1),'stopped');
   assert.throws(()=>client.connect('https://localhost'));
   assert.throws(()=>client.connect('ws://user:secret@localhost'));
