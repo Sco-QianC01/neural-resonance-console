@@ -3,6 +3,7 @@ import {normalizeSnapshot} from './eeg.mjs';
 export function captureSnapshot(packet, snapshot, networks=null) {
   return {
     schemaVersion: packet.schemaVersion, ts: packet.ts, source: snapshot.source,
+    metricOrigin: snapshot.metricOrigin,
     sessionId: snapshot.sessionId, originalTimestamp: snapshot.originalTimestamp,
     attention: packet.attention ?? null, meditation: packet.meditation ?? null,
     inputs: snapshot.valid ? {attention:snapshot.attention,relaxation:snapshot.relaxation} : null,
@@ -13,7 +14,7 @@ export function captureSnapshot(packet, snapshot, networks=null) {
 }
 export function recordingCsv(records) {
   const header=['ts','source','attention','meditation','focus_ratio','relaxation_ratio',
-    'delta','theta','alpha','beta','signal_valid','raw_unit','raw_samples'];
+    'delta','theta','alpha','beta','signal_valid','indices_valid','raw_unit','raw_samples'];
   const quote=value=>{
     const text=String(value??'');
     return /[",\r\n]/.test(text)?`"${text.replaceAll('"','""')}"`:text;
@@ -23,7 +24,7 @@ export function recordingCsv(records) {
     return [packet.ts,packet.source,native.attention,native.relaxation,
       native.ratios.focus,native.ratios.relaxation,
       ...['delta','theta','alpha','beta'].map(key=>native.bands[key]),
-      native.signalValid,packet.rawUnit,JSON.stringify(packet.rawEegSamples??[]),
+      native.signalValid,native.valid,packet.rawUnit,JSON.stringify(packet.rawEegSamples??[]),
     ].map(quote).join(',');
   })].join('\r\n');
 }

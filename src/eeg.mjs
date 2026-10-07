@@ -20,6 +20,10 @@ export function normalizeSnapshot(input, now = Date.now()) {
     : has('focus_index') ? null : input.attention);
   const relaxation = index(has('meditation') ? eeg.meditation
     : has('relaxation_index') ? null : input.meditation);
+  const metricOrigin = input.metricOrigin==='thinkgear-esense' ? 'thinkgear-esense' : 'device-index';
+  // ThinkGear reserves zero for an unavailable eSense computation. Other
+  // adapters and the explicit demo can still define valid zero-valued indices.
+  const indicesAvailable = metricOrigin!=='thinkgear-esense' || (attention>0 && relaxation>0);
   const packets = positive(input.quality?.eegPackets) ?? 0;
   const poorSignal = positive(eeg.poor_signal ?? eeg.poorSignal);
   const signalValid = age >= -5000 && age <= STALE_MS && packets > 0
@@ -38,8 +42,8 @@ export function normalizeSnapshot(input, now = Date.now()) {
     ratios: { focus: positive(eeg.focus_index), relaxation: positive(eeg.relaxation_index) },
     bandUnits: Object.keys(eeg).some(key => key.endsWith('_mean')) ? 'RMS · 相對值'
       : input.source==='demo' ? '示範相對值' : '來源頻段值',
-    metricOrigin: 'device-index',
-    signalValid, valid: signalValid && attention !== null && relaxation !== null,
+    metricOrigin,
+    signalValid, valid: signalValid && attention !== null && relaxation !== null && indicesAvailable,
     raw: input,
   };
 }

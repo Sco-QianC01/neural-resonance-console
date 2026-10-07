@@ -12,13 +12,18 @@ export class ThinkGearDecoder{
       const frame=this.bytes.splice(0,length+4),payload=frame.slice(3,-1);
       const checksum=(~payload.reduce((a,b)=>a+b,0))&255;
       if(checksum!==frame.at(-1))continue;
-      let cursor=0,changed=false,raw=[];
+      let cursor=0,changed=false,raw=[],valid=true;
+      const updates={};
       while(cursor<payload.length){
-        const code=payload[cursor++];if(code===0x55)continue;
+        let level=0;
+        while(payload[cursor]===0x55){level++;cursor++;}
+        if(cursor>=payload.length){valid=false;break;}
+        const code=payload[cursor++];
         let size=1;if(code>=0x80)size=payload[cursor++];
-        if(!Number.isInteger(size)||cursor+size>payload.length){changed=false;break;}
+        if(!Number.isInteger(size)||cursor+size>payload.length){valid=false;break;}
         const values=payload.slice(cursor,cursor+size);cursor+=size;
-        const set=(key,value)=>{this.latest[key]=value;this.lastAt[key]=now;changed=true;};
+        if(level>0)continue;
+        const set=(key,value)=>{updates[key]=value;changed=true;};
         if(code===2)set('poor_signal',values[0]);
         if(code===4)set('attention',values[0]);
         if(code===5)set('meditation',values[0]);
@@ -28,10 +33,12 @@ export class ThinkGearDecoder{
             set(key,(values[i*3]<<16)|(values[i*3+1]<<8)|values[i*3+2]));
         }
       }
-      if(!changed)continue;
+      if(!valid||!changed)continue;
+      // Commit a complete validated payload, never a partially parsed one.
+      for(const [key,value] of Object.entries(updates)){this.latest[key]=value;this.lastAt[key]=now;}
       const eeg=Object.fromEntries(Object.entries(this.latest).filter(([key])=>now-this.lastAt[key]<=3000));
       packets.push({schemaVersion:'neural-resonance-live-v1',source:'device',ts:now/1000,
-        quality:{eegPackets:++this.count},eeg,rawEegSamples:raw,rawUnit:'ADC counts'});
+        metricOrigin:'thinkgear-esense',quality:{eegPackets:++this.count},eeg,rawEegSamples:raw,rawUnit:'ADC counts'});
     }
     return packets;
   }
