@@ -50,6 +50,16 @@
           <div class="hero-footer"><div><span>密集度</span><b id="density">—</b></div><div><span>離散度</span><b id="dispersion">—</b></div><div><span>神經節點</span><b id="nodes">—</b></div><span class="flow">SIGNAL → NODES → MUSIC</span></div>
         </section>
         <section class="networks" aria-labelledby="networks-title"><div class="networks-header"><h2 id="networks-title">十個網 · 十種音樂組織</h2><span>選擇一個網，展開觀察</span></div><div id="networks" class="network-grid"></div></section>
+        <section class="prompt-handoff" aria-labelledby="prompt-title">
+          <div class="section-line"><span>03 / MUSIC HAND-OFF</span><small>規則 → 提示詞 → 音樂模型</small></div>
+          <h2 id="prompt-title">把十項音樂要素帶入創作</h2>
+          <p>依有效設備指數產生可複製的提示詞。這裡的 0–127 控制值供後續映射使用；原始指數保持 0–100。</p>
+          <div class="prompt-options"><label>目標模型<select id="prompt-model"><option value="generic">通用</option><option value="ace-xl">ACE XL SFT</option><option value="shao">韶元 Shao</option><option value="minimax">MiniMax</option><option value="yue">YuE2</option></select></label><label>觀察窗口<select id="prompt-window"><option value="60">最近 60 秒</option><option value="30">最近 30 秒</option><option value="10">最近 10 秒</option></select></label></div>
+          <div class="wave-actions"><button id="make-prompt" class="outline" disabled>產生提示詞</button><button id="copy-prompt" class="text-button" disabled>複製文字</button><button id="download-prompt" class="text-button" disabled>匯出控制 JSON ↗</button></div>
+          <label for="music-prompt">音樂創作提示詞</label><textarea id="music-prompt" readonly rows="7" placeholder="先接收有效資料，再產生提示詞。"></textarea>
+          <p id="prompt-status" role="status">等待產生</p>
+          <p class="view-note">先以手動交接完成驗證。頁面不會呼叫雲端模型，也不會把示範或回放資料當成實測。</p>
+        </section>
       </div>
 <section id="view-settings" class="view-panel" hidden>
   <div class="wave-head"><div><p class="eyebrow">03 / DEVICE &amp; INTERFACES</p><h2>設備與資料接口</h2></div><button id="check-capabilities" class="outline">重新檢查</button></div>
@@ -64,7 +74,7 @@
 </section>
 </div>
     </div>
-    <footer><span>NEURAL RESONANCE / v0.5</span><p>光粒子呈現互動映射。斷流時停止更新，保留最後畫面。</p><span>OPEN SOURCE</span></footer>
+    <footer><span>NEURAL RESONANCE / v0.6</span><p>光粒子呈現互動映射。斷流時停止更新，保留最後畫面。</p><span>OPEN SOURCE</span></footer>
   </main>
   <div id="notice" role="status" hidden></div>
   <script type="module" src="./neural-worm/app.mjs"></script>

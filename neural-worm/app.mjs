@@ -4,6 +4,8 @@ import {ELEMENTS} from '../src/music.mjs';
 import {networkStates,drawNetwork,NETWORK_VERSION} from '../src/neural-networks.mjs';
 import {drawWaveforms,drawWorm} from '../src/waveform-view.mjs';
 import {BrowserDeviceInput} from '../src/device-input.mjs';
+import {captureSnapshot,recordingCsv} from '../src/recording.mjs';
+import {createMusicPrompt} from '../src/prompt.mjs';
 const $=id=>document.getElementById(id),stream=new StreamState();
 const english=['MELODY','RHYTHM','HARMONY','DYNAMICS','TEMPO','MODE','FORM','TEXTURE','TIMBRE','ARTICULATION'];
 let mode='demo',tick=0,timer=null,selected=0,states=null,recording=false,records=[],frame=0,time=0,paused=false,leaving=false;
@@ -45,9 +47,7 @@ function ingest(packet,{capture=true,now=Date.now()}={}){
       $('raw-status').textContent=`${rawSamples.length} 個樣本 · ${rawUnit}`;
     }
     if(recording&&capture){
-      const entry={schemaVersion:'neural-resonance-live-v1',ts:packet.ts,source:snapshot.source,inputs:snapshot.valid?
-        {attention:snapshot.attention,relaxation:snapshot.relaxation}:null,
-        eeg:packet.eeg??null,quality:packet.quality??null,networks:states,rawEegSamples:Array.isArray(raw)?raw:[]};
+      const entry=captureSnapshot(packet,snapshot,states);
       const size=JSON.stringify(entry).length;
       if(records.length>=20000||recordBytes+size>20*1024*1024){recording=false;notice('記錄已達容量上限，請匯出。');}
       else{records.push(entry);recordBytes+=size;}
@@ -69,6 +69,7 @@ function startDemo(){
   emit();timer=setInterval(emit,250);$('pause').textContent='暫停示範';
 }
 function setMode(value){
+  lastPrompt=null;$('music-prompt').value='';$('prompt-status').textContent='等待產生';
   stop();mode=value;states=null;time=0;history=[];rawSamples=[];$('raw-status').textContent='等待原始樣本';
   for(const id of ['demo','live','replay']){$(`${id}-input`).hidden=id!==mode;$(id).setAttribute('aria-pressed',String(id===mode));}
   $('source').textContent=mode.toUpperCase();
@@ -100,6 +101,10 @@ function update(){
   });
   for(const key of waveKeys)$(`wave-value-${key}`).textContent=current?.signalValid&&current.bands[key]!==null?current.bands[key].toPrecision(4):'—';
   $('wave-units').textContent=current?.bandUnits||'保留來源單位';
+  for(const id of ['make-prompt','copy-prompt','download-prompt']){
+    $(id).disabled=!valid || (id!=='make-prompt'&&!lastPrompt);
+  }
+  if(!valid&&lastPrompt){lastPrompt=null;$('music-prompt').value='';$('prompt-status').textContent='資料已中斷，請重新接收後產生提示詞。';}
 }
 for(const id of ['demo','live','replay'])$(id).onclick=()=>setMode(id);
 for(const id of ['attention','relaxation'])$(id).oninput=()=>{$(`${id}-value`).textContent=$(id).value;if(mode==='demo'&&!paused)emit();};
@@ -124,11 +129,30 @@ function download(name,data,type='application/json'){
 }
 $('export').onclick=()=>download(`neural-eeg-${Date.now()}.json`,JSON.stringify(recordingValue(),null,2));
 $('csv-export').onclick=()=>{
-  const header=['ts','source','attention','meditation','delta','theta','alpha','beta','raw_samples'];
-  const quote=v=>`"${String(v??'').replaceAll('"','""')}"`;
-  const rows=records.map(p=>[p.ts,p.source,p.eeg?.attention,p.eeg?.meditation,
-    ...waveKeys.map(k=>p.eeg?.[`${k}_mean`]??p.eeg?.[k]??''),JSON.stringify(p.rawEegSamples)].map(quote).join(','));
-  download(`neural-eeg-${Date.now()}.csv`,[header.join(','),...rows].join('\r\n'),'text/csv;charset=utf-8');
+  download(`neural-eeg-${Date.now()}.csv`,recordingCsv(records),'text/csv;charset=utf-8');
+};
+let lastPrompt=null;
+function invalidatePrompt(){lastPrompt=null;$('music-prompt').value='';$('prompt-status').textContent='等待產生';update();}
+$('prompt-model').onchange=invalidatePrompt;
+$('prompt-window').onchange=invalidatePrompt;
+$('make-prompt').onclick=()=>{
+  try{
+    lastPrompt=createMusicPrompt(history,{current:stream.current(),target:$('prompt-model').value,
+      windowSeconds:Number($('prompt-window').value)});
+    if(!lastPrompt)throw new Error('需要新鮮且有效的設備指數；頻段比值不能直接代替。');
+    $('music-prompt').value=lastPrompt.text;
+    const c=lastPrompt.coordinates127;
+    $('prompt-status').textContent=`${lastPrompt.observedSamples} 個有效樣本 · 最大間隔 ${lastPrompt.longestGapSeconds}s · 座標 ${c.attention}, ${c.relaxation} / 127`;
+    update();
+  }catch(error){notice(error.message);}
+};
+$('copy-prompt').onclick=async()=>{
+  if(!lastPrompt||!stream.current()?.valid)return;
+  try{await navigator.clipboard.writeText(lastPrompt.text);notice('已複製；可貼到所選音樂模型。');}
+  catch{$('music-prompt').focus();$('music-prompt').select();notice('請複製已選取的文字。');}
+};
+$('download-prompt').onclick=()=>{
+  if(lastPrompt&&stream.current()?.valid)download(`neural-music-prompt-${Date.now()}.json`,JSON.stringify(lastPrompt,null,2));
 };
 $('replay-file').onchange=async()=>{
   try{const file=$('replay-file').files[0];if(!file)return;if(file.size>20*1024*1024)throw new Error('請使用 20 MB 以内的記錄。');

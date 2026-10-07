@@ -1,6 +1,6 @@
 {
   "name": "neural-resonance-console",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -8,7 +8,7 @@
   "engines": { "node": ">=20" },
   "scripts": {
     "start": "node tools/serve.mjs",
-    "test": "node --test tests/eeg.test.mjs tests/music.test.mjs tests/sensors.test.mjs tests/standalone.test.mjs tests/device.test.mjs",
+    "test": "node --test tests/eeg.test.mjs tests/music.test.mjs tests/sensors.test.mjs tests/standalone.test.mjs tests/device.test.mjs tests/prompt.test.mjs",
     "build": "node tools/build.mjs"
   }
 }
