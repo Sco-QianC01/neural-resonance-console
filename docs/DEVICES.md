@@ -10,6 +10,9 @@
 checksum、原始有符號 ADC 樣本、設備注意／放鬆指數與頻段來源值。
 不會套用未經確認的電壓換算；專有協議用外部解析器接入。
 checksum 錯誤不產生樣本；超過3秒的舊指數不因新原始包而重新生效。
+只有整個 payload 有效時才更新指數緩存；未知擴展碼不當作基礎代碼。
+ThinkGear 的 eSense 值 0 表示無法計算有效值，保留原始資料但不驅動互動。
+協議參考：[NeuroSky ThinkGear Communications Protocol](https://developer.neurosky.com/docs/doku.php?id=thinkgear_communications_protocol)。
 
 連接、選擇設備和瀏覽器授權由使用者點擊觸發。
 三個介面由同一頁管理，切換不停止接收；按「停止」或關閉頁面才釋放設備。
@@ -30,4 +33,5 @@ checksum 錯誤不產生樣本；超過3秒的舊指數不因新原始包而重�
 瀏覽器匯出四條頻段線的透明 PNG。
 即時 Spout 紋理由獨立 Windows 波形工具輸出，不由此網頁冒充。
 原始 EEG 在 `/raw` 或 `rawEegSamples` 存在時保留；
-低速頻段快照不能當作完整 512 Hz 原始 EEG。
+低速頻段快照不能當作按設備採樣率連續取得的原始 EEG；
+不同設備的採樣率、頻段邊界和功率／RMS 單位需要分別配置。

@@ -54,7 +54,7 @@
           <div class="section-line"><span>03 / MUSIC HAND-OFF</span><small>規則 → 提示詞 → 音樂模型</small></div>
           <h2 id="prompt-title">把十項音樂要素帶入創作</h2>
           <p>依有效設備指數產生可複製的提示詞。這裡的 0–127 控制值供後續映射使用；原始指數保持 0–100。</p>
-          <div class="prompt-options"><label>目標模型<select id="prompt-model"><option value="generic">通用</option><option value="ace-xl">ACE XL SFT</option><option value="shao">韶元 Shao</option><option value="minimax">MiniMax</option><option value="yue">YuE2</option></select></label><label>觀察窗口<select id="prompt-window"><option value="60">最近 60 秒</option><option value="30">最近 30 秒</option><option value="10">最近 10 秒</option></select></label></div>
+          <div class="prompt-options"><label>目標模型<select id="prompt-model"><option value="generic">通用</option><option value="ace-xl">ACE XL SFT</option><option value="shao">韶元 Shao</option><option value="minimax">MiniMax Music3</option><option value="yue">YuE2</option></select></label><label>觀察窗口<select id="prompt-window"><option value="60">最近 60 秒</option><option value="30">最近 30 秒</option><option value="10">最近 10 秒</option></select></label></div>
           <div class="wave-actions"><button id="make-prompt" class="outline" disabled>產生提示詞</button><button id="copy-prompt" class="text-button" disabled>複製文字</button><button id="download-prompt" class="text-button" disabled>匯出控制 JSON ↗</button></div>
           <label for="music-prompt">音樂創作提示詞</label><textarea id="music-prompt" readonly rows="7" placeholder="先接收有效資料，再產生提示詞。"></textarea>
           <p id="prompt-status" role="status">等待產生</p>

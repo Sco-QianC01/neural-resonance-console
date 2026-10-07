@@ -35,12 +35,13 @@ socket.send(JSON.stringify({
 | `eeg.meditation` | 放松度，0–100 |
 | `eeg.delta/theta/alpha/beta` | 来源的四个频段值 |
 | `eeg.poor_signal` | 可选，0 表示接触良好；大于 0 时不参与互动 |
+| `metricOrigin` | ThinkGear 原生 eSense 请填 `thinkgear-esense`，其值 0 表示暂时不可用 |
 
 ## 在界面连接
 
-1. 选择左侧「接入数据」。
+1. 选择左侧「实时」。
 2. 填入你的网关地址。
-3. 点击「连接数据源」。
+3. 点击「连接」。
 
 没有预设的个人服务器、设备名称、文件目录或设备端口。
 HTTPS 网站使用 `wss://`；本机 HTTP 页面也可以使用 `ws://`。
@@ -69,9 +70,9 @@ HTTPS 网站使用 `wss://`；本机 HTTP 页面也可以使用 `ws://`。
 - `_mean` 字段保留 RMS 相对量尺，不能与装置功率值混为同一单位。
 - 兼容既有 `frontal-live-v1` 数据包，便于适配已有网关。
 
-可选的 `spo2`、`pr`、`hrv`、`gsr` 显示在折叠区域；
-分别使用 `spo2Samples`、`prSamples`、`hrvSamples`、`gsrSamples` 计数。
-脉率不代替 HRV，缺少的通道保持空值。
+目前三页界面专注于 EEG。仓库保留独立的其他传感通道处理模块，
+尚未纳入当前三页界面的显示与记录；不要把可扩展的数据格式当作已完成的界面功能。
+脉率不能代替 HRV。
 
 ## 设备支持范围
 
