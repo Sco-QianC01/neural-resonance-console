@@ -2,7 +2,10 @@
 set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$ROOT"
+SETUP_ONLY=0
+if [ "${1:-}" = "--setup-only" ]; then SETUP_ONLY=1; shift; fi
 if [ -d "Neural Resonance.app" ]; then
+    if [ "$SETUP_ONLY" = 1 ]; then echo "Portable application is ready."; exit 0; fi
     open "Neural Resonance.app"
     exit 0
 fi
@@ -32,4 +35,8 @@ export UV_PYTHON_INSTALL_DIR="$ROOT/.runtime/python"
 export UV_LINK_MODE=copy
 cd "$ROOT/gateway"
 "$UV" sync --frozen --no-dev --python 3.13 --python-preference only-managed
+if [ "$SETUP_ONLY" = 1 ]; then
+    "$UV_PROJECT_ENVIRONMENT/bin/python" -c "import aiohttp, bleak, serial; print('Isolated acquisition environment is ready.')"
+    exit 0
+fi
 exec "$UV_PROJECT_ENVIRONMENT/bin/python" "$ROOT/gateway/device_gateway.py" "$@"

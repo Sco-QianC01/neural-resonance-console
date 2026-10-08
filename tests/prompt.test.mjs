@@ -13,8 +13,8 @@ test('manual export preserves raw indices and ten missing observation slots',()=
   assert.equal(Object.keys(result.controls127).length,10);
   assert.deepEqual(result.coordinates127,{attention:64,relaxation:64,center:64});
   assert.ok(Object.values(result.controls127).every(value=>value===null));
-  assert.match(result.text,/未觀測/);assert.match(result.text,/旋律/);
-  assert.match(result.text,/不含經校準/);
+  assert.match(result.text,/觀測摘要/);
+  assert.doesNotMatch(result.text,/待復核|未觀測|BPM/);
   assert.deepEqual(result,createMusicPrompt([current],{current,now,target:'yue'}));
 });
 test('stale data, contact loss and spectral ratios cannot generate a music prompt',()=>{

@@ -1,63 +1,60 @@
 ---
-version: 0.8
+version: 0.11
 name: Neural Resonance Instrument
-description: Restrained EEG acquisition and music interaction console
+description: A restrained signal acquisition and musical intent workstation
 colors:
-  background: "#0b1015"
-  panel: "#101820"
-  text: "#dce6eb"
-  muted: "#9aabb5"
-  accent: "#a4e1d8"
+  background: "#121315"
+  panel: "#1d1f22"
+  text: "#e9e8e2"
+  muted: "#a4a5a6"
+  accent: "#c5d8d3"
 typography:
-  body: system-ui, PingFang TC, Microsoft YaHei
-  numbers: Consolas, ui-monospace, monospace
-rounded: 5-8px
-spacing: 8px base, 20-26px padding, 24-34px section gap
-components: navigation, acquisition rail, waveforms, particle networks, inventory
+  body: Segoe UI, PingFang TC, Microsoft YaHei, system-ui
+  numbers: ui-monospace, Consolas, monospace
+rounded: 2-3px
+spacing: 8px base, 22-32px instrument padding
+components: left navigation, acquisition rail, waveforms, trace canvas, music plans, inventory
 ---
 
 ## Overview
 
-深色科研乐器风格，优先读懂信号、来源和设备状态。波形捕获、神经蠕虫、设备设置三个页面固定；切换不销毁同一数据连接。
+深石墨科研仪器；固定左侧三页入口，中央以数据和操作为主。去除卡片墙、环形仪表、装饰英文标签和重复过程性文案。切换页面保留同一数据流。
 
-视觉来源为既有四频段结构、Suno HK中GPT Image 2.5实际生成的设计稿与本规范。原图、预览与哈希记录保存在`docs/design/`。采用双环原生读数、分段来源按钮及紧凑状态栏；不采用模型图片中的示例日期、256Hz、µV、健康等级或测量值。
+视觉依据：老师A10录音10:00–11:22的左侧三页要求、已有设计稿，以及IBM Carbon的左侧导航和2x网格。小红书已检索，正文没有取得，不能列作已学习的设计依据。
 
 ## Colors
 
-背景#0b1015，面板#101820，青白文字#dce6eb，辅助文字#9aabb5，操作强调#a4e1d8。
-Delta粉红#f098a2、Theta浅橄榄#d4df8c、Alpha浅紫#d6a5eb、Beta青绿#89d6bd只区分通道，不表示健康等级。
+背景#121315，侧栏#18191c，仪器#1d1f22，文字#e9e8e2，辅助文字#a4a5a6，操作强调#c5d8d3。频段颜色只识别通道，不代表健康等级。主轨迹青灰白，不用情绪色块。
 
 ## Typography
 
-页面标题28–33px，模块标题17–22px，正文与控制12–14px，辅助信息不低于10px。数值等宽，原生指数32–38px；中英文两层层级。
+标题25px，模块标题17–18px，正文13–14px，操作12px，元资料11px。数值等宽，原始双指数30px。画布刻度保持实际数据单位。
 
 ## Layout
 
-桌面左侧260px采集栏，右侧宽仪器画面，间距34px。窄桌面230px及24px。主图为原生指数曲线加四条纵向通道，不改为四个方形卡片。
-设备页显示枚举、身份选择和四个传感器状态。蠕虫页主图为时间顺序二维轨迹，十网在下方。
+左侧224px导航与采集栏；主内容32px内边距。波形页顶部双指数，下方四条纵向频段和原始脑波。蠕虫页使用等比例二维画布、头尾、时间滑杆、窗口统计及展示模式。
 
-蠕虫第二版以0–127中心十字、起末点、时间滑杆及真实窗口统计为主图。十网两列，每个网使用不同音乐组织几何；选中层叠加在同一XY节点附近。原始轨迹用青白，组织层用低对比青灰。装饰光效不改变数据位置。简单/复杂控制与音高/BPM分别呈现，不用情绪颜色分区。
+十要素是紧凑可选层，共用历史时间点；默认显示课件来源的创作方案，切换音乐观测只显示有来源数据。标签节点是文字语义，不冒充脑区连接或几何测量。
 
 ## Components
 
-导航以低对比表面区分选中状态。控件至少40px高度，等待、断流、接触不良、无权限和错误都有文字。设备清单来自API实际枚举。
-缺失数据显示破折号；过期停止轨迹和音乐映射。原生0–100与交互0–127不混用。
+控件40px以上，导航48px。设备设置提供可保存USB身份和BLE地址／macOS UUID。只显示有效传感器值；连接失败、接触不良和权限问题保留实际反馈。创作意图与测量数据分开输出。
 
 ## Depth & Elevation
 
-细边线与少量明度分层；不使用全屏光晕、模糊玻璃、紫蓝渐变或大阴影。粒子光效只用于数据轨迹。
+细分隔线与有限明度层次；没有光晕背景、玻璃、营销渐变或大阴影。粒子仅标记样本；动画不得更改数据坐标。
 
 ## Do's and Don'ts
 
-- 保留真实时间轴、单位、来源、序号和缺失断线。
-- 控件和下载操作保持可访问性；不做主题/品牌切换。
-- 不把示范曲线或粒子当实测脑区连接。
-- 不用装饰图遮住数据，不把接口可用说成设备已连接。
+- 三页固定在左侧；窄屏用可展开左侧抽屉。
+- 保留真实时间、单位、缺失断段及来源，不把原生指数改成情绪百分比。
+- 不添加无依据的网形、BPM、复杂度或随机推断。
+- 图形必须来自样本或明确的创作标签。操作焦点、键盘与减少动态效果可用。
 
 ## Responsive Behavior
 
-1100px以下压缩两栏、设置区单列；700px以下采集栏置顶，主仪器单列。设备身份允许换行，长USB路径不导致横向溢出。十网两列，导航保持40px点选区域。
+760px以下收起左侧，手机两列数值及两列要素入口。390、768、1440、1920px三页均检查。绘图区两轴等物理比例，手机不拉伸轨迹；展示模式隐藏操作侧栏。
 
 ## Agent Prompt Guide
 
-使用现有HTML/CSS/Canvas，不迁移框架。检查桌面/手机三页与等待状态，再更新公开截图。模型设计稿必须真实生成并保存后才能引用。
+沿用HTML/CSS/Canvas，避免新增框架。先回归真实数据、身份重连和时序，再核对桌面／手机／展示截图。生成设计图只作视觉资料，不作测量。

@@ -45,7 +45,7 @@ test('brain-only prompt exports observations and missing evidence, never a presc
   assert.ok(Object.values(result.parameters).every(value=>value===null));
   assert.ok(result.organizations.every(value=>value.status==='unavailable'));
   assert.equal(result.claimsInferredFromEeg,false);
-  assert.match(result.text,/未觀測/);
+  assert.match(result.text,/觀測摘要/);
   assert.doesNotMatch(result.text,/音樂組織：|80 BPM|較多轉折|較亮色彩|放鬆.*適合/);
 });
 

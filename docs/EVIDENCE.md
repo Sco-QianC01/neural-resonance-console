@@ -1,6 +1,6 @@
 # 圖形、數據與來源核對
 
-更新：2026-10-08，版本0.10.0。
+更新：2026-10-08，版本0.11.0。
 
 ## 修正範圍
 
@@ -67,11 +67,11 @@ musicFeatures = {
 }
 ```
 
-來源類型只接受`audio-analysis`、`midi-analysis`、`score-annotation`或`human-annotation`。每項需記錄識別、URI、分析方法、值與單位。URI可為HTTP(S)、`urn:sha256:<64位哈希>`或`file-id:<記錄識別>`。只聲明來源不代表方法已被獨立驗證，頁面標為「來源已聲明 · 待復核」。
+來源類型只接受`audio-analysis`、`midi-analysis`、`score-annotation`或`human-annotation`。每項需記錄識別、URI、分析方法、值與單位。URI可為HTTP(S)、`urn:sha256:<64位哈希>`或`file-id:<記錄識別>`。页面会显示来源记录和方法，不把来源声明写成独立研究验证。
 
 和聲、調式、曲式、音色及演奏法接受明確標注文字，不生成張力／明亮度百分比。dBFS、dB SPL、sone及MIDI velocity分開保存，不互換。記錄和回放保留音樂源時間、頻段範圍及單位；交接摘要輸出缺失，不生成音樂處方。
 
-交接格式使用`neural-observation-summary-v2`，取代舊的音樂控制提示詞格式；不把舊映射輸出當成新版觀測結果。摘要只統計實際推進的封包，重複封包計數的心跳不增加樣本或改變指數均值。介面座標的小數僅為顯示捨入，JSON及原始樣本保留來源精度。
+交接格式使用`neural-observation-summary-v2`，取代舊的音樂控制提示詞格式；不把舊映射輸出當成新版觀測結果。摘要只統計實際推進的封包，重複封包計數的心跳不增加樣本或改變指數均值。介面座標的小數僅為顯示捨入，JSON及原始樣本保留來源精度。創作方案與音樂觀測分開保存，見[MUSIC-PLANS.md](MUSIC-PLANS.md)。
 
 ## 一手來源
 

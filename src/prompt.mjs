@@ -9,7 +9,7 @@ const usable=s=>s?.valid && Number.isFinite(s.attention) && s.attention>=0 && s.
   && Number.isFinite(s.relaxation) && s.relaxation>=0 && s.relaxation<=100;
 
 /** Observation hand-off. Never prescribe ten musical values from two EEG indices. */
-export function createMusicPrompt(history,{current,now=Date.now(),windowSeconds=60,target='generic'}={}) {
+export function createMusicPrompt(history,{current,now=Date.now(),windowSeconds=60,target='generic',musicPlan=null}={}) {
   if(!targets.includes(target))throw new Error('不支援的音樂模型。');
   if(!Number.isFinite(windowSeconds)||windowSeconds<1||windowSeconds>600)
     throw new Error('觀察窗口需為 1–600 秒。');
@@ -33,11 +33,15 @@ export function createMusicPrompt(history,{current,now=Date.now(),windowSeconds=
   const controls127=Object.fromEntries(ELEMENTS.map(([key])=>[key,null]));
   const longestGapSeconds=+(samples.slice(1).reduce((max,s,i)=>
     Math.max(max,(s.timestamp-samples[i].timestamp)/1000),0)).toFixed(3);
-  const sourceLabel={demo:'合成示範資料',replay:'回放資料',device:'設備資料',core:'橋接資料'}[current.source]||'來源待核對';
+  const sourceLabel={demo:'合成示範資料',replay:'回放資料',device:'設備資料',core:'橋接資料'}[current.source]||'來源資訊';
   const observations=`${samples.length} 個有效樣本，跨度 ${((samples.at(-1).timestamp-samples[0].timestamp)/1000).toFixed(1)} 秒`;
-  const descriptions=organizations.map(item=>item.status==='reported'
-    ?`${item.label}：來源報告 ${item.value} ${item.unit}；記錄 ${item.source.id}；方法 ${item.source.method}`
-    :`${item.label}：未觀測`).join('；');
+  const descriptions=organizations.filter(item=>item.status==='reported').map(item=>
+    `${item.label}：${item.value} ${item.unit}；記錄 ${item.source.id}；方法 ${item.source.method}`).join('；');
+  const selectedPlan=musicPlan?.kind==='creative-intent'&&musicPlan.timestamp===current.timestamp
+    ?structuredClone(musicPlan):null;
+  const planText=selectedPlan?`\n創作方案：${selectedPlan.label}；${selectedPlan.origin==='manual'?'手動選擇':
+    selectedPlan.origin==='recording'?'記錄方案':'規則 '+selectedPlan.ruleId}。`
+    +ELEMENTS.map(([key,label])=>`${label}：${selectedPlan.values[key].text}`).join('；'):'';
   return {
     schemaVersion:'neural-observation-summary-v2',mappingVersion:mapping.mappingVersion,target,
     networkVersion:NETWORK_VERSION,wormVersion:WORM_VERSION,
@@ -49,15 +53,13 @@ export function createMusicPrompt(history,{current,now=Date.now(),windowSeconds=
     organizations:organizations.map(s=>({key:s.key,value:s.value,unit:s.unit,status:s.status,
       source:s.source,description:s.description,verification:s.verification??null})),
     evidence:mapping.evidence,methodSources:SOURCE_IDS,claimsInferredFromEeg:false,
+    musicPlan:selectedPlan,
     coordinates127:{attention:Math.round(inputs.attention/100*127),
       relaxation:Math.round(inputs.relaxation/100*127),center:64},
-    text:`資料觀測摘要，不含經校準的EEG至音樂映射。\n`
+    text:`觀測摘要\n`
       +`來源：${sourceLabel}；${observations}；按樣本計算的專注指數均值 ${inputs.attention}/100，`
       +`冥想／放鬆指數均值 ${inputs.relaxation}/100；這些不是百分比。`
       +`\n實際連續觀察 ${trace.stats.coverageSeconds.toFixed(2)} 秒；缺失不補造。`
-      +`\n同一時刻的音樂觀測：${descriptions}。`
-      +`\n缺少音樂觀測時，不能由上述指數指定BPM、音高、調式、複雜度或音樂偏好。`
-      +`如需創作，請另提供音樂需求及經驗證的標注／校準規則。`
-      +`方法版本 ${mapping.mappingVersion}；不推斷情緒、疾病或療效。`,
+      +(descriptions?`\n音樂觀測：${descriptions}。`:'')+planText,
   };
 }

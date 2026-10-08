@@ -66,7 +66,7 @@ test('ten categories preserve time and missing evidence without arbitrary shapes
     const g=networkGeometry(s);
     assert.equal(g.nodes.length,0);assert.equal(g.edges.length,0);
     assert.equal(s.control127,null);
-    assert.ok(s.descriptor.length>0);
+    assert.equal(typeof s.descriptor,'string');
     assert.equal(s.timestamp,1000);
     assert.equal(s.value,null);assert.equal(s.status,'unavailable');
   }

@@ -8,10 +8,9 @@
   <link rel="stylesheet" href="./neural-worm/style.css">
 </head>
 <body>
-  <header class="header"><a href="./" class="wordmark"><span class="mark" aria-hidden="true"><svg viewBox="0 0 40 40" width="36" height="36"><path d="M4 22h6l4-12 7 22 5-16 4 6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="10" r="2.6" fill="currentColor"/><circle cx="21" cy="32" r="2.6" fill="currentColor"/></svg></span><span>神經共振<small>NEURAL RESONANCE</small></span></a><nav class="view-nav" aria-label="三個介面"><button data-view="waveforms" aria-pressed="true">01 波形捕獲</button><button data-view="worm" aria-pressed="false">02 神經蠕蟲</button><button data-view="settings" aria-pressed="false">03 設備設定</button></nav></header>
-  <main>
-    <div class="heading"><div><p class="eyebrow">NEURAL SIGNAL / MUSIC INTERACTION</p><h1 id="page-title">波形捕獲<span>EEG / LIVE SIGNAL</span></h1></div><div id="status" class="status" role="status">示範資料</div></div>
-    <div class="workspace">
+<button id="nav-toggle" class="nav-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="開啟左側導航">☰</button>
+<aside id="app-sidebar" class="sidebar">
+  <header class="header"><a href="./" class="wordmark"><span class="mark" aria-hidden="true"><svg viewBox="0 0 40 40" width="36" height="36"><path d="M4 22h6l4-12 7 22 5-16 4 6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="10" r="2.6" fill="currentColor"/><circle cx="21" cy="32" r="2.6" fill="currentColor"/></svg></span><span>神經共振<small>NEURAL RESONANCE</small></span></a><nav class="view-nav" aria-label="三個介面"><button data-view="waveforms" aria-pressed="true"><span class="nav-number">01</span><span>波形捕獲</span></button><button data-view="worm" aria-pressed="false"><span class="nav-number">02</span><span>神經蠕蟲</span></button><button data-view="settings" aria-pressed="false"><span class="nav-number">03</span><span>設備設定</span></button></nav></header>
       <aside class="input">
         <div class="section-line"><span>01 / SIGNAL</span><small id="source">DEMO</small></div>
         <h2>腦波輸入</h2>
@@ -32,8 +31,13 @@
         <div class="signal-meta"><span>有效封包</span><b id="packets">—</b><span>資料狀態</span><b id="freshness">等待</b></div>
         <p id="source-note">示範由本頁生成，並非實際測量。</p>
         <div class="capture"><button id="record" class="outline">開始記錄</button><button id="export" class="text-button" disabled>匯出 JSON ↗</button><span id="count">0 個樣本</span></div>
-        <details><summary>映射規則</summary><p>十項音樂控制量各自映射為節點密集度和空間離散度。這是可修改的互動規則。</p><a href="./docs/NEURAL-WORM.md" target="_blank" rel="noopener">完整定義 ↗</a></details>
+        <details><summary>資料與方法</summary><a href="./docs/EVIDENCE.md" target="_blank" rel="noopener">查看來源文件</a></details>
       </aside>
+</aside>
+  <main>
+    <div class="heading"><div><p class="eyebrow">NEURAL SIGNAL / MUSIC INTERACTION</p><h1 id="page-title">波形捕獲<span>EEG / LIVE SIGNAL</span></h1></div><div id="status" class="status" role="status">示範資料</div></div>
+    <div class="workspace">
+
       <div class="field">
 <section id="view-waveforms" class="view-panel">
   <div class="wave-head"><div><p class="eyebrow">01 / WAVEFORM CAPTURE</p><h2>四頻段 · 實時波形</h2></div><span id="wave-units">來源頻段值</span></div>
@@ -46,7 +50,7 @@
 </section>
 <div id="view-worm" class="view-panel" hidden>
         <section class="hero" aria-labelledby="selected-name">
-          <div class="hero-header"><div><p class="eyebrow">02 / OBSERVED SIGNAL</p><h2 id="selected-name">專注 × 冥想／放鬆 <span>NATIVE INDEX TRACE</span></h2></div><div class="hero-value"><b id="selected-value">—</b><span id="selected-unit">資料狀態</span></div></div>
+          <div class="hero-header"><div><p class="eyebrow">02 / OBSERVED SIGNAL</p><h2 id="selected-name">專注 × 冥想／放鬆 <span>NATIVE INDEX TRACE</span></h2></div><div class="hero-value"><button id="worm-exhibit" class="text-button">展示</button><b id="selected-value">—</b><span id="selected-unit">資料狀態</span></div></div>
           <div class="worm-tools"><label>座標<select id="worm-space"><option value="eeg">原生指數 · 0–100</option><option value="control">坐標換算 · 0–127</option></select></label><label>觀察窗口<select id="worm-window"><option value="60">60 秒</option><option value="30">30 秒</option><option value="10">10 秒</option></select></label><label>顯示平滑<select id="worm-smoothing"><option value="0">原始位置 · 預設</option><option value="0.75">0.75 秒 · 僅顯示</option><option value="2">2 秒 · 僅顯示</option></select></label></div>
           <div class="worm-legend"><span><i class="trace-key"></i>採樣軌跡 · 舊 → 新</span><span>形狀由有效樣本決定</span><span id="worm-center">原生指數 · 中心 50, 50</span></div>
 <canvas id="hero" aria-label="神經蠕蟲XY軌跡，按所選座標呈現採樣節點；點選可查看歷史樣本"></canvas>
@@ -54,10 +58,24 @@
           <div class="worm-timeline"><label class="follow-control"><input id="worm-follow" type="checkbox" checked>跟隨最新</label><input id="worm-cursor" type="range" min="0" max="0" value="0" aria-label="查看歷史樣本" disabled><output id="worm-time">等待樣本</output><button id="worm-export" class="text-button" disabled>保存蠕蟲 PNG ↗</button></div>
           <div class="worm-observation" aria-label="可復算的窗口觀測"><div><span>XY · 當前坐標</span><strong id="worm-xy">—</strong></div><div><span>有效樣本數</span><strong id="trace-density">—</strong></div><div><span>時間加權標準距離</span><strong id="trace-dispersion">—</strong></div><div><span>有效觀察 / 窗口</span><strong id="trace-coverage">—</strong></div></div>
           <p id="worm-change" class="worm-change" role="status">接收有效指數後呈現起點、終點和變化。</p>
-          <div class="layer-description"><span id="layer-description">音高中心與旋律走向</span><strong id="layer-descriptor">等待有效控制量</strong><span id="layer-control">複雜 — · 離散 — / 127</span></div>
+          <div class="layer-description"><span id="layer-description">音高中心與旋律走向</span><strong id="layer-descriptor"></strong><span id="layer-control"></span></div>
           <div class="hero-footer"><div><span>資料來源</span><b id="density">—</b></div><div><span>顯示方式</span><b id="dispersion">—</b></div><div><span>所選樣本時間</span><b id="nodes">—</b></div><span class="flow">SOURCE → TIME → TRACE</span></div>
         </section>
-        <section class="networks" aria-labelledby="networks-title"><div class="networks-header"><h2 id="networks-title">十項音樂觀測 · 來源核對</h2><span>項目分組 · 有標注才顯示數值</span></div><p class="evidence-intro">僅有腦電時，以下要素保留「未觀測」。不由專注／放鬆補造音高、BPM、和聲或音樂偏好。</p><div id="networks" class="network-grid"></div></section>
+        <section class="networks" aria-labelledby="networks-title">
+          <div class="networks-header"><h2 id="networks-title">十要素</h2></div>
+          <div class="plan-tools">
+            <label>內容<select id="music-source"><option value="plan">創作方案</option><option value="observed">音樂觀測</option></select></label>
+            <label id="plan-select-label">方案<select id="music-plan"><option value="gentle">舒緩</option><option value="bright">明快</option><option value="reflective">沉靜</option><option value="tension">張力</option></select></label>
+            <label class="plan-import text-button">匯入規則<input id="plan-rules-file" type="file" accept=".json" aria-label="匯入音樂方案規則"></label>
+            <button id="plan-rules-clear" class="text-button" hidden>恢復手動</button>
+            <a id="plan-source" href="./docs/MUSIC-PLANS.md" target="_blank" rel="noopener">課件音樂方案</a>
+          </div>
+          <div id="networks" class="network-grid"></div>
+          <section id="element-detail" class="element-detail">
+            <div><h3 id="element-title">旋律</h3><p id="element-text"></p><small id="element-sample"></small></div>
+            <div id="element-tags" class="tag-network" aria-label="本層音樂關鍵詞"></div>
+          </section>
+        </section>
         <details class="worm-method"><summary>圖形、數據與研究來源</summary><p>演奏蠕蟲原研究呈現音樂速度與響度的時間軌跡。本頁移植雙參數時間顯示方法，使用設備回報的專注與冥想／放鬆指數；並非音樂速度—響度量測，也不是腦區連通圖。</p><p>每個軌跡點對應一筆有效記錄。斷流、接觸不良與來源切換時斷線。預設顯示原始位置；可選平滑僅影響顯示。0–127是可核對的坐標換算，不是MIDI訊息。</p><p>標準距離：以有效連續段的實際時間加權，計算距離質心的均方根半徑，單位保持原生指數。未設定「健康／複雜」閾值。移除了無來源支持的十種預置幾何、密集度閾值及EEG至音樂數值公式。</p><ul id="method-sources" class="method-sources"></ul><a href="./docs/EVIDENCE.md" target="_blank" rel="noopener">逐項證據、公式與資料規格 ↗</a></details>
         <section class="prompt-handoff" aria-labelledby="prompt-title">
           <div class="section-line"><span>03 / OBSERVATION HAND-OFF</span><small>來源 → 觀測 → 人工核對</small></div>
@@ -74,7 +92,7 @@
 <section id="view-settings" class="view-panel" hidden>
   <div class="wave-head"><div><p class="eyebrow">03 / DEVICE &amp; INTERFACES</p><h2>設備與資料接口</h2></div><button id="check-capabilities" class="outline">重新檢查</button></div>
   <section class="bridge-guide"><h3>本機自動采集</h3><p id="runtime-summary" role="status">啟動獨立采集器後，自動連接同源資料。已運行的音療核心可直接復用。</p><a class="outline" href="http://127.0.0.1:8767/" target="_blank" rel="noopener">開啟本機采集入口 ↗</a><p>第一次使用，可下載相應的完整應用包，解壓後啟動。Windows無需另裝Python或Node；Mac首次打開及藍牙權限按系統提示完成。</p><div class="wave-actions"><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-Windows-x64.zip">下載 Windows x64</a><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-macOS-arm64.zip">下載 Mac M系列</a><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-macOS-x64.zip">下載 Mac Intel</a></div><p>Safari通過本機采集器接入，不要求瀏覽器直接支援USB或BLE。</p></section>
-  <section id="gateway-panel" class="setting-section" hidden><div class="section-line"><span>LOCAL ACQUISITION / 自動識別</span><small id="gateway-platform">—</small></div><h3>已發現的設備</h3><div id="gateway-inventory" class="device-list"></div><div class="gateway-selects"><label>腦電USB身份<select id="gateway-eeg-select"></select></label><label>血氧USB身份<select id="gateway-oxygen-select"></select></label></div><button id="gateway-refresh" class="outline">重新掃描</button><button id="gateway-save" class="outline">保存設備身份</button><p id="gateway-message" role="status">僅匹配已配置的設備型號；多個同型號設備可在這裡選擇。</p></section>
+  <section id="gateway-panel" class="setting-section" hidden><div class="section-line"><span>本機設備</span><small id="gateway-platform">—</small></div><h3>已發現的設備</h3><div id="gateway-inventory" class="device-list"></div><div class="gateway-selects"><label>ThinkGear相容腦電USB<select id="gateway-eeg-select"></select></label><label>AFE4490文本血氧USB<select id="gateway-oxygen-select"></select></label><label>腦電藍牙身份<select id="gateway-ble-select"></select></label></div><button id="gateway-refresh" class="outline">重新掃描</button><button id="gateway-save" class="outline">保存设备身份</button><p id="gateway-message" role="status"></p></section>
   <section class="sensor-overview" aria-label="其他傳感器狀態"><div><span>血氧 SpO₂</span><b id="sensor-spo2">—</b><small>%</small></div><div><span>脈率</span><b id="sensor-pr">—</b><small>bpm</small></div><div><span>HRV</span><b id="sensor-hrv">—</b><small>來源原始值</small></div><div><span>皮膚電 GSR</span><b id="sensor-gsr">—</b><small>來源原始值</small></div></section>
   <div id="capabilities" class="capabilities"></div>
   <div class="settings-grid">
@@ -87,7 +105,7 @@
 </section>
 </div>
     </div>
-    <footer><span>NEURAL RESONANCE / v0.10.0</span><p>軌跡保留來源與時間。斷流時停止更新，保留最後觀察。</p><span>OPEN SOURCE</span></footer>
+    <footer><span>NEURAL RESONANCE / v0.11.0</span><p>軌跡保留來源與時間。斷流時停止更新，保留最後觀察。</p><a href="./docs/EVIDENCE.md" target="_blank" rel="noopener">方法與來源</a></footer>
   </main>
   <div id="notice" role="status" hidden></div>
   <script type="module" src="./neural-worm/app.mjs"></script>

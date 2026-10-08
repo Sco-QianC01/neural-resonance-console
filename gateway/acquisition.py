@@ -30,6 +30,21 @@ def inventory(ports):
              "location": getattr(p, "location", "") or ""}
             for p in ports]
 
+def ble_candidates(found, profile):
+    """Prefer an explicitly saved address/UUID; names only identify unique defaults."""
+    rows=[]
+    address=profile.get("address", "").casefold()
+    for device, advert in found.values():
+        name=advert.local_name or device.name or ""
+        if address:
+            matches=device.address.casefold()==address
+        else:
+            matches=any(name.casefold().startswith(p.casefold())
+                        for p in profile["namePrefixes"])
+        if matches:
+            rows.append((device, name))
+    return rows
+
 
 class Stream:
     def __init__(self, sample_rate=512):

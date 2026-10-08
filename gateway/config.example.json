@@ -17,6 +17,7 @@
   },
   "ble": {
     "enabled": true,
+    "address": "",
     "namePrefixes": ["HR-S0A", "BrainLink"],
     "serviceUuid": "", "notifyUuid": ""
   }

@@ -1,10 +1,33 @@
 #Requires -Version 7
 [CmdletBinding()]
-param([switch]$NoBrowser, [switch]$Standalone)
+param([switch]$NoBrowser, [switch]$Standalone, [switch]$SetupOnly)
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
+function Invoke-LocalRuntime {
+    param([string]$Executable,[string[]]$RuntimeArguments)
+    if (-not (Test-Path -LiteralPath $Executable)) { throw 'Required runtime executable missing.' }
+    $start = [Diagnostics.ProcessStartInfo]::new()
+    $start.FileName = $Executable
+    $start.WorkingDirectory = $root
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    $start.StandardOutputEncoding = [Text.UTF8Encoding]::new($false)
+    $start.StandardErrorEncoding = $start.StandardOutputEncoding
+    $start.Environment['PYTHONIOENCODING'] = 'utf-8'
+    foreach ($item in $RuntimeArguments) { $start.ArgumentList.Add($item) }
+    $process = [Diagnostics.Process]::Start($start)
+    $stdout = $process.StandardOutput.ReadToEndAsync()
+    $stderr = $process.StandardError.ReadToEndAsync()
+    $process.WaitForExit()
+    if ($stdout.Result) { Write-Host $stdout.Result.TrimEnd() }
+    if ($stderr.Result) { Write-Host $stderr.Result.TrimEnd() }
+    return $process.ExitCode
+}
 $package = Join-Path $root 'NeuralResonance\NeuralResonance.exe'
 if (Test-Path -LiteralPath $package) {
+    if ($SetupOnly) { Write-Output 'Portable application is ready.'; exit 0 }
     $arguments = @()
     if ($NoBrowser) { $arguments += '--no-browser' }
     if ($Standalone) { $arguments += '--standalone' }
@@ -39,10 +62,15 @@ $env:UV_PYTHON_INSTALL_DIR = Join-Path $runtime 'python'
 $env:UV_LINK_MODE = 'copy'
 Push-Location (Join-Path $root 'gateway')
 try {
-    & $uv sync --frozen --no-dev --python 3.13 --python-preference only-managed
-    if ($LASTEXITCODE -ne 0) { throw 'Isolated dependency installation failed.' }
+    $syncCode = Invoke-LocalRuntime $uv @('sync','--directory',(Join-Path $root 'gateway'),
+        '--frozen','--no-dev','--python','3.13','--python-preference','only-managed')
+    if ($syncCode -ne 0) { throw 'Isolated dependency installation failed.' }
     $python = Join-Path $env:UV_PROJECT_ENVIRONMENT 'Scripts\python.exe'
     if (-not (Test-Path -LiteralPath $python)) { throw 'Isolated Python missing.' }
+    if ($SetupOnly) {
+        $checkCode = Invoke-LocalRuntime $python @('-c',"import aiohttp, bleak, serial; print('Isolated acquisition environment is ready.')")
+        exit $checkCode
+    }
     $arguments = @((Join-Path $root 'gateway\device_gateway.py'))
     if ($NoBrowser) { $arguments += '--no-browser' }
     if ($Standalone) { $arguments += '--standalone' }

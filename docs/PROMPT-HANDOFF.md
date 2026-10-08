@@ -18,6 +18,7 @@
 | observedCoverageSeconds / traceStatistics | 有效時間與可復算統計 |
 | evidence / methodSources | 來源聲明、方法及研究來源ID |
 | claimsInferredFromEeg | false |
+| musicPlan | 另列創作方案、課件頁碼、人工或匯入規則身份，不作測量 |
 
 ThinkGear eSense零值無效，接觸不良及斷流時不產生新摘要。舊記錄中的v2推算
 不會重新用作觀測。語言模型不能修改數值或把缺失項補成音樂處方。

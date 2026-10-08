@@ -21,7 +21,7 @@ export function networkStates(snapshot){
     ...mapping.evidence[key],description:requirements[key],
     timestamp:snapshot.timestamp,dataSource:snapshot.source,version:NETWORK_VERSION,
     descriptor:mapping.evidence[key].status==='reported'
-      ?'來源已聲明，方法待復核':'未觀測',
+      ?mapping.evidence[key].source.method:'',
     control127:null,density:null,dispersion:null,nodeCount:0,shape:null,
   }));
 }

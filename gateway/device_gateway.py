@@ -16,7 +16,7 @@ from bleak import BleakClient, BleakScanner
 import serial
 from serial.tools import list_ports
 
-from acquisition import Stream, choose_port, inventory
+from acquisition import Stream, choose_port, inventory, ble_candidates
 from protocols import ThinkGear, oxygen, gsr
 
 FROZEN = getattr(sys, "frozen", False)
@@ -70,7 +70,7 @@ def validate_config(value):
     if not isinstance(prefixes, list) or not prefixes or not all(
             isinstance(p, str) and p and len(p) <= 128 for p in prefixes):
         raise ValueError("BLE requires nonempty name prefixes")
-    for name in ("serviceUuid", "notifyUuid"):
+    for name in ("serviceUuid", "notifyUuid", "address"):
         if not isinstance(config["ble"][name], str) or len(config["ble"][name]) > 128:
             raise ValueError("BLE UUID is invalid")
     if type(config["eeg"]["sampleRate"]) is not int or not 1 <= config["eeg"]["sampleRate"] <= 4096:
@@ -173,11 +173,9 @@ class Acquisition:
                     continue
                 self.stream.status("ble", state="scanning", message="扫描相容脑电设备")
                 found = await BleakScanner.discover(timeout=5, return_adv=True)
-                matches = []
-                for device, advert in found.values():
-                    name = advert.local_name or device.name or ""
-                    if any(name.casefold().startswith(p.casefold()) for p in profile["namePrefixes"]):
-                        matches.append((device, name))
+                matches = ble_candidates(found, profile)
+                self.stream.status("ble", candidates=[
+                    {"name": name, "address": device.address} for device, name in matches])
                 if len(matches) != 1:
                     self.stream.status("ble", state="waiting",
                                        message="未发现目标设备" if not matches else "多个同名设备，需要指定身份")
@@ -255,7 +253,7 @@ def create_app(acquisition, config_path, upstream=None):
     sockets = set()
 
     async def health(_request):
-        return web.json_response({"app": "neural-resonance-gateway", "version": "0.9.0",
+        return web.json_response({"app": "neural-resonance-gateway", "version": "0.11.0",
                                   "standalone": True, "upstream": bool(upstream),
                                   "platform": sys.platform})
 
@@ -275,7 +273,9 @@ def create_app(acquisition, config_path, upstream=None):
 
     async def devices(_request):
         ports = await asyncio.to_thread(list_ports.comports)
-        return web.json_response({"devices": inventory(ports), "config": acquisition.config,
+        with acquisition.stream.lock:
+            ble_devices=copy.deepcopy(acquisition.stream.devices.get("ble", {}).get("candidates", []))
+        return web.json_response({"devices": inventory(ports), "bleDevices": ble_devices, "config": acquisition.config,
                                   "platform": sys.platform, "upstream": bool(upstream)})
 
     async def save_config(request):

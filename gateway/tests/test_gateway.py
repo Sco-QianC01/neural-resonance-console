@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from acquisition import Stream, choose_port
+from acquisition import Stream, choose_port, ble_candidates
 from protocols import ThinkGear, oxygen, gsr
 from device_gateway import validate_config, Acquisition, create_app
 from aiohttp.test_utils import TestClient, TestServer
@@ -54,6 +54,29 @@ class ProtocolTests(unittest.TestCase):
 
 
 class IdentityTests(unittest.TestCase):
+    def test_saved_ble_identity_survives_rename_and_same_name_devices(self):
+        found={
+            "first":(SimpleNamespace(address="AA:01",name="Renamed headset"),SimpleNamespace(local_name="Renamed headset")),
+            "second":(SimpleNamespace(address="AA:02",name="HR-S0A"),SimpleNamespace(local_name="HR-S0A")),
+        }
+        profile=validate_config({"ble":{"address":"aa:01"}})["ble"]
+        self.assertEqual(ble_candidates(found,profile)[0][0].address,"AA:01")
+        profile["address"]="missing"
+        self.assertEqual(ble_candidates(found,profile),[])
+
+    def test_macos_uuid_identity_and_empty_identity_defaults_are_distinct(self):
+        found={"one":(SimpleNamespace(address="ABC-DEF-123",name="BrainLink"),SimpleNamespace(local_name="BrainLink"))}
+        profile=validate_config({"ble":{"address":"abc-def-123"}})["ble"]
+        self.assertEqual(len(ble_candidates(found,profile)),1)
+        profile["address"]=""
+        self.assertEqual(len(ble_candidates(found,profile)),1)
+        found["two"]=(SimpleNamespace(address="OTHER-UUID",name="BrainLink"),SimpleNamespace(local_name="BrainLink"))
+        self.assertEqual(len(ble_candidates(found,profile)),2)
+
+    def test_saved_ble_identity_rejects_invalid_types(self):
+        with self.assertRaises(ValueError):
+            validate_config({"ble":{"address":123}})
+
     def test_windows_and_macos_identity_do_not_depend_on_device_name(self):
         profile = validate_config({})["eeg"]
         self.assertEqual(choose_port([port("COM21")], profile), "COM21")
