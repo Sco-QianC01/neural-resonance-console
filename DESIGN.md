@@ -20,7 +20,7 @@ components: navigation, acquisition rail, waveforms, particle networks, inventor
 
 深色科研乐器风格，优先读懂信号、来源和设备状态。波形捕获、神经蠕虫、设备设置三个页面固定；切换不销毁同一数据连接。
 
-本轮视觉来源为既有四频段结构与本规范。image2.5设计稿等待可用的已登录生成入口，未将HTML截图标为模型生成。
+视觉来源为既有四频段结构、Suno HK中GPT Image 2.5实际生成的设计稿与本规范。原图、预览与哈希记录保存在`docs/design/`。采用双环原生读数、分段来源按钮及紧凑状态栏；不采用模型图片中的示例日期、256Hz、µV、健康等级或测量值。
 
 ## Colors
 

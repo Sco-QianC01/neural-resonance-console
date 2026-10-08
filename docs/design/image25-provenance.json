@@ -1,0 +1,15 @@
+{
+  "model": "GPT Image 2.5",
+  "provider": "User-authorized Suno HK UI",
+  "purpose": "UI design reference, not measured EEG data",
+  "submittedRatio": "16:9",
+  "outputs": [
+    {
+      "file": "image25-neural-resonance-1.png",
+      "width": 1672,
+      "height": 941,
+      "sha256": "756c556e38e013fb2b30c5c38d3095036ad880b444bc1ef31ff86f0c3d9ec44a",
+      "preview": "image25-neural-resonance-1-preview.jpg"
+    }
+  ]
+}

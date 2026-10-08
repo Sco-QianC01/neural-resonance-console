@@ -92,6 +92,8 @@ function update(){
   }
   $('read-attention').textContent=valid?Math.round(current.attention):'—';
   $('read-relaxation').textContent=valid?Math.round(current.relaxation):'—';
+  $('gauge-attention').style.setProperty('--progress',`${valid?current.attention*3.6:0}deg`);
+  $('gauge-relaxation').style.setProperty('--progress',`${valid?current.relaxation*3.6:0}deg`);
   $('packets').textContent=current?.packets??'—';
   $('freshness').textContent=valid?'有效資料':current?.transportFresh&&!current.signalValid?'接觸不良':
     current?.signalValid?'缺少設備指數':'等待 / 暫停';

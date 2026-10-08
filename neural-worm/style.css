@@ -74,3 +74,22 @@ footer{font-size:9px;padding:26px 0}.bridge-guide h3{font-size:17px}.bridge-guid
 @media(min-width:1200px){.input{position:sticky;top:24px}}
 @media(max-width:1100px){.workspace{grid-template-columns:230px minmax(0,1fr);gap:24px}main,.header{padding-left:26px;padding-right:26px}.input{padding:18px}.stream-strip{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:18px}.view-nav button{padding:11px 10px;font-size:11px}.heading h1{font-size:30px}}
 @media(max-width:700px){.header{min-height:102px;height:auto;padding:16px 18px 10px}.wordmark{font-size:14px;gap:10px}.wordmark small{font-size:8px}.view-nav{margin-top:5px;gap:5px!important}.view-nav button{font-size:11px;padding:10px 12px;min-height:40px}.heading{padding:26px 0 22px}.heading h1{font-size:28px}.heading .eyebrow{font-size:9px}main{padding:0 18px}.status{font-size:10px;padding:7px 9px}.workspace{grid-template-columns:1fr;gap:26px}.input{padding:20px;position:static;column-gap:18px}.input h2{font-size:19px}.readouts{margin-top:18px}.readouts strong{font-size:32px}.tabs{gap:28px;margin:20px 0 4px}.wave-head h2{font-size:20px}.stream-strip{gap:17px}.stream-strip div{padding-left:11px}.indices-section{padding:17px 12px 8px}.indices-section .section-line{flex-wrap:wrap;gap:10px}.indices-section p{font-size:10px}.wave-chart{padding:16px 12px 4px}.wave-chart canvas{height:115px}.wave-chart h3{font-size:12px}.raw-section{padding:18px 14px}.wave-actions{gap:9px}.wave-actions .outline{font-size:11px;padding:10px}.gateway-selects{grid-template-columns:1fr;gap:0}.sensor-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.device-row{grid-template-columns:1fr;gap:5px}.setting-section{padding:19px}.prompt-handoff{padding:20px}.hero canvas{height:290px}.network{padding:12px}.network-head{font-size:11px}}
+
+/* GPT Image 2.5 design reference: instrument rings and segmented source bar.
+   Display values retain /100 and declared units; mockup measurements are not used. */
+.tabs{gap:0;background:#15212a;border:1px solid #2b3d48;border-radius:5px;padding:3px}
+.tabs button{flex:1;padding:9px 3px;border:1px solid transparent;border-radius:3px;font-size:12px}
+.tabs button[aria-pressed=true]{border:1px solid #60988f;background:#1a3439;color:#d5f1eb}
+.readouts{gap:17px;justify-content:space-between}
+.readouts>div{display:block;text-align:center;max-width:95px}
+.readouts>div>span{display:block;margin-bottom:12px}
+.readouts .native-gauge{position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;width:92px;height:92px;max-width:92px;border-radius:50%;background:conic-gradient(var(--gauge-color,#e2c18a) var(--progress,0deg),#25343f 0);gap:0}
+.native-gauge:before{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--panel)}
+.readouts .native-gauge strong{position:relative;z-index:1;font-size:28px;line-height:1.25}
+.readouts .native-gauge small{position:relative;z-index:1;font-size:10px;line-height:1.5}
+#gauge-relaxation{--gauge-color:#88d2ce}
+.stream-strip{border:1px solid var(--line);border-radius:7px;background:var(--panel);padding:19px 13px;margin-top:18px}
+.stream-strip div:first-child{border-left:0}
+#record{background:#1e3b3b;border-color:#4d8b82;color:#d5f3eb}
+@media(max-width:1100px) and (min-width:701px){.readouts{gap:8px}.readouts .native-gauge{width:84px;height:84px;max-width:84px}}
+@media(max-width:700px){.readouts{flex-direction:column;align-items:center;gap:18px}.readouts .native-gauge{width:82px;height:82px;max-width:82px}.readouts .native-gauge strong{font-size:25px}.tabs{margin-top:18px;margin-bottom:10px}.stream-strip{padding:16px 7px}}

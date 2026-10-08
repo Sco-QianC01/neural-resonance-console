@@ -27,7 +27,7 @@
           <button id="connect" class="outline">連接</button><button id="disconnect" class="text-button">停止連接</button>
         </div>
         <div id="replay-input" hidden><label for="replay-file">匯入 EEG JSON<input id="replay-file" type="file" accept=".json"></label><button id="replay-start" class="outline" disabled>播放記錄</button><button id="replay-stop" class="text-button">暫停</button><p id="replay-info"></p></div>
-<div class="readouts"><div><span>專注度</span><strong id="read-attention">—</strong><small>/ 100</small></div><div><span>放鬆度</span><strong id="read-relaxation">—</strong><small>/ 100</small></div></div>
+<div class="readouts"><div><span>專注度</span><div class="native-gauge" id="gauge-attention"><strong id="read-attention">—</strong><small>/ 100</small></div></div><div><span>放鬆度</span><div class="native-gauge" id="gauge-relaxation"><strong id="read-relaxation">—</strong><small>/ 100</small></div></div></div>
         <div class="signal-meta"><span>有效封包</span><b id="packets">—</b><span>資料狀態</span><b id="freshness">等待</b></div>
         <p id="source-note">示範由本頁生成，並非實際測量。</p>
         <div class="capture"><button id="record" class="outline">開始記錄</button><button id="export" class="text-button" disabled>匯出 JSON ↗</button><span id="count">0 個樣本</span></div>
