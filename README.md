@@ -18,6 +18,8 @@
 
 ### 直接使用設備：獨立應用
 
+下載：[Windows x64](https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-Windows-x64.zip) · [Mac M系列](https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-macOS-arm64.zip) · [Mac Intel](https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-macOS-x64.zip)。
+
 Windows應用包解壓後，雙擊 **`NeuralResonance/NeuralResonance.exe`**。
 它自帶隔離的Python環境、設備采集器及網頁，不需要Node、作者的音療系統或私人服務器。
 USB按設備身份自動識別，端口變號或拔插後自動重試。
