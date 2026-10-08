@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "neural-gateway-config-v1",
+  "port": 8767,
+  "reuseLocalCore": true,
+  "eeg": {
+    "enabled": true, "vid": 1155, "pid": 22336,
+    "serialNumber": "", "location": "", "baud": 115200,
+    "dtr": true, "rts": true, "sampleRate": 512
+  },
+  "bloodOxygen": {
+    "enabled": true, "vid": 6790, "pid": 29987,
+    "serialNumber": "", "location": "", "baud": 115200
+  },
+  "gsr": {
+    "enabled": false, "vid": null, "pid": null,
+    "serialNumber": "", "location": "", "baud": 9600
+  },
+  "ble": {
+    "enabled": true,
+    "namePrefixes": ["HR-S0A", "BrainLink"],
+    "serviceUuid": "", "notifyUuid": ""
+  }
+}

@@ -1,0 +1,55 @@
+name: Portable desktop packages
+on:
+  workflow_dispatch:
+  push:
+    tags: ['desktop-v*']
+    branches: ['main']
+    paths: ['gateway/**', '.github/workflows/desktop.yml']
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows-x64
+          - os: macos-15
+            name: macOS-arm64
+          - os: macos-15-intel
+            name: macOS-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.12.23'
+          python-version: '3.13'
+      - name: Isolated dependencies
+        working-directory: gateway
+        run: uv sync --frozen --group build
+      - name: Protocol and API tests
+        working-directory: gateway
+        run: uv run --frozen python -m unittest discover -s tests -v
+      - name: Build native application
+        working-directory: gateway
+        run: uv run --frozen pyinstaller package.spec --noconfirm --distpath ../artifacts/desktop
+      - name: Validate macOS launcher and permissions manifest
+        if: runner.os == 'macOS'
+        run: |
+          sh -n Start-macOS.command
+          plutil -lint "artifacts/desktop/Neural Resonance.app/Contents/Info.plist"
+      - name: Archive macOS application with permissions and symlinks
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p artifacts/release
+          ditto -c -k --sequesterRsrc --keepParent "artifacts/desktop/Neural Resonance.app" "artifacts/release/NeuralResonance-${{ matrix.name }}.zip"
+      - name: Archive Windows application
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path artifacts/release -Force | Out-Null
+          Compress-Archive -LiteralPath artifacts/desktop/NeuralResonance -DestinationPath "artifacts/release/NeuralResonance-${{ matrix.name }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NeuralResonance-${{ matrix.name }}
+          path: artifacts/release/

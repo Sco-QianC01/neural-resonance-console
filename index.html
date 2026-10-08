@@ -7,9 +7,9 @@
   <link rel="stylesheet" href="./neural-worm/style.css">
 </head>
 <body>
-  <header class="header"><a href="./" class="wordmark"><span class="mark">✳</span> NEURAL RESONANCE</a><nav class="view-nav" aria-label="三個介面"><button data-view="waveforms" aria-pressed="true">01 波形捕獲</button><button data-view="worm" aria-pressed="false">02 神經蠕蟲</button><button data-view="settings" aria-pressed="false">03 設備設定</button></nav></header>
+  <header class="header"><a href="./" class="wordmark"><span class="mark" aria-hidden="true"><svg viewBox="0 0 40 40" width="36" height="36"><path d="M4 22h6l4-12 7 22 5-16 4 6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="10" r="2.6" fill="currentColor"/><circle cx="21" cy="32" r="2.6" fill="currentColor"/></svg></span><span>神經共振<small>NEURAL RESONANCE</small></span></a><nav class="view-nav" aria-label="三個介面"><button data-view="waveforms" aria-pressed="true">01 波形捕獲</button><button data-view="worm" aria-pressed="false">02 神經蠕蟲</button><button data-view="settings" aria-pressed="false">03 設備設定</button></nav></header>
   <main>
-    <div class="heading"><div><p class="eyebrow">TEN ELEMENTS. ONE NEURAL FIELD.</p><h1 id="page-title">波形捕獲<span>EEG / LIVE SIGNAL</span></h1></div><div id="status" class="status" role="status">示範資料</div></div>
+    <div class="heading"><div><p class="eyebrow">NEURAL SIGNAL / MUSIC INTERACTION</p><h1 id="page-title">波形捕獲<span>EEG / LIVE SIGNAL</span></h1></div><div id="status" class="status" role="status">示範資料</div></div>
     <div class="workspace">
       <aside class="input">
         <div class="section-line"><span>01 / SIGNAL</span><small id="source">DEMO</small></div>
@@ -65,7 +65,9 @@
       </div>
 <section id="view-settings" class="view-panel" hidden>
   <div class="wave-head"><div><p class="eyebrow">03 / DEVICE &amp; INTERFACES</p><h2>設備與資料接口</h2></div><button id="check-capabilities" class="outline">重新檢查</button></div>
-  <section class="bridge-guide"><h3>本機自動采集</h3><p id="runtime-summary" role="status">在本機采集入口開啟後，自動接入核心資料；USB 和藍牙由核心統一管理。</p><a class="outline" href="http://127.0.0.1:8767/" target="_blank" rel="noopener">開啟本機采集入口 ↗</a><p>公開網頁不會自行取得設備權限。直接使用瀏覽器 USB／BLE 前需選擇並授權設備；與核心采集擇一使用。</p></section>
+  <section class="bridge-guide"><h3>本機自動采集</h3><p id="runtime-summary" role="status">啟動獨立采集器後，自動連接同源資料。已運行的音療核心可直接復用。</p><a class="outline" href="http://127.0.0.1:8767/" target="_blank" rel="noopener">開啟本機采集入口 ↗</a><p>Windows／macOS可使用本地采集器；Safari無需直接支援USB或BLE。系統首次授權與設備驅動按作業系統提示完成。</p></section>
+  <section id="gateway-panel" class="setting-section" hidden><div class="section-line"><span>LOCAL ACQUISITION / 自動識別</span><small id="gateway-platform">—</small></div><h3>已發現的設備</h3><div id="gateway-inventory" class="device-list"></div><div class="gateway-selects"><label>腦電USB身份<select id="gateway-eeg-select"></select></label><label>血氧USB身份<select id="gateway-oxygen-select"></select></label></div><button id="gateway-refresh" class="outline">重新掃描</button><button id="gateway-save" class="outline">保存設備身份</button><p id="gateway-message" role="status">僅匹配已配置的設備型號；多個同型號設備可在這裡選擇。</p></section>
+  <section class="sensor-overview" aria-label="其他傳感器狀態"><div><span>血氧 SpO₂</span><b id="sensor-spo2">—</b><small>%</small></div><div><span>脈率</span><b id="sensor-pr">—</b><small>bpm</small></div><div><span>HRV</span><b id="sensor-hrv">—</b><small>來源原始值</small></div><div><span>皮膚電 GSR</span><b id="sensor-gsr">—</b><small>來源原始值</small></div></section>
   <div id="capabilities" class="capabilities"></div>
   <div class="settings-grid">
     <section class="setting-section"><h3>USB / 串口</h3><p>標準 ThinkGear 封包。專有協議設備可改接原廠驅動的 WebSocket。</p><label for="baud">波特率</label><select id="baud"><option>115200</option><option>57600</option><option>9600</option></select><button id="serial-connect" class="outline">選擇 USB 串口</button></section>
@@ -77,7 +79,7 @@
 </section>
 </div>
     </div>
-    <footer><span>NEURAL RESONANCE / v0.7</span><p>光粒子呈現互動映射。斷流時停止更新，保留最後畫面。</p><span>OPEN SOURCE</span></footer>
+    <footer><span>NEURAL RESONANCE / v0.8</span><p>光粒子呈現互動映射。斷流時停止更新，保留最後畫面。</p><span>OPEN SOURCE</span></footer>
   </main>
   <div id="notice" role="status" hidden></div>
   <script type="module" src="./neural-worm/app.mjs"></script>

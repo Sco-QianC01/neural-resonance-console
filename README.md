@@ -16,6 +16,32 @@
 
 ## 本地運行
 
+### 直接使用設備：獨立應用
+
+Windows應用包解壓後，雙擊 **`NeuralResonance/NeuralResonance.exe`**。
+它自帶隔離的Python環境、設備采集器及網頁，不需要Node、作者的音療系統或私人服務器。
+USB按設備身份自動識別，端口變號或拔插後自動重試。
+
+macOS源碼版首次運行 **`Start-macOS.command`**，會在项目`.runtime/`內安裝固定依賴并打開本機網頁：
+
+```sh
+chmod +x Start-macOS.command
+./Start-macOS.command
+```
+
+Windows源碼版使用PowerShell 7：
+
+```powershell
+.\Start-Windows.ps1
+```
+
+macOS应用包由仓库的 **Portable desktop packages** 工作流分别构建Apple Silicon和Intel版本。
+首次蓝牙权限和缺失的厂商USB驱动按系统提示处理；真实Mac设备采集与应用构建分开验收。
+
+完整安装步骤见[跨平台部署](docs/PORTABLE-DEPLOYMENT.md)，支持范围见[设备矩阵](docs/DEVICE-MATRIX.md)。
+
+### 只运行前端：Node或静态网站
+
 安裝 Node.js 20 或更新版本：
 
 ```sh
@@ -35,6 +61,10 @@ npm start -- --host 0.0.0.0
 第二種方式可讓同一區域網路的其他設備，使用此電腦的網路地址訪問。
 
 ## 接入設備
+
+独立采集器默认支持ThinkGear相容脑电和AFE4490文本血氧／脉率。
+默认配置没有作者USB序列号或固定COM号；同型号设备有多台时可在设备设置页选择身份。
+其他厂商设备应先增加协议适配器或提供下面的标准JSON网关。
 
 1. 在「實時」填入你自己的 WebSocket 資料源，按「連接」。
 2. 使用直接 USB／BLE 接入時，在「設備設定」主動選擇設備並授權。
@@ -104,5 +134,18 @@ GitHub Pages 入口 `/neural-worm/` 仍可直接打開蠕蟲介面。
 | `src/recording.mjs` | 保存原生指數、資料來源、單位與 CSV 匯出 |
 | `src/neural-networks.mjs` | 光粒子與十網控制 |
 | `src/device-input.mjs` | USB／BLE 與 ThinkGear 解析 |
+| `gateway/` | Windows／macOS独立采集、HTTP/WebSocket与依赖锁 |
+| `Start-Windows.ps1`、`Start-macOS.command` | 首次安装及以后启动 |
+
+Python设备采集器的测试与原生打包：
+
+```sh
+cd gateway
+uv sync --frozen --group build
+uv run python -m unittest discover -s tests -v
+uv run pyinstaller package.spec --noconfirm --distpath ../artifacts/desktop
+```
+
+应用必须在目标操作系统原生打包；Windows虚拟环境不会直接复制到Mac。
 
 協作方式見 [開發指南](docs/HANDOFF.md)。MIT 授權。

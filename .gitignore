@@ -13,3 +13,7 @@ recordings/
 id_ed25519*
 *.key
 .DS_Store
+.venv/
+__pycache__/
+*.pyc
+gateway/build/

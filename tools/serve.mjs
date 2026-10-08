@@ -21,7 +21,7 @@ export function createConsoleServer(root=projectRoot) {
       if(name==='/api/health'){
         res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});
         res.end(req.method==='HEAD'?undefined:JSON.stringify({
-          app:'neural-resonance-console',standalone:true,version:'0.7.0'
+          app:'neural-resonance-console',standalone:true,version:'0.8.0'
         }));return;
       }
       const target=path.resolve(root,`.${name}`);

@@ -6,7 +6,10 @@ import {drawWaveforms,drawWorm,drawIndices} from '../src/waveform-view.mjs';
 import {BrowserDeviceInput} from '../src/device-input.mjs';
 import {captureSnapshot,recordingCsv,replayPacket} from '../src/recording.mjs';
 import {createMusicPrompt} from '../src/prompt.mjs';
+import {SensorState} from '../src/sensors.mjs';
+import {identityOptions,selectedProfile} from '../src/gateway-settings.mjs';
 const $=id=>document.getElementById(id),stream=new StreamState();
+const sensors=new SensorState();
 const english=['MELODY','RHYTHM','HARMONY','DYNAMICS','TEMPO','MODE','FORM','TEXTURE','TIMBRE','ARTICULATION'];
 let mode='demo',tick=0,timer=null,selected=0,states=null,recording=false,records=[],frame=0,time=0,paused=false,leaving=false;
 let view='waveforms',history=[],rawSamples=[],rawUnit='',replay=null,replayIndex=0,recordBytes=0;
@@ -40,6 +43,7 @@ function notice(text){$('notice').textContent=text;$('notice').hidden=false;setT
 function ingest(packet,{capture=true,now=Date.now()}={}){
   try{
     if(!stream.accept(packet,now))return;
+    sensors.accept(packet,now);
     const snapshot=stream.current(now);
     const identity=JSON.stringify([snapshot.source,snapshot.sessionId,snapshot.transport,snapshot.connectionEpoch]);
     if(identity!==liveIdentity){history=[];rawSamples=[];states=null;liveIdentity=identity;}
@@ -59,7 +63,7 @@ function ingest(packet,{capture=true,now=Date.now()}={}){
     update();
   }catch(error){notice(error.message);}
 }
-function stop(){clearInterval(timer);clearTimeout(timer);timer=null;connection.stop();stream.reset();paused=true;devices.stop();}
+function stop(){clearInterval(timer);clearTimeout(timer);timer=null;connection.stop();stream.reset();sensors.reset();paused=true;devices.stop();}
 function emit(){
   const values=demoValues(Number($('attention').value),Number($('relaxation').value),tick,$('auto').checked);
   ingest(demoSnapshot(values.attention,values.relaxation,tick++));
@@ -82,6 +86,10 @@ function setMode(value){
 }
 function update(){
   const current=stream.current(),valid=current?.valid;
+  const sensorValues=sensors.current();
+  for(const key of ['spo2','pr','hrv','gsr']){
+    $(`sensor-${key}`).textContent=sensorValues[key].valid?String(sensorValues[key].value):'—';
+  }
   $('read-attention').textContent=valid?Math.round(current.attention):'—';
   $('read-relaxation').textContent=valid?Math.round(current.relaxation):'—';
   $('packets').textContent=current?.packets??'—';
@@ -194,6 +202,7 @@ function setView(next){
   const title={waveforms:'波形捕獲',worm:'神經蠕蟲',settings:'設備設定'}[view];
   $('page-title').replaceChildren(document.createTextNode(title),Object.assign(document.createElement('span'),{textContent:{waveforms:'EEG / LIVE SIGNAL',worm:'十大音樂要素',settings:'DEVICE / INTERFACES'}[view]}));
   if(view==='settings')capabilities();
+  if(view==='settings')refreshGateway();
 }
 document.querySelectorAll('[data-view]').forEach(button=>button.onclick=()=>{location.hash=button.dataset.view;});
 window.addEventListener('hashchange',()=>setView(location.hash.slice(1)));
@@ -216,6 +225,47 @@ for(const [id,mask] of [['wave-snapshot',false],['mask-snapshot',true]])$(id).on
   const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download=`neural-${mask?'mask':'waveforms'}-${Date.now()}.png`;a.click();
 };
 const devices=new BrowserDeviceInput({onPacket:ingest,onStatus:text=>{$('device-status').textContent=text;}});
+let gatewayConfig=null;
+async function refreshGateway(){
+  try{
+    const response=await fetch('/api/gateway/devices',{cache:'no-store',signal:AbortSignal.timeout(3000)});
+    if(!response.ok)return;
+    const data=await response.json();
+    gatewayConfig=data.config;$('gateway-panel').hidden=false;
+    $('gateway-platform').textContent=data.platform==='darwin'?'macOS':data.platform==='win32'?'Windows':data.platform;
+    $('gateway-inventory').replaceChildren(...data.devices.map(device=>{
+      const row=document.createElement('div');row.className='device-row';
+      const name=document.createElement('code'),detail=document.createElement('span');
+      name.textContent=device.port;
+      detail.textContent=`${device.description} · ${device.vid===null?'非USB':`${device.vid.toString(16).padStart(4,'0')}:${device.pid.toString(16).padStart(4,'0')}`} · ${device.serialNumber||device.location||'無序列號'}`;
+      row.append(name,detail);return row;
+    }));
+    if(!data.devices.length)$('gateway-inventory').textContent='尚未發現串口設備；插入後可重新掃描。';
+    for(const [key,id] of [['eeg','gateway-eeg-select'],['bloodOxygen','gateway-oxygen-select']]){
+      const select=$(id),profile=data.config[key];
+      select.replaceChildren(new Option('自動 · 唯一型號匹配','{}'));
+      for(const option of identityOptions(data.devices,profile))select.add(new Option(option.label,option.value));
+      const registered=JSON.stringify({serialNumber:profile.serialNumber||'',location:profile.location||''});
+      if([...select.options].some(o=>o.value===registered))select.value=registered;
+    }
+    $('gateway-save').disabled=Boolean(data.upstream);
+    $('gateway-message').textContent=data.upstream
+      ?'目前復用既有音療核心，其设备身份由核心配置管理；獨立模式可在此保存。'
+      :'按USB身份識別；COM號或macOS設備路径改變後自動重連。';
+  }catch(error){$('gateway-message').textContent=`設備清單暫不可用：${error.message}`;}
+}
+$('gateway-refresh').onclick=refreshGateway;
+$('gateway-save').onclick=async()=>{
+  if(!gatewayConfig)return;
+  try{
+    const next={...gatewayConfig,
+      eeg:selectedProfile(gatewayConfig.eeg,$('gateway-eeg-select').value),
+      bloodOxygen:selectedProfile(gatewayConfig.bloodOxygen,$('gateway-oxygen-select').value)};
+    const response=await fetch('/api/gateway/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    await refreshGateway();$('gateway-message').textContent='身份已保存，采集器已重新識別設備。';
+  }catch(error){$('gateway-message').textContent=`保存未完成：${error.message}`;}
+};
 let runtimeTimer=null;
 async function refreshRuntime(){
   try{
