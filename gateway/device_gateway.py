@@ -219,10 +219,10 @@ class Acquisition:
                     last_valid = [time.monotonic()]
                     decoders = {}
 
-                    def notification(characteristic, data):
+                    def notification(characteristic, data, token=connection, decoders=decoders, last_valid=last_valid):
                         decoder = decoders.setdefault(str(characteristic.uuid), ThinkGear())
                         for fields, raw in decoder.feed(bytes(data)):
-                            if stream.accept("desktop_ble", fields, raw, connection=connection):
+                            if stream.accept("desktop_ble", fields, raw, connection=token):
                                 last_valid[0] = time.monotonic()
                                 stream.status("ble", state="receiving", message="收到有效协议数据")
 
@@ -290,7 +290,7 @@ def create_app(acquisition, config_path, upstream=None):
     config_lock = asyncio.Lock()
 
     async def health(_request):
-        return web.json_response({"app": "neural-resonance-gateway", "version": "0.11.2",
+        return web.json_response({"app": "neural-resonance-gateway", "version": "0.11.3",
                                   "standalone": True, "upstream": bool(upstream),
                                   "platform": sys.platform})
 

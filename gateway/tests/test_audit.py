@@ -4,6 +4,8 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from acquisition import Stream
@@ -48,6 +50,32 @@ class ReconnectionTests(unittest.TestCase):
 
 
 class GatewayResetTests(unittest.IsolatedAsyncioTestCase):
+    async def test_late_ble_notification_from_previous_connection_is_rejected(self):
+        acquisition=Acquisition(validate_config({}))
+        callbacks=[];observed=[]
+        device=SimpleNamespace(address="AA:01",name="BrainLink")
+        advert=SimpleNamespace(local_name="BrainLink")
+        characteristic=SimpleNamespace(uuid="notify",properties=["notify"])
+        async def discover(**_kwargs):return {"device":(device,advert)}
+        def frame(payload):return b"\xaa\xaa"+bytes([len(payload)])+payload+bytes([(~sum(payload))&255])
+        class Client:
+            def __init__(self,*_args,**_kwargs):
+                self.services=[SimpleNamespace(uuid="service",characteristics=[characteristic])]
+                self.is_connected=False
+            async def __aenter__(self):return self
+            async def __aexit__(self,*_args):
+                if len(callbacks)==2:acquisition.stop_event.set()
+            async def start_notify(self,char,callback):
+                callbacks.append(callback)
+                if len(callbacks)==2:
+                    callbacks[0](char,frame(b"\x04\x63"))
+                    observed.append(acquisition.stream.frames)
+                    callback(char,frame(b"\x04\x3e\x05\x4a"))
+                    observed.append(acquisition.stream.frames)
+        with patch("device_gateway.BleakScanner.discover",side_effect=discover),patch("device_gateway.BleakClient",Client):
+            await asyncio.wait_for(acquisition.ble_worker(),2)
+        self.assertEqual(observed,[0,1])
+
     async def asyncSetUp(self):
         self.tmp=tempfile.TemporaryDirectory()
         config=validate_config({key:{"enabled":False} for key in ("eeg","bloodOxygen","gsr","ble")})
