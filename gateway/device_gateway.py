@@ -20,7 +20,19 @@ from acquisition import Stream, choose_port, inventory, ble_candidates
 from protocols import ThinkGear, oxygen, gsr
 
 FROZEN = getattr(sys, "frozen", False)
-ROOT = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
+
+
+def asset_root(base, platform, frozen):
+    """macOS bundles keep data in Resources and cross-link it from Frameworks."""
+    root = Path(base)
+    if frozen and platform == "darwin" and root.parent.name == "Contents":
+        resources = root.parent / "Resources"
+        if (resources / "index.html").is_file() and (resources / "gateway/config.example.json").is_file():
+            return resources
+    return root
+
+
+ROOT = asset_root(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]), sys.platform, FROZEN)
 DEFAULTS = json.loads((ROOT / "gateway/config.example.json").read_text(encoding="utf-8"))
 CLIENT_KEY = web.AppKey("client", ClientSession)
 CONTEXT_KEY = web.AppKey("context", dict)
@@ -278,7 +290,7 @@ def create_app(acquisition, config_path, upstream=None):
     config_lock = asyncio.Lock()
 
     async def health(_request):
-        return web.json_response({"app": "neural-resonance-gateway", "version": "0.11.1",
+        return web.json_response({"app": "neural-resonance-gateway", "version": "0.11.2",
                                   "standalone": True, "upstream": bool(upstream),
                                   "platform": sys.platform})
 

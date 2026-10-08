@@ -8,10 +8,22 @@ from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from acquisition import Stream
 from device_gateway import Acquisition,create_app,validate_config
+import device_gateway
 from aiohttp.test_utils import TestClient,TestServer
 
 
 class ReconnectionTests(unittest.TestCase):
+    def test_macos_bundle_data_root_uses_resources_instead_of_frameworks_symlink_base(self):
+        with tempfile.TemporaryDirectory() as directory:
+            contents=Path(directory)/"Neural Resonance.app"/"Contents"
+            frameworks=contents/"Frameworks";resources=contents/"Resources"
+            frameworks.mkdir(parents=True);resources.mkdir()
+            (resources/"index.html").write_text("public",encoding="utf-8")
+            (resources/"gateway").mkdir()
+            (resources/"gateway"/"config.example.json").write_text("{}",encoding="utf-8")
+            self.assertEqual(device_gateway.asset_root(frameworks,"darwin",True),resources)
+            self.assertEqual(device_gateway.asset_root(frameworks,"win32",True),frameworks)
+
     def test_sensor_field_clocks_are_exported_independently_of_heartbeat(self):
         stream=Stream()
         stream.sensor("spo2",98,now=10)
