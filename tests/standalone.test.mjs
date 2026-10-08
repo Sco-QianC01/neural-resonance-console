@@ -6,6 +6,15 @@ import { createConsoleServer,serverOptions } from '../tools/serve.mjs';
 test('default startup shows a demo and has no preconfigured private endpoint',()=>{
   assert.equal(DEFAULT_CONFIG.startupMode,'demo');
   assert.equal(DEFAULT_CONFIG.endpoint,'');assert.equal(DEFAULT_CONFIG.autoConnect,false);
+  assert.equal(DEFAULT_CONFIG.gatewayApi,false);
+});
+test('static websites and generic live sources do not request device-management APIs',()=>{
+  const base='http://127.0.0.1:8767/';
+  assert.equal(normalizeConfig({startupMode:'live',endpoint:'/ws/live',autoConnect:true},base).gatewayApi,false);
+  assert.equal(normalizeConfig({gatewayApi:true},base).gatewayApi,false);
+  assert.equal(normalizeConfig({
+    startupMode:'live',endpoint:'/ws/live',autoConnect:true,gatewayApi:true,
+  },base).gatewayApi,true);
 });
 test('data endpoints and startup are configurable independently of the host machine',()=>{
   assert.equal(normalizeConfig({startupMode:'live',endpoint:'/ws/live',autoConnect:true},

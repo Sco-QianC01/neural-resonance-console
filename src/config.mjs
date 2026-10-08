@@ -1,5 +1,5 @@
 export const DEFAULT_CONFIG=Object.freeze({
-  startupMode:'demo',endpoint:'',autoConnect:false,
+  startupMode:'demo',endpoint:'',autoConnect:false,gatewayApi:false,
 });
 
 export function normalizeConfig(value={},baseUrl) {
@@ -14,6 +14,9 @@ export function normalizeConfig(value={},baseUrl) {
     config.endpoint=url.href;
   }
   config.autoConnect=config.startupMode==='live'&&Boolean(config.endpoint)&&value.autoConnect===true;
+  // Only an acquisition gateway advertises this API. Static sites and generic
+  // WebSocket sources must not probe device-management routes on their host.
+  config.gatewayApi=value.gatewayApi===true&&config.autoConnect;
   return config;
 }
 

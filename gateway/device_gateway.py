@@ -255,7 +255,7 @@ def create_app(acquisition, config_path, upstream=None):
     sockets = set()
 
     async def health(_request):
-        return web.json_response({"app": "neural-resonance-gateway", "version": "0.8.1",
+        return web.json_response({"app": "neural-resonance-gateway", "version": "0.8.2",
                                   "standalone": True, "upstream": bool(upstream),
                                   "platform": sys.platform})
 
@@ -311,7 +311,8 @@ def create_app(acquisition, config_path, upstream=None):
                                   "upstream": bool(upstream)})
 
     async def public_config(_request):
-        return web.json_response({"startupMode": "live", "endpoint": "/ws/live", "autoConnect": True})
+        return web.json_response({"startupMode": "live", "endpoint": "/ws/live",
+                                  "autoConnect": True, "gatewayApi": True})
 
     async def live(request):
         if not allowed_origin(request):

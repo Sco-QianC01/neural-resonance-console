@@ -227,8 +227,9 @@ for(const [id,mask] of [['wave-snapshot',false],['mask-snapshot',true]])$(id).on
   const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download=`neural-${mask?'mask':'waveforms'}-${Date.now()}.png`;a.click();
 };
 const devices=new BrowserDeviceInput({onPacket:ingest,onStatus:text=>{$('device-status').textContent=text;}});
-let gatewayConfig=null;
+let gatewayConfig=null,gatewayApiAvailable=false;
 async function refreshGateway(){
+  if(!gatewayApiAvailable)return;
   try{
     const response=await fetch('/api/gateway/devices',{cache:'no-store',signal:AbortSignal.timeout(3000)});
     if(!response.ok)return;
@@ -353,6 +354,7 @@ async function initialize(){
     if(response.ok)config=normalizeConfig(await response.json(),location.href);
   }catch{/* Independent demo default. */}
   if(leaving)return;
+  gatewayApiAvailable=config.gatewayApi;
   $('endpoint').value=config.endpoint;setMode(config.startupMode);
   try{const local=localStorage.getItem('neural-resonance-settings');if(local)applySettings(JSON.parse(local));}catch{/* Bad saved settings do not prevent startup. */}
   // The local integration owns its endpoint; an old saved remote address must
