@@ -255,7 +255,7 @@ def create_app(acquisition, config_path, upstream=None):
     sockets = set()
 
     async def health(_request):
-        return web.json_response({"app": "neural-resonance-gateway", "version": "0.8.2",
+        return web.json_response({"app": "neural-resonance-gateway", "version": "0.9.0",
                                   "standalone": True, "upstream": bool(upstream),
                                   "platform": sys.platform})
 

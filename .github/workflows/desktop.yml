@@ -70,5 +70,5 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" artifacts/downloads/*/*.zip --clobber
           else
-            gh release create "$TAG" artifacts/downloads/*/*.zip --title "Neural Resonance ${TAG#desktop-}" --notes-file docs/RELEASE-v0.8.md
+            gh release create "$TAG" artifacts/downloads/*/*.zip --title "Neural Resonance ${TAG#desktop-}" --notes-file docs/RELEASE-v0.9.md
           fi
