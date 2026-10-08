@@ -9,9 +9,12 @@ export const SENSOR_FIELDS = {
 /** Non-EEG channels have their own freshness; an EEG outage must not hide SpO2. */
 export class SensorState {
   constructor() { this.reset(); }
-  reset() { this.packet = null; this.progress = {}; this.lastTimestamp = -Infinity; }
+  reset() { this.packet = null; this.progress = {}; this.lastTimestamp = -Infinity;this.identity=null; }
   accept(packet, now = Date.now()) {
-    if (!finite(packet?.ts) || packet.ts <= this.lastTimestamp) return false;
+    if (!finite(packet?.ts)||packet.ts*1000>now+5000) return false;
+    const identity=JSON.stringify([packet.source,packet.sessionId]);
+    if(identity!==this.identity){this.reset();this.identity=identity;}
+    if(packet.ts <= this.lastTimestamp)return false;
     this.lastTimestamp = packet.ts; this.packet = packet;
     for (const [key, field] of Object.entries(SENSOR_FIELDS)) {
       const count = packet.quality?.[field.count];
@@ -28,9 +31,12 @@ export class SensorState {
     return Object.fromEntries(Object.entries(SENSOR_FIELDS).map(([key, field]) => {
       const progress = this.progress[key];
       const hasCount = finite(packet?.quality?.[field.count]);
+      const at=packet?.sensorTimestamps?.[key];
+      const fieldFresh=!packet?.sensorTimestamps||!Object.hasOwn(packet.sensorTimestamps,key)
+        ||(finite(at)&&now-at*1000>=-5000&&now-at*1000<=15000);
       // The API already clears values after 15 seconds. Also reject a stuck
       // counter even if a faulty producer keeps sending fresh heartbeats.
-      const valid = transportFresh && field.valid(packet?.[key])
+      const valid = transportFresh && fieldFresh && field.valid(packet?.[key])
         && (!hasCount || (progress?.count > 0 && now - progress.advancedAt <= 15000));
       return [key, { value: valid ? packet[key] : null, count: progress?.count ?? null,
         valid, age: transportFresh ? age / 1000 : null }];

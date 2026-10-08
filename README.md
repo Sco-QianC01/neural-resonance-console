@@ -44,6 +44,7 @@ macOS应用包由仓库的 **Portable desktop packages** 工作流分别构建Ap
 首次蓝牙权限和缺失的厂商USB驱动按系统提示处理；真实Mac设备采集与应用构建分开验收。
 
 完整安装步骤见[跨平台部署](docs/PORTABLE-DEPLOYMENT.md)，支持范围见[设备矩阵](docs/DEVICE-MATRIX.md)。
+运行环境与自动化验收矩阵见[兼容范围](docs/COMPATIBILITY.md)。
 
 ### 只运行前端：Node或静态网站
 

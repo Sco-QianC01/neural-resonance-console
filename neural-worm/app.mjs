@@ -57,7 +57,8 @@ function ingest(packet,{capture=true,now=Date.now()}={}){
     if(!stream.accept(packet,now))return;
     sensors.accept(packet,now);
     const snapshot=stream.current(now);
-    const identity=JSON.stringify([snapshot.source,snapshot.sessionId,snapshot.transport,snapshot.connectionEpoch]);
+    const transport=snapshot.transport==='none'&&liveIdentity?JSON.parse(liveIdentity)[2]:snapshot.transport;
+    const identity=JSON.stringify([snapshot.source,snapshot.sessionId,transport,snapshot.connectionEpoch]);
     if(identity!==liveIdentity){history=[];rawSamples=[];states=null;wormTrace=null;wormCursor=null;liveIdentity=identity;}
     const nextStates=networkStates(snapshot);
     if(nextStates)states=nextStates;
@@ -357,6 +358,8 @@ async function refreshGateway(){
       select.replaceChildren(new Option('自動 · 唯一型號匹配','{}'));
       for(const option of identityOptions(data.devices,profile,{allUsb:true}))select.add(new Option(option.label,option.value));
       const registered=JSON.stringify({serialNumber:profile.serialNumber||'',location:profile.location||'',vid:profile.vid,pid:profile.pid});
+      if((profile.serialNumber||profile.location)&&![...select.options].some(o=>o.value===registered))
+        select.add(new Option(`已保存 · ${profile.serialNumber||profile.location}`,registered));
       if([...select.options].some(o=>o.value===registered))select.value=registered;
     }
     const bluetooth=$('gateway-ble-select');

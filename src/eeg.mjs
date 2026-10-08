@@ -32,9 +32,10 @@ export function normalizeSnapshot(input, now = Date.now()) {
   const transportFresh = age >= -5000 && age <= STALE_MS && packets > 0;
   const signalValid = transportFresh && !(poorSignal !== null && poorSignal > 0);
   const bands = Object.fromEntries(['delta', 'theta', 'alpha', 'beta'].map(key => {
-    const direct = positive(eeg[`${key}_mean`]) ?? positive(eeg[key]);
-    const low = positive(eeg[`low${key[0].toUpperCase()}${key.slice(1)}`]);
-    const high = positive(eeg[`high${key[0].toUpperCase()}${key.slice(1)}`]);
+    const read=name=>fieldFresh(name)&&fieldFresh(key)?positive(eeg[name]):null;
+    const direct = read(`${key}_mean`) ?? read(key);
+    const low = read(`low${key[0].toUpperCase()}${key.slice(1)}`);
+    const high = read(`high${key[0].toUpperCase()}${key.slice(1)}`);
     return [key, direct ?? (low !== null && high !== null ? low + high : null)];
   }));
   return {
@@ -58,6 +59,7 @@ export class StreamState {
   reset() { this.latest = null; this.lastAdvance = 0; this.lastPackets = null; this.lastTimestamp = -Infinity; this.identity=null; }
   accept(input, now = Date.now()) {
     const snapshot = normalizeSnapshot(input, now);
+    if(snapshot.timestamp>now+5000)return false;
     const identity=JSON.stringify([snapshot.source,snapshot.sessionId,snapshot.transport,snapshot.connectionEpoch]);
     if(this.identity!==identity){this.reset();this.identity=identity;}
     if (snapshot.timestamp <= this.lastTimestamp) return false;
@@ -69,11 +71,12 @@ export class StreamState {
   }
   current(now = Date.now()) {
     if (!this.latest) return null;
+    const latest=normalizeSnapshot(this.latest.raw,now);
     const fresh = now - this.latest.timestamp <= STALE_MS
       && now - this.lastAdvance <= STALE_MS;
-    return { ...this.latest, transportFresh: this.latest.transportFresh && fresh,
-      signalValid: this.latest.signalValid && fresh,
-      valid: this.latest.valid && fresh };
+    return { ...latest, transportFresh: latest.transportFresh && fresh,
+      signalValid: latest.signalValid && fresh,
+      valid: latest.valid && fresh };
   }
 }
 
@@ -121,6 +124,7 @@ export class LiveConnection {
     };
     socket.onerror = () => { if (current()) this.onState('error'); };
     socket.onclose = () => { if (current()) {this.socketEpoch++;this.cancel(this.idleTimer);this.queue(generation);} };
+    watchdog();
   }
   queue(generation) {
     if(generation!==this.generation)return;

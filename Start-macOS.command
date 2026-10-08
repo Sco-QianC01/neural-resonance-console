@@ -6,7 +6,7 @@ SETUP_ONLY=0
 if [ "${1:-}" = "--setup-only" ]; then SETUP_ONLY=1; shift; fi
 if [ -d "Neural Resonance.app" ]; then
     if [ "$SETUP_ONLY" = 1 ]; then echo "Portable application is ready."; exit 0; fi
-    open "Neural Resonance.app"
+    open "$ROOT/Neural Resonance.app" --args "$@"
     exit 0
 fi
 mkdir -p "$ROOT/.runtime"

@@ -63,12 +63,39 @@ class Stream:
                         for key in ("spo2", "pr", "gsr")}
         self.devices = {}
         self.priorities = {"desktop_ble": 1, "usb": 2}
+        self.connections = {}
 
-    def accept(self, source, fields, raw, now=None):
+    def new_connection(self, source):
+        with self.lock:
+            token = self.connections.get(source, 0) + 1
+            self.connections[source] = token
+            if self.source == source:
+                self._clear_eeg()
+            return token
+
+    def end_connection(self, source, token):
+        with self.lock:
+            if self.connections.get(source) != token:
+                return
+            self.connections[source] += 1
+            if self.source == source:
+                self._clear_eeg()
+
+    def _clear_eeg(self):
+        self.source = None
+        self.fields.clear()
+        self.field_times.clear()
+        self.raw.clear()
+        self.last_eeg = None
+        self.last_usb = None
+
+    def accept(self, source, fields, raw, now=None, connection=None):
         now = time.time() if now is None else now
         if not fields and not raw:
             return False
         with self.lock:
+            if connection is not None and self.connections.get(source) != connection:
+                return False
             if (self.source and source != self.source and self.last_eeg is not None
                     and now - self.last_eeg < 3
                     and self.priorities[source] < self.priorities[self.source]):
@@ -96,6 +123,10 @@ class Stream:
             state = self.sensors[key]
             state.update(value=value, at=now, count=state["count"] + 1)
 
+    def clear_sensor(self, key):
+        with self.lock:
+            self.sensors[key].update(value=None, at=None)
+
     def status(self, key, **updates):
         with self.lock:
             self.devices.setdefault(key, {}).update(updates)
@@ -117,6 +148,7 @@ class Stream:
                 "rawDropped": max(0, rows[0][0] - cursor - 1) if rows else 0,
                 "lastSampleAt": self.last_eeg, "metricOrigin": "thinkgear-esense",
                 "fieldTimestamps": dict(self.field_times), "eeg": eeg,
+                "sensorTimestamps": {key: state["at"] for key, state in self.sensors.items()},
                 "quality": {"eegPackets": self.frames,
                             "spo2Samples": self.sensors["spo2"]["count"],
                             "prSamples": self.sensors["pr"]["count"],

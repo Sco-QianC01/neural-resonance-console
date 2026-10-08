@@ -38,7 +38,9 @@ export class ThinkGearDecoder{
       for(const [key,value] of Object.entries(updates)){this.latest[key]=value;this.lastAt[key]=now;}
       const eeg=Object.fromEntries(Object.entries(this.latest).filter(([key])=>now-this.lastAt[key]<=3000));
       packets.push({schemaVersion:'neural-resonance-live-v1',source:'device',ts:now/1000,
-        metricOrigin:'thinkgear-esense',quality:{eegPackets:++this.count},eeg,rawEegSamples:raw,rawUnit:'ADC counts'});
+        metricOrigin:'thinkgear-esense',quality:{eegPackets:++this.count},eeg,
+        fieldTimestamps:Object.fromEntries(Object.entries(this.lastAt).map(([key,at])=>[key,at/1000])),
+        rawEegSamples:raw,rawUnit:'ADC counts'});
     }
     return packets;
   }
@@ -48,14 +50,19 @@ export class ThinkGearDecoder{
 export class BrowserDeviceInput{
   constructor({onPacket,onStatus}){Object.assign(this,{onPacket,onStatus});this.generation=0;this.port=null;this.device=null;this.reader=null;this.decoder=new ThinkGearDecoder();this.bytes=0;this.retryTimer=null;this.connectionEpoch=0;this.retry=0;}
   feed(bytes){
-    this.bytes+=bytes.length;const packets=this.decoder.push(bytes);
+    const now=globalThis.performance?.timeOrigin&&globalThis.performance?.now
+      ?performance.timeOrigin+performance.now():Date.now();
+    this.bytes+=bytes.length;const packets=this.decoder.push(bytes,now);
     this.onStatus(packets.length?`已解析 ${this.decoder.count} 個腦波封包 · ${this.bytes} bytes`:
       `已收到 ${this.bytes} bytes；等待相容腦波封包`);
-    for(const packet of packets)this.onPacket({...packet,transport:this.port?'browser_usb':'browser_ble',connectionEpoch:this.connectionEpoch});
+    if(packets.length)this.onPacket({...packets.at(-1),
+      rawEegSamples:packets.flatMap(packet=>packet.rawEegSamples),
+      transport:this.port?'browser_usb':'browser_ble',connectionEpoch:this.connectionEpoch});
   }
   async serial(baudRate){
     if(!navigator.serial)throw new Error('此瀏覽器不支援 Web Serial；可使用桌面橋接器的 WebSocket。');
-    const port=await navigator.serial.requestPort();
+    const requested=this.generation,port=await navigator.serial.requestPort();
+    if(requested!==this.generation)return;
     await this.stop();this.port=port;const generation=this.generation;
     let retry=0;
     while(generation===this.generation){
@@ -76,7 +83,8 @@ export class BrowserDeviceInput{
     if(!navigator.bluetooth)throw new Error('此瀏覽器不支援 Web Bluetooth；可使用桌面橋接器。');
     if(!service||!characteristic)throw new Error('請填入設備文件中的服務 UUID 和通知特徵 UUID。');
     const options={optionalServices:[service],...(namePrefix?{filters:[{namePrefix}]}:{acceptAllDevices:true})};
-    const device=await navigator.bluetooth.requestDevice(options);
+    const requested=this.generation,device=await navigator.bluetooth.requestDevice(options);
+    if(requested!==this.generation)return;
     await this.stop();this.device=device;this.bleOptions={service,characteristic};const generation=this.generation;
     this.disconnected=()=>{
       if(generation!==this.generation||this.device!==device)return;

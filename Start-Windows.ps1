@@ -4,20 +4,26 @@ param([switch]$NoBrowser, [switch]$Standalone, [switch]$SetupOnly)
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 function Invoke-LocalRuntime {
-    param([string]$Executable,[string[]]$RuntimeArguments)
+    param([string]$Executable,[string[]]$RuntimeArguments,[switch]$InheritConsole)
     if (-not (Test-Path -LiteralPath $Executable)) { throw 'Required runtime executable missing.' }
     $start = [Diagnostics.ProcessStartInfo]::new()
     $start.FileName = $Executable
     $start.WorkingDirectory = $root
     $start.UseShellExecute = $false
-    $start.CreateNoWindow = $true
-    $start.RedirectStandardOutput = $true
-    $start.RedirectStandardError = $true
-    $start.StandardOutputEncoding = [Text.UTF8Encoding]::new($false)
-    $start.StandardErrorEncoding = $start.StandardOutputEncoding
+    $start.CreateNoWindow = -not $InheritConsole
+    if (-not $InheritConsole) {
+        $start.RedirectStandardOutput = $true
+        $start.RedirectStandardError = $true
+        $start.StandardOutputEncoding = [Text.UTF8Encoding]::new($false)
+        $start.StandardErrorEncoding = $start.StandardOutputEncoding
+    }
     $start.Environment['PYTHONIOENCODING'] = 'utf-8'
     foreach ($item in $RuntimeArguments) { $start.ArgumentList.Add($item) }
     $process = [Diagnostics.Process]::Start($start)
+    if ($InheritConsole) {
+        $process.WaitForExit()
+        return $process.ExitCode
+    }
     $stdout = $process.StandardOutput.ReadToEndAsync()
     $stderr = $process.StandardError.ReadToEndAsync()
     $process.WaitForExit()
@@ -31,8 +37,8 @@ if (Test-Path -LiteralPath $package) {
     $arguments = @()
     if ($NoBrowser) { $arguments += '--no-browser' }
     if ($Standalone) { $arguments += '--standalone' }
-    & $package @arguments
-    exit $LASTEXITCODE
+    $code = Invoke-LocalRuntime $package $arguments -InheritConsole
+    exit $code
 }
 $runtime = Join-Path $root '.runtime'
 [void][IO.Directory]::CreateDirectory($runtime)
@@ -74,6 +80,6 @@ try {
     $arguments = @((Join-Path $root 'gateway\device_gateway.py'))
     if ($NoBrowser) { $arguments += '--no-browser' }
     if ($Standalone) { $arguments += '--standalone' }
-    & $python @arguments
-    exit $LASTEXITCODE
+    $code = Invoke-LocalRuntime $python $arguments -InheritConsole
+    exit $code
 } finally { Pop-Location }

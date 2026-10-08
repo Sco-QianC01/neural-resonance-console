@@ -1,0 +1,62 @@
+name: Compatibility regression
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-15, macos-15-intel, ubuntu-latest]
+        python: ['3.11', '3.12', '3.13']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm test
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.12.23'
+          python-version: ${{ matrix.python }}
+      - working-directory: gateway
+        run: uv sync --frozen --no-dev --python ${{ matrix.python }}
+      - working-directory: gateway
+        run: uv run --frozen --no-dev python -W error -m unittest discover -s tests -v
+  node:
+    strategy:
+      matrix:
+        version: [22, 24]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.version }}
+      - run: npm test
+  browser:
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [chromium, firefox, webkit]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.12.23'
+          python-version: '3.13'
+      - working-directory: gateway
+        run: uv sync --frozen --group audit
+      - working-directory: gateway
+        run: uv run --frozen --group audit playwright install --with-deps ${{ matrix.engine }}
+      - run: gateway/.venv/bin/python tools/browser-audit.py --engine ${{ matrix.engine }} --output artifacts/browser-${{ matrix.engine }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-${{ matrix.engine }}
+          path: artifacts/browser-*

@@ -33,6 +33,20 @@ jobs:
       - name: Protocol and API tests
         working-directory: gateway
         run: uv run --frozen python -m unittest discover -s tests -v
+      - name: Windows source environment
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./Start-Windows.ps1 -SetupOnly
+      - name: macOS source environment
+        if: runner.os == 'macOS'
+        run: sh ./Start-macOS.command --setup-only
+      - name: Source launcher smoke test with devices disabled
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: gateway/.venv/Scripts/python.exe tools/runtime-smoke.py --output artifacts/source-smoke.json
+      - name: macOS source launcher smoke test with devices disabled
+        if: runner.os == 'macOS'
+        run: gateway/.venv/bin/python tools/runtime-smoke.py --output artifacts/source-smoke.json
       - name: Build native application
         working-directory: gateway
         run: uv run --frozen pyinstaller package.spec --noconfirm --distpath ../artifacts/desktop
@@ -41,6 +55,18 @@ jobs:
         run: |
           sh -n Start-macOS.command
           plutil -lint "artifacts/desktop/Neural Resonance.app/Contents/Info.plist"
+      - name: Windows native runtime smoke test
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: gateway/.venv/Scripts/python.exe tools/runtime-smoke.py --native artifacts/desktop/NeuralResonance/NeuralResonance.exe --output artifacts/native-smoke.json
+      - name: macOS native runtime smoke test
+        if: runner.os == 'macOS'
+        run: gateway/.venv/bin/python tools/runtime-smoke.py --native "artifacts/desktop/Neural Resonance.app/Contents/MacOS/NeuralResonance" --output artifacts/native-smoke.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: runtime-proof-${{ matrix.name }}
+          path: artifacts/*smoke.json
       - name: Archive macOS application with permissions and symlinks
         if: runner.os == 'macOS'
         run: |
@@ -75,5 +101,5 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" artifacts/downloads/*/*.zip --clobber
           else
-            gh release create "$TAG" artifacts/downloads/*/*.zip --title "Neural Resonance ${TAG#desktop-}" --notes-file docs/RELEASE-v0.11.md
+            gh release create "$TAG" artifacts/downloads/*/*.zip --title "Neural Resonance ${TAG#desktop-}" --notes-file docs/RELEASE-v0.11.1.md
           fi

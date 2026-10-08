@@ -21,7 +21,7 @@ export function buildWormTrace(history,{now=Date.now(),windowSeconds=60,space='c
   const points=[];
   let last=null,segment=-1,lastPackets=null,buffer=[];
   for(const p of rows){
-    if(p.timestamp<now-windowSeconds*1000||identity(p)!==currentIdentity){last=null;buffer=[];continue;}
+    if(p.timestamp<now-windowSeconds*1000||identity(p)!==currentIdentity){last=null;lastPackets=null;buffer=[];continue;}
     if(!usable(p)){last=null;buffer=[];continue;}
     // Hardware counts must advance; transport heartbeats do not create trajectory samples.
     if(last&&p.timestamp<=last.timestamp)continue;
