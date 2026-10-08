@@ -1,51 +1,24 @@
-# 音樂提示詞交接
+# 觀測摘要與人工交接
 
-資料流為：設備原生指數 → 同一來源/session 的有效觀察窗口 →
-`eeg-music-rules-v2` → 十項音樂控制量 → 可複製文字及 JSON。
+資料流：設備原生指數 → 同一來源／session／epoch的有效窗口 →
+觀測、來源和缺失 → 可複製文字及JSON。沒有自動EEG至音樂推斷。
 
-## 使用方式
+在神經蠕蟲頁選擇10、30或60秒，按產生摘要。可選每60秒整理一次；
+文字保留在本機，需主動複製、下載或上傳。選擇模型只記錄交接對象。
 
-1. 在三個介面之一接收有效資料，或使用明確標示的示範、回放。
-2. 在「神經蠕蟲」底部選擇 10、30 或 60 秒窗口。
-3. 選擇交接模型，按「產生提示詞」。
-4. 複製文字到音樂模型頁，或下載 JSON 供後續管線讀取。
-
-模型選擇只記錄目標，不表示該模型已在本頁部署。
-本頁沒有私有服務依賴，不呼叫 LLM，也不自動上傳資料。
-
-可勾選「每 60 秒整理一次」，固定 60 秒觀察窗口，自動更新本地交接文本；
-未收到有效指數時不生成。仍由使用者主動複製、下載或上傳。
-
-## 保留的資訊
-
-| 欄位 | 意義 |
+| 欄位 | 內容 |
 |---|---|
-| `source` / `sessionId` | 資料來源及 session，防止混用 |
-| `firstTimestamp` / `lastTimestamp` | 真正使用的樣本時間 |
-| `observedSamples` / `longestGapSeconds` | 實際樣本數及最大間隔；不插值補齊 |
-| `inputs` | 觀察窗口內原生 0–100 指數的算術平均 |
-| `parameters` | 十項音樂控制量及其原生單位 |
-| `controls127` | 各控制範圍線性正規化至 0–127 |
-| `coordinates127` | 專注/放鬆座標；50/100 四捨五入為 64 |
-| `mappingVersion` | 可替換映射規則的版本 |
-| `target` / `text` | 手動交接對象及提示詞 |
-| `observedCoverageSeconds` / `traceStatistics` | 真實連續觀察時間及幾何統計 |
-| `organizations` | 十項音樂組織描述、複雜／離散控制及幾何數值 |
+| source / sessionId | 原始來源及session |
+| firstTimestamp / lastTimestamp | 真正使用的樣本時間 |
+| observedSamples / longestGapSeconds | 樣本數與最大間隔 |
+| inputs | 明示按樣本計算的原生指數均值，不是百分比 |
+| parameters / organizations | 音樂觀測與來源；未觀測為null |
+| controls127 | 全部null，不生成音樂控制量 |
+| coordinates127 | 原始指數的坐標換算，不是MIDI訊息 |
+| observedCoverageSeconds / traceStatistics | 有效時間與可復算統計 |
+| evidence / methodSources | 來源聲明、方法及研究來源ID |
+| claimsInferredFromEeg | false |
 
-時間戳單位為毫秒；傳入設備封包的 `ts` 則為秒。
-控制值不是已發送的 MIDI CC，光粒子也不是實測腦區連通性。
-
-## 有效性
-
-當前封包超時、電極接觸不良、硬體封包數不再增加，或缺少原生指數時，
-不產生新提示詞。只收到頻段比值時保留波形資料，不能直接轉成百分制指數。
-切換資料來源、觀察窗口或目標模型後需重新產生。
-
-直接 ThinkGear 輸入使用 `metricOrigin: "thinkgear-esense"`。
-該協議的 eSense 值 0 表示暫時無法計算，不作為有效專注／放鬆讀數；
-其他接口若有不同定義，應在自己的 adapter 中明確處理。
-CSV 分開保存 `signal_valid`、`indices_valid` 和頻段比值。
-
-這個輸出是實驗映射，不是情緒診斷。語言模型日後可整理措辭，
-但不得修改記錄中的數值、來源、缺失狀態與規則版本。
-音樂生成成功後仍需完整試聽和音訊品質驗收。
+ThinkGear eSense零值無效，接觸不良及斷流時不產生新摘要。舊記錄中的v2推算
+不會重新用作觀測。語言模型不能修改數值或把缺失項補成音樂處方。
+完整來源見[EVIDENCE.md](EVIDENCE.md)。

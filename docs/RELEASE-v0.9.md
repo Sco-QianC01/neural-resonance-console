@@ -1,5 +1,7 @@
 # Neural Resonance v0.9.0
 
+> Historical release notes. v0.10 withdraws the fixed geometries, arbitrary density/dispersion and uncalibrated EEG-to-music rules described below. They are not research-validated results. See [current evidence and methods](EVIDENCE.md).
+
 Neural worm: a shared two-dimensional time trajectory and ten distinct music organization layers.
 
 ## Changes

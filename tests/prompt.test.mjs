@@ -5,15 +5,16 @@ import {createMusicPrompt} from '../src/prompt.mjs';
 import {captureSnapshot,recordingCsv} from '../src/recording.mjs';
 const now=1791378000000;
 const native=(time=now,tick=10)=>({...demoSnapshot(50,50,tick,time),source:'device'});
-test('manual prompt export contains ten reproducible controls and 0–127 coordinates',()=>{
+test('manual export preserves raw indices and ten missing observation slots',()=>{
   const current=normalizeSnapshot(native(),now);
   const result=createMusicPrompt([current],{current,now,target:'yue'});
-  assert.equal(result.schemaVersion,'neural-music-prompt-v1');
+  assert.equal(result.schemaVersion,'neural-observation-summary-v2');
   assert.equal(result.target,'yue');assert.equal(result.source,'device');
   assert.equal(Object.keys(result.controls127).length,10);
   assert.deepEqual(result.coordinates127,{attention:64,relaxation:64,center:64});
-  assert.match(result.text,/BPM/);assert.match(result.text,/旋律/);
-  assert.match(result.text,/實驗映射/);
+  assert.ok(Object.values(result.controls127).every(value=>value===null));
+  assert.match(result.text,/未觀測/);assert.match(result.text,/旋律/);
+  assert.match(result.text,/不含經校準/);
   assert.deepEqual(result,createMusicPrompt([current],{current,now,target:'yue'}));
 });
 test('stale data, contact loss and spectral ratios cannot generate a music prompt',()=>{
@@ -25,7 +26,7 @@ test('stale data, contact loss and spectral ratios cannot generate a music promp
 });
 test('averaging uses only the current source/session and records gaps without filling them',()=>{
   const current=normalizeSnapshot({...native(),sessionId:'s1'},now);
-  const same={...current,timestamp:now-5000,attention:70};
+  const same={...current,timestamp:now-5000,attention:70,packets:current.packets-1};
   const other={...same,source:'demo',attention:100};
   const otherSession={...same,sessionId:'s2',attention:0};
   const result=createMusicPrompt([same,other,otherSession,current],{current,now});

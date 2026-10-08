@@ -1,6 +1,4 @@
-import {mapMusic} from './music.mjs';
 import {buildWormTrace} from './worm-model.mjs';
-import {networkGeometry} from './neural-networks.mjs';
 const colours={delta:'#f098a2',theta:'#d4df8c',alpha:'#d6a5eb',beta:'#89d6bd'};
 export function drawWaveforms(canvas,history,key,now=Date.now(),{mask=false,row=0,rows=1}={}){
   const ratio=Math.min(2,globalThis.devicePixelRatio||1);
@@ -71,32 +69,17 @@ export function drawWorm(canvas,history,time=0,{space='control',active=true,redu
     const x=pad+(w-2*pad)*f,y=h-pad-(h-2*pad)*f;
     ctx.beginPath();ctx.moveTo(x,pad);ctx.lineTo(x,h-pad);ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();
     ctx.fillStyle='#718995';ctx.font='9px Consolas,monospace';
-    ctx.fillText(String(space==='music'?Math.round(127*f):mark),4,y+3);
-    ctx.fillText(String(space==='music'?Math.round(trace.bpmMin+(trace.bpmMax-trace.bpmMin)*f):mark),x-8,h-pad+16);
+    ctx.fillText(String(mark),4,y+3);
+    ctx.fillText(String(mark),x-8,h-pad+16);
   }
   const center=space==='control'?64/127:.5;
   ctx.strokeStyle='#4b7076';ctx.setLineDash([4,6]);ctx.lineWidth=.8;
   ctx.beginPath();ctx.moveTo(pad+center*(w-2*pad),pad);ctx.lineTo(pad+center*(w-2*pad),h-pad);
   ctx.moveTo(pad,h-pad-center*(h-2*pad));ctx.lineTo(w-pad,h-pad-center*(h-2*pad));ctx.stroke();ctx.setLineDash([]);
   ctx.fillStyle='#8298a4';ctx.font='10px Consolas,monospace';
-  ctx.fillText(space==='music'?'力度 / 127':`放鬆度 / ${space==='control'?127:100}`,pad,18);
-  ctx.textAlign='right';ctx.fillText(space==='music'?`速度 ${trace.bpmMin} → ${trace.bpmMax} BPM`
-    :`專注度 0 → ${space==='control'?127:100}`,w-pad,h-10);ctx.textAlign='left';
+  ctx.fillText(`冥想／放鬆指數 / ${space==='control'?127:100}`,pad,18);
+  ctx.textAlign='right';ctx.fillText(`專注指數 0 → ${space==='control'?127:100}`,w-pad,h-10);ctx.textAlign='left';
   ctx.globalAlpha=active?1:.25;
-  if(layer&&cursor){
-    const mesh=networkGeometry(layer),anchor=pos(cursor);
-    const size=Math.min(w*.31,h*.55,210);
-    const mx=n=>Math.max(pad,Math.min(w-pad,anchor.x+(n.x-.5)*size));
-    const my=n=>Math.max(pad,Math.min(h-pad,anchor.y+(n.y-.5)*size));
-    for(const e of mesh.edges){
-      const a=mesh.nodes[e.from],b=mesh.nodes[e.to];
-      ctx.strokeStyle=`rgba(126,187,211,${.08+.15*e.weight})`;ctx.lineWidth=.6;
-      ctx.beginPath();ctx.moveTo(mx(a),my(a));ctx.lineTo(mx(b),my(b));ctx.stroke();
-    }
-    for(const n of mesh.nodes){
-      ctx.fillStyle='rgba(154,219,221,.35)';ctx.beginPath();ctx.arc(mx(n),my(n),n.radius*.75,0,Math.PI*2);ctx.fill();
-    }
-  }
   for(let i=1;i<points.length;i++){
     if(points[i].segment!==points[i-1].segment)continue;
     const a=pos(points[i-1]),b=pos(points[i]),alpha=.12+.55*i/points.length;

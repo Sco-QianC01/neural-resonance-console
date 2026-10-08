@@ -46,27 +46,27 @@
 </section>
 <div id="view-worm" class="view-panel" hidden>
         <section class="hero" aria-labelledby="selected-name">
-          <div class="hero-header"><div><p class="eyebrow">02 / NEURAL FIELD</p><h2 id="selected-name">旋律 <span>MELODY</span></h2></div><div class="hero-value"><b id="selected-value">—</b><span id="selected-unit">MIDI</span></div></div>
-          <div class="worm-tools"><label>座標<select id="worm-space"><option value="control">專注 × 放鬆 · 0–127</option><option value="eeg">原生指數 · 0–100</option><option value="music">速度 × 力度 · 控制量</option></select></label><label>觀察窗口<select id="worm-window"><option value="60">60 秒</option><option value="30">30 秒</option><option value="10">10 秒</option></select></label><label>顯示平滑<select id="worm-smoothing"><option value="0.75">0.75 秒 · 因果高斯</option><option value="0">原始位置</option><option value="2">2 秒 · 因果高斯</option></select></label></div>
-          <div class="worm-legend"><span><i class="trace-key"></i>採樣軌跡 · 舊 → 新</span><span><i class="mesh-key"></i>所選音樂控制層</span><span id="worm-center">中心 64, 64</span></div>
-<canvas id="hero" aria-label="神經蠕蟲XY軌跡，中心64，按時間呈現採樣節點；點選可查看歷史樣本"></canvas>
+          <div class="hero-header"><div><p class="eyebrow">02 / OBSERVED SIGNAL</p><h2 id="selected-name">專注 × 冥想／放鬆 <span>NATIVE INDEX TRACE</span></h2></div><div class="hero-value"><b id="selected-value">—</b><span id="selected-unit">資料狀態</span></div></div>
+          <div class="worm-tools"><label>座標<select id="worm-space"><option value="eeg">原生指數 · 0–100</option><option value="control">坐標換算 · 0–127</option></select></label><label>觀察窗口<select id="worm-window"><option value="60">60 秒</option><option value="30">30 秒</option><option value="10">10 秒</option></select></label><label>顯示平滑<select id="worm-smoothing"><option value="0">原始位置 · 預設</option><option value="0.75">0.75 秒 · 僅顯示</option><option value="2">2 秒 · 僅顯示</option></select></label></div>
+          <div class="worm-legend"><span><i class="trace-key"></i>採樣軌跡 · 舊 → 新</span><span>形狀由有效樣本決定</span><span id="worm-center">原生指數 · 中心 50, 50</span></div>
+<canvas id="hero" aria-label="神經蠕蟲XY軌跡，按所選座標呈現採樣節點；點選可查看歷史樣本"></canvas>
           <div id="waiting" class="waiting" hidden>等待有效腦波</div>
           <div class="worm-timeline"><label class="follow-control"><input id="worm-follow" type="checkbox" checked>跟隨最新</label><input id="worm-cursor" type="range" min="0" max="0" value="0" aria-label="查看歷史樣本" disabled><output id="worm-time">等待樣本</output><button id="worm-export" class="text-button" disabled>保存蠕蟲 PNG ↗</button></div>
-          <div class="worm-observation" aria-label="真實窗口軌跡統計"><div><span>XY · 控制座標</span><strong id="worm-xy">—</strong></div><div><span>軌跡密集度</span><strong id="trace-density">—</strong></div><div><span>軌跡離散度</span><strong id="trace-dispersion">—</strong></div><div><span>有效觀察 / 窗口</span><strong id="trace-coverage">—</strong></div></div>
+          <div class="worm-observation" aria-label="可復算的窗口觀測"><div><span>XY · 當前坐標</span><strong id="worm-xy">—</strong></div><div><span>有效樣本數</span><strong id="trace-density">—</strong></div><div><span>時間加權標準距離</span><strong id="trace-dispersion">—</strong></div><div><span>有效觀察 / 窗口</span><strong id="trace-coverage">—</strong></div></div>
           <p id="worm-change" class="worm-change" role="status">接收有效指數後呈現起點、終點和變化。</p>
           <div class="layer-description"><span id="layer-description">音高中心與旋律走向</span><strong id="layer-descriptor">等待有效控制量</strong><span id="layer-control">複雜 — · 離散 — / 127</span></div>
-          <div class="hero-footer"><div><span>網密集度</span><b id="density">—</b></div><div><span>網離散度</span><b id="dispersion">—</b></div><div><span>控制節點</span><b id="nodes">—</b></div><span class="flow">SIGNAL → NODES → MUSIC</span></div>
+          <div class="hero-footer"><div><span>資料來源</span><b id="density">—</b></div><div><span>顯示方式</span><b id="dispersion">—</b></div><div><span>所選樣本時間</span><b id="nodes">—</b></div><span class="flow">SOURCE → TIME → TRACE</span></div>
         </section>
-        <section class="networks" aria-labelledby="networks-title"><div class="networks-header"><h2 id="networks-title">十個網 · 十種音樂組織</h2><span>同一時刻聯動 · 點選展開控制層</span></div><div id="networks" class="network-grid"></div></section>
-        <details class="worm-method"><summary>軌跡與十網的計算依據</summary><p>以演奏蠕蟲的雙參數時間軌跡為基礎，改用設備原生專注／放鬆指數。0–127 是控制座標，50/100 對應 64；不表示已發送 MIDI。</p><p>軌跡密集度：等時統計點中，距離不超過整個座標域 0.10 的點對比例。離散度：點雲均方根半徑除以 √0.5。統計只在實際連續資料段內每 250ms 評估，不跨缺失段補點；平滑只影響顯示，不改原始讀數。</p><p>組織規則：複雜控制 = 專注 / 100 × 127；離散控制 = (1 − 放鬆 / 100) × 127。它們與音高、BPM 等原生單位控制量分開；高音或快速度不直接等於複雜。</p><p>十網是音樂組織控制層。網密集度 = 2E / N(N−1)，網離散度為節點 XY 均方根半徑除以 √0.5；光效不移動測量位置。音樂語彙屬可替換實驗規則，不是實測腦區連通性或情緒診斷。</p><a href="./docs/NEURAL-WORM.md" target="_blank" rel="noopener">理論來源與完整規則 ↗</a></details>
+        <section class="networks" aria-labelledby="networks-title"><div class="networks-header"><h2 id="networks-title">十項音樂觀測 · 來源核對</h2><span>項目分組 · 有標注才顯示數值</span></div><p class="evidence-intro">僅有腦電時，以下要素保留「未觀測」。不由專注／放鬆補造音高、BPM、和聲或音樂偏好。</p><div id="networks" class="network-grid"></div></section>
+        <details class="worm-method"><summary>圖形、數據與研究來源</summary><p>演奏蠕蟲原研究呈現音樂速度與響度的時間軌跡。本頁移植雙參數時間顯示方法，使用設備回報的專注與冥想／放鬆指數；並非音樂速度—響度量測，也不是腦區連通圖。</p><p>每個軌跡點對應一筆有效記錄。斷流、接觸不良與來源切換時斷線。預設顯示原始位置；可選平滑僅影響顯示。0–127是可核對的坐標換算，不是MIDI訊息。</p><p>標準距離：以有效連續段的實際時間加權，計算距離質心的均方根半徑，單位保持原生指數。未設定「健康／複雜」閾值。移除了無來源支持的十種預置幾何、密集度閾值及EEG至音樂數值公式。</p><ul id="method-sources" class="method-sources"></ul><a href="./docs/EVIDENCE.md" target="_blank" rel="noopener">逐項證據、公式與資料規格 ↗</a></details>
         <section class="prompt-handoff" aria-labelledby="prompt-title">
-          <div class="section-line"><span>03 / MUSIC HAND-OFF</span><small>規則 → 提示詞 → 音樂模型</small></div>
-          <h2 id="prompt-title">把十項音樂要素帶入創作</h2>
-          <p>依有效設備指數產生可複製的提示詞。這裡的 0–127 控制值供後續映射使用；原始指數保持 0–100。</p>
+          <div class="section-line"><span>03 / OBSERVATION HAND-OFF</span><small>來源 → 觀測 → 人工核對</small></div>
+          <h2 id="prompt-title">整理可追溯的觀測摘要</h2>
+          <p>輸出來源、時間、原始指數與音樂資料缺失。不由EEG指定音樂要素，後續創作需另提供需求或經校準模型。</p>
           <div class="prompt-options"><label>目標模型<select id="prompt-model"><option value="generic">通用</option><option value="ace-xl">ACE XL SFT</option><option value="shao">韶元 Shao</option><option value="minimax">MiniMax Music3</option><option value="yue">YuE2</option></select></label><label>觀察窗口<select id="prompt-window"><option value="60">最近 60 秒</option><option value="30">最近 30 秒</option><option value="10">最近 10 秒</option></select></label></div>
-          <label class="minute-handoff"><input id="prompt-auto" type="checkbox">每 60 秒整理一次音樂交接<span id="prompt-next">手動產生</span></label>
-          <div class="wave-actions"><button id="make-prompt" class="outline" disabled>產生提示詞</button><button id="copy-prompt" class="text-button" disabled>複製文字</button><button id="download-prompt" class="text-button" disabled>匯出控制 JSON ↗</button></div>
-          <label for="music-prompt">音樂創作提示詞</label><textarea id="music-prompt" readonly rows="7" placeholder="先接收有效資料，再產生提示詞。"></textarea>
+          <label class="minute-handoff"><input id="prompt-auto" type="checkbox">每 60 秒整理一次觀測摘要<span id="prompt-next">手動產生</span></label>
+          <div class="wave-actions"><button id="make-prompt" class="outline" disabled>整理摘要</button><button id="copy-prompt" class="text-button" disabled>複製文字</button><button id="download-prompt" class="text-button" disabled>匯出觀測 JSON ↗</button></div>
+          <label for="music-prompt">觀測摘要與缺失記錄</label><textarea id="music-prompt" readonly rows="7" placeholder="先接收有效資料，再產生摘要。"></textarea>
           <p id="prompt-status" role="status">等待產生</p>
           <p class="view-note">先以手動交接完成驗證。頁面不會呼叫雲端模型，也不會把示範或回放資料當成實測。</p>
         </section>
@@ -87,7 +87,7 @@
 </section>
 </div>
     </div>
-    <footer><span>NEURAL RESONANCE / v0.9.0</span><p>光粒子呈現互動映射。斷流時停止更新，保留最後畫面。</p><span>OPEN SOURCE</span></footer>
+    <footer><span>NEURAL RESONANCE / v0.10.0</span><p>軌跡保留來源與時間。斷流時停止更新，保留最後觀察。</p><span>OPEN SOURCE</span></footer>
   </main>
   <div id="notice" role="status" hidden></div>
   <script type="module" src="./neural-worm/app.mjs"></script>

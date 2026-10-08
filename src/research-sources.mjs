@@ -1,0 +1,28 @@
+/** Sources identify supported methods, not a validated EEG-to-music model. */
+export const SOURCES=Object.freeze([
+  {id:'air-worm-2005',title:'Dixon, Goebl & Widmer (2005) · The Air Worm',
+    url:'https://www.cp.jku.at/research/papers/dixon_icmc_2005.pdf',
+    supports:'速度—響度的時間軌跡與交互控制；Figure 1、§4。',
+    boundary:'未提出十種神經網形狀，也未校準專注／放鬆至音樂偏好。'},
+  {id:'performance-worm-2003',title:'Dixon (2003) · On the analysis of musical expression',
+    url:'https://webspace.eecs.qmul.ac.uk/s.e.dixon/pub/2003/spie.pdf',
+    supports:'從音樂音訊提取節拍、速度及響度，形成Performance Worm。',
+    boundary:'音樂參數的量測方法，並非EEG到十大音樂要素的推斷模型。'},
+  {id:'vmus-help',title:'Vmus V3 · 使用說明',
+    url:'https://v3.vmus.net/help.html?lang=zh#video',
+    supports:'波形、頻譜、速度力度曲線及蠕蟲共用時間軸，標注與媒體聯動。',
+    boundary:'本工具的EEG軸是方法移植；不宣稱是Vmus原始音樂量測。'},
+  {id:'vmus-case-2-1',title:'楊健研究案例2-1 · 貝多芬第五交響曲第一樂章',
+    url:'https://v3.vmus.net/studies/yang2007/#case=2-1&view=tempo',
+    supports:'具名錄音、演奏年份、唱片與案例來源，供核對音樂演奏數據。',
+    boundary:'不能把案例音樂數據或其結果當成本次腦電受試資料。'},
+  {id:'thinkgear-esense',title:'NeuroSky · ThinkGear Serial Stream Protocol',
+    url:'https://developer.neurosky.com/docs/doku.php?id=thinkgear_communications_protocol',
+    supports:'原廠eSense為相對指數；零表示未能可靠計算；品質碼及資料欄位。',
+    boundary:'只適用已確認ThinkGear協議的來源；指數不是百分比或診斷。'},
+  {id:'standard-distance',title:'Esri · Standard Distance',
+    url:'https://pro.arcgis.com/en/pro-app/latest/tool-reference/spatial-statistics/standard-distance.htm',
+    supports:'二維標準距離為距離質心的均方根半徑，保持坐標單位。',
+    boundary:'本工具按實際連續時間段加權；公式可復算，沒有健康閾值。'},
+]);
+export const SOURCE_IDS=SOURCES.map(source=>source.id);

@@ -1,7 +1,8 @@
 import {StreamState,LiveConnection,demoSnapshot,parseRecording} from '../src/eeg.mjs';
 import {DEFAULT_CONFIG,normalizeConfig,demoValues} from '../src/config.mjs';
 import {ELEMENTS} from '../src/music.mjs';
-import {networkStates,drawNetwork,NETWORK_VERSION} from '../src/neural-networks.mjs';
+import {networkStates,NETWORK_VERSION} from '../src/neural-networks.mjs';
+import {SOURCES} from '../src/research-sources.mjs';
 import {drawWaveforms,drawWorm,drawIndices} from '../src/waveform-view.mjs';
 import {BrowserDeviceInput} from '../src/device-input.mjs';
 import {captureSnapshot,recordingCsv,replayPacket} from '../src/recording.mjs';
@@ -28,10 +29,17 @@ let reduceMotion=reduced.matches;
 reduced.addEventListener('change',event=>{reduceMotion=event.matches;});
 const cards=ELEMENTS.map(([key,label],i)=>{
   const button=document.createElement('button');button.className='network';button.dataset.key=key;
-  button.setAttribute('aria-pressed',String(i===0));button.setAttribute('aria-label',`${label}神經網`);
-  button.innerHTML=`<div class="network-head"><small>${String(i+1).padStart(2,'0')}</small><span>${label}</span><b>—</b></div><canvas aria-label="${label}光粒子神經網"></canvas><span class="network-description">等待有效控制量</span><div class="network-foot"><span>密集 —</span><span>離散 —</span></div>`;
+  button.setAttribute('aria-pressed',String(i===0));button.setAttribute('aria-label',`${label}觀測與來源`);
+  button.innerHTML=`<div class="network-head"><small>${String(i+1).padStart(2,'0')}</small><span>${label}</span><b>—</b></div><span class="evidence-status">未觀測</span><span class="network-description">缺少帶來源的音樂資料</span><div class="network-foot"><span>—</span><span>來源待提供</span></div>`;
   button.onclick=()=>{selected=i;update();};$('networks').append(button);return button;
 });
+for(const source of SOURCES){
+  const entry=document.createElement('li'),link=document.createElement('a'),scope=document.createElement('p');
+  link.href=source.url;link.target='_blank';link.rel='noopener';link.textContent=source.title;
+  scope.textContent=`${source.supports} ${source.boundary}`;entry.append(link,scope);
+  $('method-sources').append(entry);
+}
+const sourceNames={demo:'合成示範',device:'設備資料',core:'橋接資料',replay:'記錄回放',unknown:'來源待核對'};
 const connection=new LiveConnection({
   onState:(state,detail)=>{
     if(mode!=='live'||leaving)return;
@@ -85,7 +93,7 @@ function setMode(value){
   stop();mode=value;states=null;wormTrace=null;wormCursor=null;time=0;history=[];rawSamples=[];$('raw-status').textContent='等待原始樣本';
   for(const id of ['demo','live','replay']){$(`${id}-input`).hidden=id!==mode;$(id).setAttribute('aria-pressed',String(id===mode));}
   $('source').textContent=mode.toUpperCase();
-  $('source-note').textContent=mode==='demo'?'示範由本頁生成，並非實際測量。':mode==='replay'?'保留記錄時間間隔與原始來源，僅重放資料。':'依實際接收的有效指數更新；頻段比值不換算成百分制。';
+  $('source-note').textContent=mode==='demo'?'合成示範，非設備測量或研究結果。':mode==='replay'?'保留記錄時間間隔與原始來源，僅重放資料。':'依實際接收的有效指數更新；頻段比值不換算成百分制。';
   $('status').textContent=mode==='demo'?'示範資料':mode==='replay'?'等待記錄':'等待資料源';if(mode==='demo')startDemo();update();
 }
 function update(){
@@ -101,12 +109,12 @@ function update(){
   $('packets').textContent=current?.packets??'—';
   $('freshness').textContent=valid?'有效資料':current?.transportFresh&&!current.signalValid?'接觸不良':
     current?.signalValid?'缺少設備指數':'等待 / 暫停';
-  $('waiting').hidden=Boolean(states);
   $('count').textContent=`${records.length} 個樣本`;$('record').textContent=recording?'停止記錄':'開始記錄';
   for(const id of ['export','csv-export','upload-recording'])$(id).disabled=!records.length;
   if(valid||!wormTrace)wormTrace=buildWormTrace(history,{space:$('worm-space').value,
     windowSeconds:Number($('worm-window').value),smoothingSeconds:Number($('worm-smoothing').value)});
   const points=wormTrace?.points??[];
+  $('waiting').hidden=points.length>0;
   const selectedPoint=$('worm-follow').checked?points.at(-1):points.reduce((best,p)=>
     !best||Math.abs(p.timestamp-wormCursor)<Math.abs(best.timestamp-wormCursor)?p:best,null);
   wormCursor=selectedPoint?.timestamp??null;
@@ -120,38 +128,46 @@ function update(){
   $('worm-export').disabled=!points.length;
   $('worm-time').textContent=selectedPoint
     ?`${((selectedPoint.timestamp-points[0].timestamp)/1000).toFixed(1)} / ${stats.seconds.toFixed(1)} s`:'等待樣本';
-  $('worm-center').textContent=$('worm-space').value==='control'?'中心 64, 64':
-    $('worm-space').value==='eeg'?'中心 50, 50':'速度 × 力度 · 實驗控制';
-  $('worm-xy').textContent=selectedPoint?`${selectedPoint.controls127.attention}, ${selectedPoint.controls127.relaxation}`:'—';
-  $('trace-density').textContent=stats?.density===null||!points.length?'—':stats.density.toFixed(3);
-  $('trace-dispersion').textContent=stats?.dispersion===null||!points.length?'—':stats.dispersion.toFixed(3);
+  $('worm-center').textContent=$('worm-space').value==='control'?'坐標換算 · 中心 64, 64':'原生指數 · 中心 50, 50';
+  $('worm-xy').textContent=selectedPoint?($('worm-space').value==='control'
+    ?`${selectedPoint.controls127.attention}, ${selectedPoint.controls127.relaxation} / 127`
+    :`${selectedPoint.attention.toFixed(1)}, ${selectedPoint.relaxation.toFixed(1)} / 100`):'—';
+  $('trace-density').textContent=points.length?String(stats.samples):'—';
+  $('trace-dispersion').textContent=stats?.standardDistance==null?'—':`${stats.standardDistance.toFixed(2)} 指數`;
   $('trace-coverage').textContent=points.length?`${stats.coverageSeconds.toFixed(1)} / ${wormTrace.windowSeconds} s`:'—';
   const signed=n=>`${n>0?'+':''}${n.toFixed(1)}`;
+  const coordinate=p=>$('worm-space').value==='control'
+    ?`${p.controls127.attention}, ${p.controls127.relaxation}`
+    :`${p.attention.toFixed(1)}, ${p.relaxation.toFixed(1)}`;
   $('worm-change').textContent=points.length
-    ?`起點 ${stats.start.attention}, ${stats.start.relaxation} → 終點 ${stats.end.attention}, ${stats.end.relaxation} / 127`
+    ?`起點 ${coordinate(points[0])} → 終點 ${coordinate(points.at(-1))} / ${$('worm-space').value==='control'?127:100}`
       +` · 原生專注 ${signed(stats.delta.attention)}，放鬆 ${signed(stats.delta.relaxation)}`
       +` · ${stats.samples} 個樣本 / ${stats.segments} 個連續段${valid?'':' · 連線暫停，保留最後觀察'}`
     :'接收有效指數後呈現起點、終點和變化。';
-  $('layer-description').textContent=state?.description||'等待設備原生指數';
-  $('layer-descriptor').textContent=state?.descriptor||'等待有效控制量';
-  $('layer-control').textContent=state
-    ?`複雜 ${state.organizationControls.complexity127} · 離散 ${state.organizationControls.dispersion127} / 127`
-    :'複雜 — · 離散 — / 127';
-  $('selected-name').replaceChildren(document.createTextNode(`${ELEMENTS[selected][1]} `),
-    Object.assign(document.createElement('span'),{textContent:english[selected]}));
-  $('selected-value').textContent=valid&&state?state.value:'—';$('selected-unit').textContent=ELEMENTS[selected][2];
-  $('density').textContent=valid&&state?state.density.toFixed(2):'—';
-  $('dispersion').textContent=valid&&state?state.dispersion.toFixed(2):'—';
-  $('nodes').textContent=valid&&state?state.nodeCount:'—';
+  $('layer-description').textContent=`${ELEMENTS[selected][1]} · ${state?.description||'需提供可核對的音樂分析或標注。'}`;
+  $('layer-descriptor').textContent=state?.status==='reported'
+    ?`方法：${state.source.method}`:'僅有腦電，未觀測此音樂要素。';
+  $('layer-control').textContent=state?.status==='reported'
+    ?`來源記錄 ${state.source.id} · ${state.value} ${state.unit} · 方法待復核`
+    :'未建立經校準的EEG至音樂映射，保留缺失。';
+  $('selected-name').replaceChildren(document.createTextNode('專注 × 冥想／放鬆 '),
+    Object.assign(document.createElement('span'),{textContent:'NATIVE INDEX TRACE'}));
+  $('selected-value').textContent=valid?'有效':points.length?'暫停':'等待';$('selected-unit').textContent='資料狀態';
+  $('density').textContent=sourceNames[current?.source]||'來源待核對';
+  $('dispersion').textContent=Number($('worm-smoothing').value)===0?'原始位置':`${$('worm-smoothing').value} s · 僅顯示`;
+  $('nodes').textContent=points.length?new Date(selectedPoint.timestamp).toLocaleTimeString():'—';
   cards.forEach((card,i)=>{
     card.setAttribute('aria-pressed',String(i===selected));
-    card.querySelector('b').textContent=valid&&wormStates?wormStates[i].value:'—';
-    card.querySelector('.network-description').textContent=wormStates?.[i].descriptor||'等待有效控制量';
-    card.dataset.control=String(wormStates?.[i].control127??'');
+    const observation=wormStates?.[i];
+    const reported=observation?.status==='reported';
+    card.querySelector('b').textContent=reported?String(observation.value):'—';
+    card.querySelector('.evidence-status').textContent=reported?'來源已聲明 · 待復核':'未觀測';
+    card.querySelector('.network-description').textContent=observation?.description||'需提供可核對的音樂分析或標注。';
+    card.dataset.control='';
     card.dataset.sampleTimestamp=String(wormStates?.[i].timestamp??'');
     const cells=card.querySelectorAll('.network-foot span');
-    cells[0].textContent=`密集 ${valid&&wormStates?wormStates[i].density.toFixed(2):'—'}`;
-    cells[1].textContent=`離散 ${valid&&wormStates?wormStates[i].dispersion.toFixed(2):'—'}`;
+    cells[0].textContent=reported?observation.unit:'缺少音樂觀測';
+    cells[1].textContent=reported?observation.source.id:'不從腦電推算';
   });
   for(const key of waveKeys)$(`wave-value-${key}`).textContent=current?.transportFresh&&current.bands[key]!==null?current.bands[key].toPrecision(4):'—';
   $('wave-units').textContent=current?.bandUnits||'保留來源單位';
@@ -183,7 +199,7 @@ function update(){
   for(const id of ['make-prompt','copy-prompt','download-prompt']){
     $(id).disabled=!valid || (id!=='make-prompt'&&!lastPrompt);
   }
-  if(!valid&&lastPrompt){lastPrompt=null;$('music-prompt').value='';$('prompt-status').textContent='資料已中斷，請重新接收後產生提示詞。';}
+  if(!valid&&lastPrompt){lastPrompt=null;$('music-prompt').value='';$('prompt-status').textContent='資料已中斷，請重新接收後整理摘要。';}
 }
 for(const id of ['demo','live','replay'])$(id).onclick=()=>setMode(id);
 for(const id of ['attention','relaxation'])$(id).oninput=()=>{$(`${id}-value`).textContent=$(id).value;if(mode==='demo'&&!paused)emit();};
@@ -239,7 +255,7 @@ $('copy-prompt').onclick=async()=>{
   catch{$('music-prompt').focus();$('music-prompt').select();notice('請複製已選取的文字。');}
 };
 $('download-prompt').onclick=()=>{
-  if(lastPrompt&&stream.current()?.valid)download(`neural-music-prompt-${Date.now()}.json`,JSON.stringify(lastPrompt,null,2));
+  if(lastPrompt&&stream.current()?.valid)download(`neural-observation-summary-${Date.now()}.json`,JSON.stringify(lastPrompt,null,2));
 };
 $('replay-file').onchange=async()=>{
   try{const file=$('replay-file').files[0];if(!file)return;if(file.size>20*1024*1024)throw new Error('請使用 20 MB 以内的記錄。');
@@ -260,7 +276,7 @@ function setView(next){
   for(const name of ['waveforms','worm','settings'])$(`view-${name}`).hidden=name!==view;
   document.querySelectorAll('[data-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.view===view)));
   const title={waveforms:'波形捕獲',worm:'神經蠕蟲',settings:'設備設定'}[view];
-  $('page-title').replaceChildren(document.createTextNode(title),Object.assign(document.createElement('span'),{textContent:{waveforms:'EEG / LIVE SIGNAL',worm:'十大音樂要素',settings:'DEVICE / INTERFACES'}[view]}));
+  $('page-title').replaceChildren(document.createTextNode(title),Object.assign(document.createElement('span'),{textContent:{waveforms:'EEG / LIVE SIGNAL',worm:'雙指數時間軌跡',settings:'DEVICE / INTERFACES'}[view]}));
   if(view==='settings')capabilities();
   if(view==='settings')refreshGateway();
 }
@@ -415,10 +431,6 @@ function animate(now){
   if(view==='worm'){
     drawWorm($('hero'),history,time,{space:$('worm-space').value,active:Boolean(valid),reduced:reduceMotion,
       trace:wormTrace,layer:wormStates?.[selected],cursorTimestamp:wormCursor});
-    cards.forEach((card,i)=>{
-      const bounds=card.getBoundingClientRect();
-      if(bounds.bottom>0&&bounds.top<innerHeight)drawNetwork(card.querySelector('canvas'),wormStates?.[i],time,{active:Boolean(valid)});
-    });
   }
   if(view==='waveforms'){drawIndices($('indices-wave'),history);for(const key of waveKeys)drawWaveforms($(`wave-${key}`),history,key);drawRaw();}
   requestAnimationFrame(animate);

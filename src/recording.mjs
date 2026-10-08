@@ -12,6 +12,9 @@ export function captureSnapshot(packet, snapshot, networks=null) {
     attention: packet.attention ?? null, meditation: packet.meditation ?? null,
     inputs: snapshot.valid ? {attention:snapshot.attention,relaxation:snapshot.relaxation} : null,
     eeg: packet.eeg ?? null, quality: packet.quality ?? null, networks,
+    musicFeatures:packet.musicFeatures?structuredClone(packet.musicFeatures):null,
+    bandUnits:packet.bandUnits??null,
+    bandRanges:packet.bandRanges?structuredClone(packet.bandRanges):null,
     rawEegSamples: packet.rawEegSamples ?? packet.eeg?.rawSamples ?? [],
     rawUnit: packet.rawUnit ?? '',
   };
@@ -19,7 +22,12 @@ export function captureSnapshot(packet, snapshot, networks=null) {
 /** Shift replay clocks together, retaining both the original time and field ages. */
 export function replayPacket(packet,now=Date.now()){
   const shift=now/1000-packet.ts;
+  const timestamp=(now/1000)*1000;
   return {...packet,source:'replay',originalTimestamp:packet.originalTimestamp??packet.ts*1000,ts:now/1000,
+    musicFeatures:packet.musicFeatures?{
+      ...packet.musicFeatures,originalTimestamp:packet.musicFeatures.originalTimestamp??packet.musicFeatures.timestamp,
+      timestamp:packet.musicFeatures.timestamp===packet.ts*1000?timestamp:packet.musicFeatures.timestamp,
+    }:null,
     originalFieldTimestamps:packet.originalFieldTimestamps??packet.fieldTimestamps??null,
     fieldTimestamps:packet.fieldTimestamps?Object.fromEntries(Object.entries(packet.fieldTimestamps)
       .map(([key,value])=>[key,typeof value==='number'&&Number.isFinite(value)?value+shift:value])):null};
@@ -27,7 +35,7 @@ export function replayPacket(packet,now=Date.now()){
 export function recordingCsv(records) {
   const header=['ts','source','attention','meditation','focus_ratio','relaxation_ratio',
     'delta','theta','alpha','beta','signal_valid','indices_valid','raw_unit','raw_samples',
-    'transport','connection_epoch','sample_rate','raw_dropped'];
+    'transport','connection_epoch','sample_rate','raw_dropped','band_units','music_observations_json'];
   const quote=value=>{
     const text=String(value??'');
     return /[",\r\n]/.test(text)?`"${text.replaceAll('"','""')}"`:text;
@@ -39,6 +47,7 @@ export function recordingCsv(records) {
       ...['delta','theta','alpha','beta'].map(key=>native.bands[key]),
       native.signalValid,native.valid,packet.rawUnit,JSON.stringify(packet.rawEegSamples??[]),
       packet.transport,packet.connectionEpoch,packet.sampleRate,packet.rawDropped,
+      packet.bandUnits,JSON.stringify(packet.musicFeatures??null),
     ].map(quote).join(',');
   })].join('\r\n');
 }

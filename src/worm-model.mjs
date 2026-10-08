@@ -1,7 +1,7 @@
 import {mapMusic} from './music.mjs';
 import {STALE_MS} from './eeg.mjs';
 
-export const WORM_VERSION='neural-worm-trace-v2';
+export const WORM_VERSION='evidence-trace-v3';
 const clamp=value=>Math.max(0,Math.min(1,value));
 const finite=Number.isFinite;
 const identity=p=>JSON.stringify([p.source,p.sessionId,p.transport,p.connectionEpoch]);
@@ -11,8 +11,8 @@ export const control127=value=>Math.round(clamp(value/100)*127);
 
 /** Raw positions are never moved by the animation clock. Causal smoothing is display only. */
 export function buildWormTrace(history,{now=Date.now(),windowSeconds=60,space='control',
-  smoothingSeconds=.75,bpmMin=48,bpmMax=108}={}){
-  if(!['control','eeg','music'].includes(space)||!finite(windowSeconds)||windowSeconds<1||windowSeconds>600
+  smoothingSeconds=0}={}){
+  if(!['control','eeg'].includes(space)||!finite(windowSeconds)||windowSeconds<1||windowSeconds>600
     ||!finite(smoothingSeconds)||smoothingSeconds<0||smoothingSeconds>5)
     throw new Error('無效的蠕蟲座標、窗口或平滑設定。');
   const rows=history.filter(p=>finite(p?.timestamp)&&p.timestamp<=now);
@@ -28,11 +28,9 @@ export function buildWormTrace(history,{now=Date.now(),windowSeconds=60,space='c
     if(p.packets!==undefined&&p.packets===lastPackets)continue;
     const gap=!last||p.timestamp-last.timestamp>STALE_MS;
     if(gap){segment++;buffer=[];}
-    const music=mapMusic(p,{bpmMin,bpmMax});
-    const rawX=space==='music'?(music.parameters.tempo-bpmMin)/(bpmMax-bpmMin)
-      :space==='control'?control127(p.attention)/127:p.attention/100;
-    const rawY=space==='music'?music.parameters.dynamics/127
-      :space==='control'?control127(p.relaxation)/127:p.relaxation/100;
+    const music=mapMusic(p);
+    const rawX=space==='control'?control127(p.attention)/127:p.attention/100;
+    const rawY=space==='control'?control127(p.relaxation)/127:p.relaxation/100;
     const point={timestamp:p.timestamp,rawX,rawY,x:rawX,y:rawY,segment,
       attention:p.attention,relaxation:p.relaxation,
       controls127:{attention:control127(p.attention),relaxation:control127(p.relaxation)},
@@ -55,44 +53,40 @@ export function buildWormTrace(history,{now=Date.now(),windowSeconds=60,space='c
     }
     points.push(point);last=p;lastPackets=p.packets??null;
   }
-  return {version:WORM_VERSION,space,windowSeconds,smoothingSeconds,bpmMin,bpmMax,points,
+  return {version:WORM_VERSION,space,windowSeconds,smoothingSeconds,points,
     currentIdentity,source:latest?.source??null,
     stats:traceStatistics(points),rawPositionsPreserved:true};
 }
 
-/** Equal-duration sampling on observed consecutive segments, never across missing data. */
-export function traceStatistics(points,{radius=.1,stepMs=250}={}){
+/** Time integrals along observed consecutive straight segments; no invented samples. */
+export function traceStatistics(points){
   if(!points.length)return {samples:0,seconds:0,coverageSeconds:0,segments:0,
-    density:null,dispersion:null,pathLength:0,velocity:null,delta:null};
-  const grid=[],segments=new Set();
-  let coverage=0,pathLength=0;
+    density:null,dispersion:null,standardDistance:null,mean:null,
+    pathLength:0,velocity:null,samplingHz:null,delta:null};
+  const segments=new Set();
+  let coverage=0,pathLength=0,integralX=0,integralY=0,integralSquare=0,intervals=0;
   for(let i=0;i<points.length;i++){
     const p=points[i];segments.add(p.segment);
     const prev=points[i-1];
-    if(!prev||prev.segment!==p.segment){grid.push({x:p.rawX,y:p.rawY});continue;}
+    if(!prev||prev.segment!==p.segment)continue;
     const dt=p.timestamp-prev.timestamp;
     if(dt<=0||dt>STALE_MS)continue;
-    coverage+=dt;pathLength+=Math.hypot(p.rawX-prev.rawX,p.rawY-prev.rawY);
-    // Resample the measured piecewise-linear path only for statistics.
-    // This does not create or export additional measurement points.
-    for(let t=Math.floor(prev.timestamp/stepMs)*stepMs+stepMs;t<=p.timestamp;t+=stepMs){
-      const f=(t-prev.timestamp)/dt;
-      grid.push({x:prev.rawX+(p.rawX-prev.rawX)*f,y:prev.rawY+(p.rawY-prev.rawY)*f});
-    }
+    const x0=prev.attention,x1=p.attention,y0=prev.relaxation,y1=p.relaxation;
+    coverage+=dt;intervals++;
+    pathLength+=Math.hypot(x1-x0,y1-y0);
+    integralX+=dt*(x0+x1)/2;integralY+=dt*(y0+y1)/2;
+    integralSquare+=dt*(x0*x0+x0*x1+x1*x1+y0*y0+y0*y1+y1*y1)/3;
   }
-  const mean=key=>grid.reduce((sum,p)=>sum+p[key],0)/grid.length;
-  const center={x:mean('x'),y:mean('y')};
-  const rms=Math.sqrt(grid.reduce((sum,p)=>sum+(p.x-center.x)**2+(p.y-center.y)**2,0)/grid.length);
-  let close=0,pairs=0;
-  for(let i=0;i<grid.length;i++)for(let j=i+1;j<grid.length;j++){
-    pairs++;if(Math.hypot(grid[i].x-grid[j].x,grid[i].y-grid[j].y)<=radius)close++;
-  }
+  const mean=coverage?{attention:integralX/coverage,relaxation:integralY/coverage}:null;
+  const standardDistance=coverage?Math.sqrt(Math.max(0,integralSquare/coverage
+    -mean.attention**2-mean.relaxation**2)):null;
   const first=points[0],last=points.at(-1);
   return {samples:points.length,seconds:(last.timestamp-first.timestamp)/1000,
     coverageSeconds:coverage/1000,segments:segments.size,
-    density:pairs?close/pairs:null,dispersion:grid.length>1?clamp(rms/Math.SQRT1_2):null,
+    density:null,dispersion:null,standardDistance,mean,
     pathLength,velocity:coverage>0?pathLength/(coverage/1000):null,
-    radius,statisticsStepMs:stepMs,center,
+    samplingHz:coverage?intervals/(coverage/1000):null,
+    units:'native-index',method:'time-weighted-standard-distance-linear-segments-v1',
     start:first.controls127,end:last.controls127,
     delta:{attention:last.attention-first.attention,relaxation:last.relaxation-first.relaxation}};
 }

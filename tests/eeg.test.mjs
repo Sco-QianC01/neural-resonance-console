@@ -15,7 +15,7 @@ test('USB ratios are not treated as device 0–100 indices',()=>{
   assert.equal(result.attention,null); assert.equal(result.relaxation,null);
   assert.equal(result.valid,false); assert.equal(result.signalValid,true);
   assert.equal(result.ratios.focus,.02); assert.equal(result.bands.delta,.012);
-  assert.equal(result.bandUnits,'RMS · 相對值');
+  assert.equal(result.bandUnits,'來源頻段值 · 單位未回報');
 });
 test('null, NaN, negative and out-of-range scores cannot drive interaction',()=>{
   for(const value of [null,NaN,Infinity,-1,101,'60']){

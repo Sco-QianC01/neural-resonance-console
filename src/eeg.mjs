@@ -44,8 +44,8 @@ export function normalizeSnapshot(input, now = Date.now()) {
     transport: input.transport ?? null, connectionEpoch: input.connectionEpoch ?? null,
     attention, relaxation, bands, packets,
     ratios: { focus: positive(eeg.focus_index), relaxation: positive(eeg.relaxation_index) },
-    bandUnits: Object.keys(eeg).some(key => key.endsWith('_mean')) ? 'RMS · 相對值'
-      : input.source==='demo' ? '示範相對值' : '來源頻段值',
+    bandUnits: typeof input.bandUnits==='string'&&input.bandUnits.length<=80?input.bandUnits
+      :input.source==='demo'?'合成示範相對值':'來源頻段值 · 單位未回報',
     metricOrigin,
     transportFresh, signalValid, valid: signalValid && attention !== null && relaxation !== null && indicesAvailable,
     raw: input,
