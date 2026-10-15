@@ -1,0 +1,1718 @@
+{
+  "schema": "performance-observations-v1",
+  "title": "陳鋼《陽光照耀著塔什庫爾干》節選",
+  "performers": "章奧哲 · 小提琴 / 謝貝妮 · 鋼琴",
+  "year": 2024,
+  "duration": 38.4,
+  "media": "https://q.vmus.net/Sunshine-ZAZ-XBN-2024_B73-107.mp4",
+  "reference": "https://v3.vmus.net/fig3/",
+  "score": "https://q.vmus.net/Sunshine-ZAZ-XBN-2024_B73-107.mei",
+  "marks": "https://q.vmus.net/Sunshine-ZAZ-XBN-2024_B73-107.csv",
+  "rows": [
+    {
+      "t": 0.242271,
+      "end": 0.545875,
+      "label": "1.1",
+      "tempo": 197.6257,
+      "rhythm": 303.6042,
+      "dynamics": -13.8802,
+      "timbre": 631.714,
+      "audioWindowCentre": 0.394073
+    },
+    {
+      "t": 0.545875,
+      "end": 0.683479,
+      "label": "1.2",
+      "tempo": 436.0333,
+      "rhythm": 137.6042,
+      "dynamics": -16.5566,
+      "timbre": 615.3116,
+      "audioWindowCentre": 0.614677
+    },
+    {
+      "t": 0.683479,
+      "end": 0.903625,
+      "label": "1.3",
+      "tempo": 272.5466,
+      "rhythm": 220.1458,
+      "dynamics": -18.2153,
+      "timbre": 568.718,
+      "audioWindowCentre": 0.793552
+    },
+    {
+      "t": 0.903625,
+      "end": 1.104646,
+      "label": "1.4",
+      "tempo": 298.4765,
+      "rhythm": 201.0208,
+      "dynamics": -25.6739,
+      "timbre": 560.9704,
+      "audioWindowCentre": 1.004135
+    },
+    {
+      "t": 1.104646,
+      "end": 1.333312,
+      "label": "1.5",
+      "tempo": 262.3907,
+      "rhythm": 228.6667,
+      "dynamics": -30.5254,
+      "timbre": 683.0272,
+      "audioWindowCentre": 1.218979
+    },
+    {
+      "t": 1.333312,
+      "end": 1.63178,
+      "label": "2.1",
+      "tempo": 201.0268,
+      "rhythm": 298.4676,
+      "dynamics": -11.6711,
+      "timbre": 712.927,
+      "audioWindowCentre": 1.482546
+    },
+    {
+      "t": 1.63178,
+      "end": 1.750646,
+      "label": "2.2",
+      "tempo": 504.7714,
+      "rhythm": 118.8657,
+      "dynamics": -14.2373,
+      "timbre": 653.673,
+      "audioWindowCentre": 1.691213
+    },
+    {
+      "t": 1.750646,
+      "end": 1.966021,
+      "label": "2.3",
+      "tempo": 278.5839,
+      "rhythm": 215.375,
+      "dynamics": -16.3878,
+      "timbre": 575.0,
+      "audioWindowCentre": 1.858333
+    },
+    {
+      "t": 1.966021,
+      "end": 2.174708,
+      "label": "2.4",
+      "tempo": 287.5112,
+      "rhythm": 208.6875,
+      "dynamics": -25.4902,
+      "timbre": 585.3046,
+      "audioWindowCentre": 2.070365
+    },
+    {
+      "t": 2.174708,
+      "end": 2.415313,
+      "label": "2.5",
+      "tempo": 249.3722,
+      "rhythm": 240.6042,
+      "dynamics": -34.6018,
+      "timbre": 666.9851,
+      "audioWindowCentre": 2.29501
+    },
+    {
+      "t": 2.415313,
+      "end": 2.621812,
+      "label": "3.1",
+      "tempo": 290.5569,
+      "rhythm": 206.5,
+      "dynamics": -26.5633,
+      "timbre": 1963.5857,
+      "audioWindowCentre": 2.518562
+    },
+    {
+      "t": 2.621812,
+      "end": 2.831708,
+      "label": "3.2",
+      "tempo": 285.8561,
+      "rhythm": 209.8958,
+      "dynamics": -27.508,
+      "timbre": 1357.8021,
+      "audioWindowCentre": 2.72676
+    },
+    {
+      "t": 2.831708,
+      "end": 3.061854,
+      "label": "3.3",
+      "tempo": 260.7043,
+      "rhythm": 230.1458,
+      "dynamics": -24.8342,
+      "timbre": 1472.781,
+      "audioWindowCentre": 2.946781
+    },
+    {
+      "t": 3.061854,
+      "end": 3.294771,
+      "label": "3.4",
+      "tempo": 257.6029,
+      "rhythm": 232.9167,
+      "dynamics": -30.5343,
+      "timbre": 1500.8508,
+      "audioWindowCentre": 3.178312
+    },
+    {
+      "t": 3.294771,
+      "end": 3.508354,
+      "label": "3.5",
+      "tempo": 280.9208,
+      "rhythm": 213.5833,
+      "dynamics": -36.6174,
+      "timbre": 1924.0222,
+      "audioWindowCentre": 3.401562
+    },
+    {
+      "t": 3.508354,
+      "end": 3.692021,
+      "label": "3.6",
+      "tempo": 326.6788,
+      "rhythm": 183.6667,
+      "dynamics": -32.8379,
+      "timbre": 1565.637,
+      "audioWindowCentre": 3.600187
+    },
+    {
+      "t": 3.692021,
+      "end": 3.934292,
+      "label": "3.7",
+      "tempo": 247.6567,
+      "rhythm": 242.2708,
+      "dynamics": -25.4865,
+      "timbre": 1778.097,
+      "audioWindowCentre": 3.813156
+    },
+    {
+      "t": 3.934292,
+      "end": 4.124729,
+      "label": "4.1",
+      "tempo": 315.064,
+      "rhythm": 190.4375,
+      "dynamics": -25.7739,
+      "timbre": 1168.1044,
+      "audioWindowCentre": 4.02951
+    },
+    {
+      "t": 4.124729,
+      "end": 4.350688,
+      "label": "4.2",
+      "tempo": 265.5357,
+      "rhythm": 225.9583,
+      "dynamics": -27.366,
+      "timbre": 2193.4703,
+      "audioWindowCentre": 4.237708
+    },
+    {
+      "t": 4.350688,
+      "end": 4.577833,
+      "label": "4.3",
+      "tempo": 264.1475,
+      "rhythm": 227.1458,
+      "dynamics": -31.8345,
+      "timbre": 1906.9862,
+      "audioWindowCentre": 4.46426
+    },
+    {
+      "t": 4.577833,
+      "end": 4.776646,
+      "label": "4.4",
+      "tempo": 301.7919,
+      "rhythm": 198.8125,
+      "dynamics": -26.4908,
+      "timbre": 1099.2967,
+      "audioWindowCentre": 4.67724
+    },
+    {
+      "t": 4.776646,
+      "end": 5.016625,
+      "label": "4.5",
+      "tempo": 250.0217,
+      "rhythm": 239.9792,
+      "dynamics": -29.9346,
+      "timbre": 1137.7116,
+      "audioWindowCentre": 4.896635
+    },
+    {
+      "t": 5.016625,
+      "end": 5.209979,
+      "label": "5.1",
+      "tempo": 310.3114,
+      "rhythm": 193.3542,
+      "dynamics": -22.0556,
+      "timbre": 1577.9813,
+      "audioWindowCentre": 5.113302
+    },
+    {
+      "t": 5.209979,
+      "end": 5.447938,
+      "label": "5.2",
+      "tempo": 252.145,
+      "rhythm": 237.9583,
+      "dynamics": -24.1011,
+      "timbre": 1131.8204,
+      "audioWindowCentre": 5.328958
+    },
+    {
+      "t": 5.447938,
+      "end": 5.680625,
+      "label": "5.3",
+      "tempo": 257.8566,
+      "rhythm": 232.6875,
+      "dynamics": -24.7052,
+      "timbre": 1012.3474,
+      "audioWindowCentre": 5.564281
+    },
+    {
+      "t": 5.680625,
+      "end": 5.893813,
+      "label": "5.4",
+      "tempo": 281.4424,
+      "rhythm": 213.1875,
+      "dynamics": -29.1896,
+      "timbre": 1503.5897,
+      "audioWindowCentre": 5.787219
+    },
+    {
+      "t": 5.893813,
+      "end": 6.106646,
+      "label": "5.5",
+      "tempo": 281.9107,
+      "rhythm": 212.8333,
+      "dynamics": -32.2761,
+      "timbre": 1799.5531,
+      "audioWindowCentre": 6.000229
+    },
+    {
+      "t": 6.106646,
+      "end": 6.298417,
+      "label": "5.6",
+      "tempo": 312.8734,
+      "rhythm": 191.7708,
+      "dynamics": -31.8373,
+      "timbre": 1721.4998,
+      "audioWindowCentre": 6.202531
+    },
+    {
+      "t": 6.298417,
+      "end": 6.560062,
+      "label": "5.7",
+      "tempo": 229.3176,
+      "rhythm": 261.6458,
+      "dynamics": -24.4191,
+      "timbre": 1926.3069,
+      "audioWindowCentre": 6.42924
+    },
+    {
+      "t": 6.560062,
+      "end": 6.758229,
+      "label": "6.1",
+      "tempo": 302.7754,
+      "rhythm": 198.1667,
+      "dynamics": -22.3564,
+      "timbre": 1053.1599,
+      "audioWindowCentre": 6.659146
+    },
+    {
+      "t": 6.758229,
+      "end": 6.992667,
+      "label": "6.2",
+      "tempo": 255.9318,
+      "rhythm": 234.4375,
+      "dynamics": -27.9608,
+      "timbre": 2349.6541,
+      "audioWindowCentre": 6.875448
+    },
+    {
+      "t": 6.992667,
+      "end": 7.216,
+      "label": "6.3",
+      "tempo": 268.6567,
+      "rhythm": 223.3333,
+      "dynamics": -32.0946,
+      "timbre": 2099.4779,
+      "audioWindowCentre": 7.104333
+    },
+    {
+      "t": 7.216,
+      "end": 7.420521,
+      "label": "6.4",
+      "tempo": 293.3686,
+      "rhythm": 204.5208,
+      "dynamics": -23.4075,
+      "timbre": 1218.9091,
+      "audioWindowCentre": 7.31826
+    },
+    {
+      "t": 7.420521,
+      "end": 7.662458,
+      "label": "6.5",
+      "tempo": 247.9979,
+      "rhythm": 241.9375,
+      "dynamics": -26.9569,
+      "timbre": 1209.1334,
+      "audioWindowCentre": 7.54149
+    },
+    {
+      "t": 7.662458,
+      "end": 7.861125,
+      "label": "7.1",
+      "tempo": 302.0134,
+      "rhythm": 198.6667,
+      "dynamics": -18.7309,
+      "timbre": 1349.9693,
+      "audioWindowCentre": 7.761792
+    },
+    {
+      "t": 7.861125,
+      "end": 8.082937,
+      "label": "7.2",
+      "tempo": 270.4987,
+      "rhythm": 221.8125,
+      "dynamics": -20.5574,
+      "timbre": 945.145,
+      "audioWindowCentre": 7.972031
+    },
+    {
+      "t": 8.082937,
+      "end": 8.302583,
+      "label": "7.3",
+      "tempo": 273.167,
+      "rhythm": 219.6458,
+      "dynamics": -21.0332,
+      "timbre": 769.6502,
+      "audioWindowCentre": 8.19276
+    },
+    {
+      "t": 8.302583,
+      "end": 8.527208,
+      "label": "7.4",
+      "tempo": 267.1119,
+      "rhythm": 224.625,
+      "dynamics": -21.6726,
+      "timbre": 959.0795,
+      "audioWindowCentre": 8.414896
+    },
+    {
+      "t": 8.527208,
+      "end": 8.74125,
+      "label": "7.5",
+      "tempo": 280.3193,
+      "rhythm": 214.0417,
+      "dynamics": -30.7428,
+      "timbre": 1525.4389,
+      "audioWindowCentre": 8.634229
+    },
+    {
+      "t": 8.74125,
+      "end": 8.962354,
+      "label": "7.6",
+      "tempo": 271.3653,
+      "rhythm": 221.1042,
+      "dynamics": -30.9975,
+      "timbre": 1674.861,
+      "audioWindowCentre": 8.851802
+    },
+    {
+      "t": 8.962354,
+      "end": 9.158687,
+      "label": "7.7",
+      "tempo": 305.6027,
+      "rhythm": 196.3333,
+      "dynamics": -24.5768,
+      "timbre": 959.2051,
+      "audioWindowCentre": 9.060521
+    },
+    {
+      "t": 9.158687,
+      "end": 9.38,
+      "label": "8.1",
+      "tempo": 271.1099,
+      "rhythm": 221.3125,
+      "dynamics": -22.579,
+      "timbre": 938.2603,
+      "audioWindowCentre": 9.269344
+    },
+    {
+      "t": 9.38,
+      "end": 9.618729,
+      "label": "8.2",
+      "tempo": 251.3308,
+      "rhythm": 238.7292,
+      "dynamics": -25.6551,
+      "timbre": 2088.0362,
+      "audioWindowCentre": 9.499365
+    },
+    {
+      "t": 9.618729,
+      "end": 9.846104,
+      "label": "8.3",
+      "tempo": 263.8813,
+      "rhythm": 227.375,
+      "dynamics": -31.0417,
+      "timbre": 1834.5731,
+      "audioWindowCentre": 9.732417
+    },
+    {
+      "t": 9.846104,
+      "end": 10.064354,
+      "label": "8.4",
+      "tempo": 274.9141,
+      "rhythm": 218.25,
+      "dynamics": -24.7578,
+      "timbre": 1041.149,
+      "audioWindowCentre": 9.955229
+    },
+    {
+      "t": 10.064354,
+      "end": 10.314417,
+      "label": "8.5",
+      "tempo": 239.94,
+      "rhythm": 250.0625,
+      "dynamics": -27.9621,
+      "timbre": 992.0909,
+      "audioWindowCentre": 10.189385
+    },
+    {
+      "t": 10.314417,
+      "end": 10.497354,
+      "label": "9.1",
+      "tempo": 327.9809,
+      "rhythm": 182.9375,
+      "dynamics": -18.7158,
+      "timbre": 1418.0956,
+      "audioWindowCentre": 10.405885
+    },
+    {
+      "t": 10.497354,
+      "end": 10.737125,
+      "label": "9.2",
+      "tempo": 250.2389,
+      "rhythm": 239.7708,
+      "dynamics": -21.1079,
+      "timbre": 935.7376,
+      "audioWindowCentre": 10.61724
+    },
+    {
+      "t": 10.737125,
+      "end": 10.955562,
+      "label": "9.3",
+      "tempo": 274.6781,
+      "rhythm": 218.4375,
+      "dynamics": -22.5002,
+      "timbre": 770.408,
+      "audioWindowCentre": 10.846344
+    },
+    {
+      "t": 10.955562,
+      "end": 11.163583,
+      "label": "9.4",
+      "tempo": 288.4327,
+      "rhythm": 208.0208,
+      "dynamics": -20.4275,
+      "timbre": 1041.1425,
+      "audioWindowCentre": 11.059573
+    },
+    {
+      "t": 11.163583,
+      "end": 11.377604,
+      "label": "9.5",
+      "tempo": 280.3465,
+      "rhythm": 214.0208,
+      "dynamics": -29.3181,
+      "timbre": 1347.1955,
+      "audioWindowCentre": 11.270594
+    },
+    {
+      "t": 11.377604,
+      "end": 11.5955,
+      "label": "10.1",
+      "tempo": 275.3609,
+      "rhythm": 217.8958,
+      "dynamics": -26.5028,
+      "timbre": 1813.2666,
+      "audioWindowCentre": 11.486552
+    },
+    {
+      "t": 11.5955,
+      "end": 11.788521,
+      "label": "10.2",
+      "tempo": 310.8473,
+      "rhythm": 193.0208,
+      "dynamics": -24.3531,
+      "timbre": 1235.7222,
+      "audioWindowCentre": 11.69201
+    },
+    {
+      "t": 11.788521,
+      "end": 11.949556,
+      "label": "10.3",
+      "tempo": 372.5885,
+      "rhythm": 161.0356,
+      "dynamics": -24.2898,
+      "timbre": 1728.0271,
+      "audioWindowCentre": 11.869039
+    },
+    {
+      "t": 11.949556,
+      "end": 12.287437,
+      "label": "10.4",
+      "tempo": 177.5773,
+      "rhythm": 337.8811,
+      "dynamics": -16.8793,
+      "timbre": 1418.6246,
+      "audioWindowCentre": 12.118497
+    },
+    {
+      "t": 12.287437,
+      "end": 12.503667,
+      "label": "11.1",
+      "tempo": 277.4834,
+      "rhythm": 216.2292,
+      "dynamics": -15.9904,
+      "timbre": 1351.9461,
+      "audioWindowCentre": 12.395552
+    },
+    {
+      "t": 12.503667,
+      "end": 12.731646,
+      "label": "11.2",
+      "tempo": 263.182,
+      "rhythm": 227.9792,
+      "dynamics": -20.6438,
+      "timbre": 1109.3499,
+      "audioWindowCentre": 12.617656
+    },
+    {
+      "t": 12.731646,
+      "end": 12.964187,
+      "label": "11.3",
+      "tempo": 258.0183,
+      "rhythm": 232.5417,
+      "dynamics": -23.796,
+      "timbre": 1229.1824,
+      "audioWindowCentre": 12.847917
+    },
+    {
+      "t": 12.964187,
+      "end": 13.175396,
+      "label": "11.4",
+      "tempo": 284.0797,
+      "rhythm": 211.2083,
+      "dynamics": -21.2542,
+      "timbre": 1341.1122,
+      "audioWindowCentre": 13.069792
+    },
+    {
+      "t": 13.175396,
+      "end": 13.3535,
+      "label": "11.5",
+      "tempo": 336.8815,
+      "rhythm": 178.1042,
+      "dynamics": -29.4678,
+      "timbre": 1794.5971,
+      "audioWindowCentre": 13.264448
+    },
+    {
+      "t": 13.3535,
+      "end": 13.592229,
+      "label": "11.6",
+      "tempo": 251.3308,
+      "rhythm": 238.7292,
+      "dynamics": -29.4143,
+      "timbre": 2023.592,
+      "audioWindowCentre": 13.472865
+    },
+    {
+      "t": 13.592229,
+      "end": 13.844563,
+      "label": "11.7",
+      "tempo": 237.7807,
+      "rhythm": 252.3333,
+      "dynamics": -22.4608,
+      "timbre": 1593.1927,
+      "audioWindowCentre": 13.718396
+    },
+    {
+      "t": 13.844563,
+      "end": 14.074083,
+      "label": "12.1",
+      "tempo": 261.4142,
+      "rhythm": 229.5208,
+      "dynamics": -18.6219,
+      "timbre": 1038.5369,
+      "audioWindowCentre": 13.959323
+    },
+    {
+      "t": 14.074083,
+      "end": 14.309042,
+      "label": "12.2",
+      "tempo": 255.3644,
+      "rhythm": 234.9583,
+      "dynamics": -27.8163,
+      "timbre": 1971.8058,
+      "audioWindowCentre": 14.191562
+    },
+    {
+      "t": 14.309042,
+      "end": 14.52575,
+      "label": "12.3",
+      "tempo": 276.8698,
+      "rhythm": 216.7083,
+      "dynamics": -33.1983,
+      "timbre": 1954.4746,
+      "audioWindowCentre": 14.417396
+    },
+    {
+      "t": 14.52575,
+      "end": 14.725812,
+      "label": "12.4",
+      "tempo": 299.9063,
+      "rhythm": 200.0625,
+      "dynamics": -24.0785,
+      "timbre": 1178.3031,
+      "audioWindowCentre": 14.625781
+    },
+    {
+      "t": 14.725812,
+      "end": 14.973437,
+      "label": "12.5",
+      "tempo": 242.3019,
+      "rhythm": 247.625,
+      "dynamics": -26.2697,
+      "timbre": 1143.0109,
+      "audioWindowCentre": 14.849625
+    },
+    {
+      "t": 14.973437,
+      "end": 15.162667,
+      "label": "13.1",
+      "tempo": 317.0759,
+      "rhythm": 189.2292,
+      "dynamics": -19.0894,
+      "timbre": 1602.0715,
+      "audioWindowCentre": 15.068052
+    },
+    {
+      "t": 15.162667,
+      "end": 15.394979,
+      "label": "13.2",
+      "tempo": 258.2728,
+      "rhythm": 232.3125,
+      "dynamics": -23.4618,
+      "timbre": 1186.6631,
+      "audioWindowCentre": 15.278823
+    },
+    {
+      "t": 15.394979,
+      "end": 15.612917,
+      "label": "13.3",
+      "tempo": 275.3083,
+      "rhythm": 217.9375,
+      "dynamics": -23.1034,
+      "timbre": 1081.5315,
+      "audioWindowCentre": 15.503948
+    },
+    {
+      "t": 15.612917,
+      "end": 15.827146,
+      "label": "13.4",
+      "tempo": 280.0739,
+      "rhythm": 214.2292,
+      "dynamics": -24.381,
+      "timbre": 1205.2621,
+      "audioWindowCentre": 15.720031
+    },
+    {
+      "t": 15.827146,
+      "end": 16.058396,
+      "label": "13.5",
+      "tempo": 259.4595,
+      "rhythm": 231.25,
+      "dynamics": -30.5301,
+      "timbre": 2009.2859,
+      "audioWindowCentre": 15.942771
+    },
+    {
+      "t": 16.058396,
+      "end": 16.265,
+      "label": "13.6",
+      "tempo": 290.4104,
+      "rhythm": 206.6042,
+      "dynamics": -30.9188,
+      "timbre": 1954.9151,
+      "audioWindowCentre": 16.161698
+    },
+    {
+      "t": 16.265,
+      "end": 16.526604,
+      "label": "13.7",
+      "tempo": 229.3541,
+      "rhythm": 261.6042,
+      "dynamics": -23.7835,
+      "timbre": 1902.4541,
+      "audioWindowCentre": 16.395802
+    },
+    {
+      "t": 16.526604,
+      "end": 16.722188,
+      "label": "14.1",
+      "tempo": 306.7746,
+      "rhythm": 195.5833,
+      "dynamics": -22.3632,
+      "timbre": 1131.2972,
+      "audioWindowCentre": 16.624396
+    },
+    {
+      "t": 16.722188,
+      "end": 16.959917,
+      "label": "14.2",
+      "tempo": 252.388,
+      "rhythm": 237.7292,
+      "dynamics": -26.791,
+      "timbre": 2112.899,
+      "audioWindowCentre": 16.841052
+    },
+    {
+      "t": 16.959917,
+      "end": 17.182396,
+      "label": "14.3",
+      "tempo": 269.6882,
+      "rhythm": 222.4792,
+      "dynamics": -33.7994,
+      "timbre": 1914.8246,
+      "audioWindowCentre": 17.071156
+    },
+    {
+      "t": 17.182396,
+      "end": 17.406667,
+      "label": "14.4",
+      "tempo": 267.5337,
+      "rhythm": 224.2708,
+      "dynamics": -24.8938,
+      "timbre": 1268.2034,
+      "audioWindowCentre": 17.294531
+    },
+    {
+      "t": 17.406667,
+      "end": 17.646021,
+      "label": "14.5",
+      "tempo": 250.6746,
+      "rhythm": 239.3542,
+      "dynamics": -23.504,
+      "timbre": 1122.5614,
+      "audioWindowCentre": 17.526344
+    },
+    {
+      "t": 17.646021,
+      "end": 17.830562,
+      "label": "15.1",
+      "tempo": 325.1298,
+      "rhythm": 184.5417,
+      "dynamics": -22.2748,
+      "timbre": 1615.3675,
+      "audioWindowCentre": 17.738292
+    },
+    {
+      "t": 17.830562,
+      "end": 18.071875,
+      "label": "15.2",
+      "tempo": 248.6402,
+      "rhythm": 241.3125,
+      "dynamics": -22.344,
+      "timbre": 1117.0492,
+      "audioWindowCentre": 17.951219
+    },
+    {
+      "t": 18.071875,
+      "end": 18.290417,
+      "label": "15.3",
+      "tempo": 274.5472,
+      "rhythm": 218.5417,
+      "dynamics": -24.7635,
+      "timbre": 921.2751,
+      "audioWindowCentre": 18.181146
+    },
+    {
+      "t": 18.290417,
+      "end": 18.495854,
+      "label": "15.4",
+      "tempo": 292.0596,
+      "rhythm": 205.4375,
+      "dynamics": -19.9089,
+      "timbre": 1056.455,
+      "audioWindowCentre": 18.393135
+    },
+    {
+      "t": 18.495854,
+      "end": 18.711375,
+      "label": "15.5",
+      "tempo": 278.3954,
+      "rhythm": 215.5208,
+      "dynamics": -28.9295,
+      "timbre": 1593.7554,
+      "audioWindowCentre": 18.603615
+    },
+    {
+      "t": 18.711375,
+      "end": 18.921208,
+      "label": "15.6",
+      "tempo": 285.9412,
+      "rhythm": 209.8333,
+      "dynamics": -31.1394,
+      "timbre": 1912.5187,
+      "audioWindowCentre": 18.816292
+    },
+    {
+      "t": 18.921208,
+      "end": 19.139042,
+      "label": "15.7",
+      "tempo": 275.4399,
+      "rhythm": 217.8333,
+      "dynamics": -22.3477,
+      "timbre": 1118.2221,
+      "audioWindowCentre": 19.030125
+    },
+    {
+      "t": 19.139042,
+      "end": 19.352313,
+      "label": "16.1",
+      "tempo": 281.3324,
+      "rhythm": 213.2708,
+      "dynamics": -22.3946,
+      "timbre": 1108.4595,
+      "audioWindowCentre": 19.245677
+    },
+    {
+      "t": 19.352313,
+      "end": 19.567458,
+      "label": "16.2",
+      "tempo": 278.8806,
+      "rhythm": 215.1458,
+      "dynamics": -24.337,
+      "timbre": 2009.5159,
+      "audioWindowCentre": 19.459885
+    },
+    {
+      "t": 19.567458,
+      "end": 19.811417,
+      "label": "16.3",
+      "tempo": 245.9436,
+      "rhythm": 243.9583,
+      "dynamics": -32.9169,
+      "timbre": 1877.3628,
+      "audioWindowCentre": 19.689438
+    },
+    {
+      "t": 19.811417,
+      "end": 20.049375,
+      "label": "16.4",
+      "tempo": 252.145,
+      "rhythm": 237.9583,
+      "dynamics": -26.452,
+      "timbre": 1137.7029,
+      "audioWindowCentre": 19.930396
+    },
+    {
+      "t": 20.049375,
+      "end": 20.3185,
+      "label": "16.5",
+      "tempo": 222.9447,
+      "rhythm": 269.125,
+      "dynamics": -28.1769,
+      "timbre": 1146.5411,
+      "audioWindowCentre": 20.183937
+    },
+    {
+      "t": 20.3185,
+      "end": 20.522167,
+      "label": "17.1",
+      "tempo": 294.599,
+      "rhythm": 203.6667,
+      "dynamics": -26.0943,
+      "timbre": 1621.1345,
+      "audioWindowCentre": 20.420333
+    },
+    {
+      "t": 20.522167,
+      "end": 20.731562,
+      "label": "17.2",
+      "tempo": 286.5387,
+      "rhythm": 209.3958,
+      "dynamics": -26.9669,
+      "timbre": 1145.3357,
+      "audioWindowCentre": 20.626865
+    },
+    {
+      "t": 20.731562,
+      "end": 20.94775,
+      "label": "17.3",
+      "tempo": 277.5369,
+      "rhythm": 216.1875,
+      "dynamics": -28.2959,
+      "timbre": 1361.4732,
+      "audioWindowCentre": 20.839656
+    },
+    {
+      "t": 20.94775,
+      "end": 21.169479,
+      "label": "18.1",
+      "tempo": 270.6004,
+      "rhythm": 221.7292,
+      "dynamics": -23.1362,
+      "timbre": 1279.7113,
+      "audioWindowCentre": 21.058615
+    },
+    {
+      "t": 21.169479,
+      "end": 21.386167,
+      "label": "18.2",
+      "tempo": 276.8965,
+      "rhythm": 216.6875,
+      "dynamics": -25.2877,
+      "timbre": 1192.5568,
+      "audioWindowCentre": 21.277823
+    },
+    {
+      "t": 21.386167,
+      "end": 21.613437,
+      "label": "18.3",
+      "tempo": 264.0022,
+      "rhythm": 227.2708,
+      "dynamics": -27.4017,
+      "timbre": 1358.1963,
+      "audioWindowCentre": 21.499802
+    },
+    {
+      "t": 21.613437,
+      "end": 21.81375,
+      "label": "19.1",
+      "tempo": 299.532,
+      "rhythm": 200.3125,
+      "dynamics": -21.5451,
+      "timbre": 1095.5427,
+      "audioWindowCentre": 21.713594
+    },
+    {
+      "t": 21.81375,
+      "end": 22.012604,
+      "label": "19.2",
+      "tempo": 301.7286,
+      "rhythm": 198.8542,
+      "dynamics": -27.0325,
+      "timbre": 1179.327,
+      "audioWindowCentre": 21.913177
+    },
+    {
+      "t": 22.012604,
+      "end": 22.270688,
+      "label": "19.3",
+      "tempo": 232.4831,
+      "rhythm": 258.0833,
+      "dynamics": -30.6549,
+      "timbre": 976.9685,
+      "audioWindowCentre": 22.141646
+    },
+    {
+      "t": 22.270688,
+      "end": 22.488583,
+      "label": "20.1",
+      "tempo": 275.3609,
+      "rhythm": 217.8958,
+      "dynamics": -14.5165,
+      "timbre": 1107.1782,
+      "audioWindowCentre": 22.379635
+    },
+    {
+      "t": 22.488583,
+      "end": 22.697792,
+      "label": "20.2",
+      "tempo": 286.7954,
+      "rhythm": 209.2083,
+      "dynamics": -13.1785,
+      "timbre": 921.8734,
+      "audioWindowCentre": 22.593187
+    },
+    {
+      "t": 22.697792,
+      "end": 22.915979,
+      "label": "20.3",
+      "tempo": 274.9928,
+      "rhythm": 218.1875,
+      "dynamics": -19.6812,
+      "timbre": 1520.1737,
+      "audioWindowCentre": 22.806885
+    },
+    {
+      "t": 22.915979,
+      "end": 23.156375,
+      "label": "20.4",
+      "tempo": 249.5884,
+      "rhythm": 240.3958,
+      "dynamics": -25.3182,
+      "timbre": 1282.1278,
+      "audioWindowCentre": 23.036177
+    },
+    {
+      "t": 23.156375,
+      "end": 23.389458,
+      "label": "20.5",
+      "tempo": 257.4187,
+      "rhythm": 233.0833,
+      "dynamics": -28.967,
+      "timbre": 1394.0567,
+      "audioWindowCentre": 23.272917
+    },
+    {
+      "t": 23.389458,
+      "end": 23.573315,
+      "label": "21.1",
+      "tempo": 326.3405,
+      "rhythm": 183.8571,
+      "dynamics": -17.8278,
+      "timbre": 1275.5853,
+      "audioWindowCentre": 23.481387
+    },
+    {
+      "t": 23.573315,
+      "end": 23.803833,
+      "label": "21.2",
+      "tempo": 260.2834,
+      "rhythm": 230.5179,
+      "dynamics": -17.4261,
+      "timbre": 1042.7426,
+      "audioWindowCentre": 23.688574
+    },
+    {
+      "t": 23.803833,
+      "end": 24.049292,
+      "label": "21.3",
+      "tempo": 244.4407,
+      "rhythm": 245.4583,
+      "dynamics": -18.6567,
+      "timbre": 1289.864,
+      "audioWindowCentre": 23.926562
+    },
+    {
+      "t": 24.049292,
+      "end": 24.275958,
+      "label": "21.4",
+      "tempo": 264.7059,
+      "rhythm": 226.6667,
+      "dynamics": -22.4928,
+      "timbre": 1128.2112,
+      "audioWindowCentre": 24.162625
+    },
+    {
+      "t": 24.275958,
+      "end": 24.521771,
+      "label": "21.5",
+      "tempo": 244.0885,
+      "rhythm": 245.8125,
+      "dynamics": -29.0639,
+      "timbre": 1511.6089,
+      "audioWindowCentre": 24.398865
+    },
+    {
+      "t": 24.521771,
+      "end": 24.738271,
+      "label": "22.1",
+      "tempo": 277.1363,
+      "rhythm": 216.5,
+      "dynamics": -18.0923,
+      "timbre": 1250.1743,
+      "audioWindowCentre": 24.630021
+    },
+    {
+      "t": 24.738271,
+      "end": 24.937,
+      "label": "22.2",
+      "tempo": 301.9184,
+      "rhythm": 198.7292,
+      "dynamics": -16.9041,
+      "timbre": 932.3437,
+      "audioWindowCentre": 24.837635
+    },
+    {
+      "t": 24.937,
+      "end": 25.175708,
+      "label": "22.3",
+      "tempo": 251.3528,
+      "rhythm": 238.7083,
+      "dynamics": -14.8276,
+      "timbre": 1189.5756,
+      "audioWindowCentre": 25.056354
+    },
+    {
+      "t": 25.175708,
+      "end": 25.385333,
+      "label": "22.4",
+      "tempo": 286.2254,
+      "rhythm": 209.625,
+      "dynamics": -22.9144,
+      "timbre": 1141.7447,
+      "audioWindowCentre": 25.280521
+    },
+    {
+      "t": 25.385333,
+      "end": 25.640104,
+      "label": "22.5",
+      "tempo": 235.5058,
+      "rhythm": 254.7708,
+      "dynamics": -28.1378,
+      "timbre": 1722.9611,
+      "audioWindowCentre": 25.512719
+    },
+    {
+      "t": 25.640104,
+      "end": 25.874833,
+      "label": "23.1",
+      "tempo": 255.6137,
+      "rhythm": 234.7292,
+      "dynamics": -15.4265,
+      "timbre": 958.8672,
+      "audioWindowCentre": 25.757469
+    },
+    {
+      "t": 25.874833,
+      "end": 26.070812,
+      "label": "23.2",
+      "tempo": 306.155,
+      "rhythm": 195.9792,
+      "dynamics": -17.5825,
+      "timbre": 862.7536,
+      "audioWindowCentre": 25.972823
+    },
+    {
+      "t": 26.070812,
+      "end": 26.360479,
+      "label": "23.3",
+      "tempo": 207.1346,
+      "rhythm": 289.6667,
+      "dynamics": -16.993,
+      "timbre": 1179.8961,
+      "audioWindowCentre": 26.215646
+    },
+    {
+      "t": 26.360479,
+      "end": 26.637271,
+      "label": "23.4",
+      "tempo": 216.7695,
+      "rhythm": 276.7917,
+      "dynamics": -32.1596,
+      "timbre": 1392.3231,
+      "audioWindowCentre": 26.498875
+    },
+    {
+      "t": 26.637271,
+      "end": 27.017708,
+      "label": "23.5",
+      "tempo": 157.7132,
+      "rhythm": 380.4375,
+      "dynamics": -37.2755,
+      "timbre": 1562.0827,
+      "audioWindowCentre": 26.82749
+    },
+    {
+      "t": 27.017708,
+      "end": 27.253229,
+      "label": "24.1",
+      "tempo": 254.7545,
+      "rhythm": 235.5208,
+      "dynamics": -29.0865,
+      "timbre": 948.8418,
+      "audioWindowCentre": 27.135469
+    },
+    {
+      "t": 27.253229,
+      "end": 27.477833,
+      "label": "24.2",
+      "tempo": 267.1366,
+      "rhythm": 224.6042,
+      "dynamics": -29.011,
+      "timbre": 1206.836,
+      "audioWindowCentre": 27.365531
+    },
+    {
+      "t": 27.477833,
+      "end": 27.694792,
+      "label": "24.3",
+      "tempo": 276.5508,
+      "rhythm": 216.9583,
+      "dynamics": -34.4575,
+      "timbre": 1537.3673,
+      "audioWindowCentre": 27.586312
+    },
+    {
+      "t": 27.694792,
+      "end": 27.906417,
+      "label": "25.1",
+      "tempo": 283.5204,
+      "rhythm": 211.625,
+      "dynamics": -28.2201,
+      "timbre": 1257.3711,
+      "audioWindowCentre": 27.800604
+    },
+    {
+      "t": 27.906417,
+      "end": 28.123583,
+      "label": "25.2",
+      "tempo": 276.2855,
+      "rhythm": 217.1667,
+      "dynamics": -26.9177,
+      "timbre": 1089.8553,
+      "audioWindowCentre": 28.015
+    },
+    {
+      "t": 28.123583,
+      "end": 28.353479,
+      "label": "25.3",
+      "tempo": 260.9878,
+      "rhythm": 229.8958,
+      "dynamics": -27.0936,
+      "timbre": 1123.5082,
+      "audioWindowCentre": 28.238531
+    },
+    {
+      "t": 28.353479,
+      "end": 28.55175,
+      "label": "26.1",
+      "tempo": 302.6164,
+      "rhythm": 198.2708,
+      "dynamics": -27.037,
+      "timbre": 1255.1958,
+      "audioWindowCentre": 28.452615
+    },
+    {
+      "t": 28.55175,
+      "end": 28.787396,
+      "label": "26.2",
+      "tempo": 254.6194,
+      "rhythm": 235.6458,
+      "dynamics": -26.6049,
+      "timbre": 1121.9494,
+      "audioWindowCentre": 28.669573
+    },
+    {
+      "t": 28.787396,
+      "end": 29.016708,
+      "label": "26.3",
+      "tempo": 261.6517,
+      "rhythm": 229.3125,
+      "dynamics": -29.4286,
+      "timbre": 1250.106,
+      "audioWindowCentre": 28.902052
+    },
+    {
+      "t": 29.016708,
+      "end": 29.211208,
+      "label": "27.1",
+      "tempo": 308.4833,
+      "rhythm": 194.5,
+      "dynamics": -24.4736,
+      "timbre": 971.8245,
+      "audioWindowCentre": 29.113958
+    },
+    {
+      "t": 29.211208,
+      "end": 29.458375,
+      "label": "27.2",
+      "tempo": 242.7512,
+      "rhythm": 247.1667,
+      "dynamics": -27.6756,
+      "timbre": 1111.01,
+      "audioWindowCentre": 29.334792
+    },
+    {
+      "t": 29.458375,
+      "end": 29.720854,
+      "label": "27.3",
+      "tempo": 228.5896,
+      "rhythm": 262.4792,
+      "dynamics": -30.2476,
+      "timbre": 826.5223,
+      "audioWindowCentre": 29.589615
+    },
+    {
+      "t": 29.720854,
+      "end": 29.978896,
+      "label": "28.1",
+      "tempo": 232.5206,
+      "rhythm": 258.0417,
+      "dynamics": -15.2454,
+      "timbre": 924.3637,
+      "audioWindowCentre": 29.849875
+    },
+    {
+      "t": 29.978896,
+      "end": 30.176146,
+      "label": "28.2",
+      "tempo": 304.1825,
+      "rhythm": 197.25,
+      "dynamics": -16.4179,
+      "timbre": 1376.1008,
+      "audioWindowCentre": 30.077521
+    },
+    {
+      "t": 30.176146,
+      "end": 30.387854,
+      "label": "28.3",
+      "tempo": 283.4088,
+      "rhythm": 211.7083,
+      "dynamics": -19.7424,
+      "timbre": 986.5268,
+      "audioWindowCentre": 30.282
+    },
+    {
+      "t": 30.387854,
+      "end": 30.598771,
+      "label": "28.4",
+      "tempo": 284.4725,
+      "rhythm": 210.9167,
+      "dynamics": -20.8968,
+      "timbre": 913.725,
+      "audioWindowCentre": 30.493313
+    },
+    {
+      "t": 30.598771,
+      "end": 30.788875,
+      "label": "29.1",
+      "tempo": 315.6164,
+      "rhythm": 190.1042,
+      "dynamics": -25.3067,
+      "timbre": 1738.1513,
+      "audioWindowCentre": 30.693823
+    },
+    {
+      "t": 30.788875,
+      "end": 31.055854,
+      "label": "29.2",
+      "tempo": 224.7366,
+      "rhythm": 266.9792,
+      "dynamics": -28.1692,
+      "timbre": 1333.9131,
+      "audioWindowCentre": 30.922365
+    },
+    {
+      "t": 31.055854,
+      "end": 31.293813,
+      "label": "29.3",
+      "tempo": 252.145,
+      "rhythm": 237.9583,
+      "dynamics": -13.0131,
+      "timbre": 1113.2444,
+      "audioWindowCentre": 31.174833
+    },
+    {
+      "t": 31.293813,
+      "end": 31.531104,
+      "label": "29.4",
+      "tempo": 252.8534,
+      "rhythm": 237.2917,
+      "dynamics": -17.7279,
+      "timbre": 1039.684,
+      "audioWindowCentre": 31.412458
+    },
+    {
+      "t": 31.531104,
+      "end": 31.784562,
+      "label": "29.5",
+      "tempo": 236.7253,
+      "rhythm": 253.4583,
+      "dynamics": -22.7926,
+      "timbre": 1041.7526,
+      "audioWindowCentre": 31.657833
+    },
+    {
+      "t": 31.784562,
+      "end": 32.021476,
+      "label": "30.1",
+      "tempo": 253.2567,
+      "rhythm": 236.9138,
+      "dynamics": -15.2295,
+      "timbre": 849.0608,
+      "audioWindowCentre": 31.903019
+    },
+    {
+      "t": 32.021476,
+      "end": 32.219792,
+      "label": "30.2",
+      "tempo": 302.5484,
+      "rhythm": 198.3154,
+      "dynamics": -16.4758,
+      "timbre": 1243.8107,
+      "audioWindowCentre": 32.120634
+    },
+    {
+      "t": 32.219792,
+      "end": 32.458667,
+      "label": "30.3",
+      "tempo": 251.1774,
+      "rhythm": 238.875,
+      "dynamics": -23.1574,
+      "timbre": 997.6455,
+      "audioWindowCentre": 32.339229
+    },
+    {
+      "t": 32.458667,
+      "end": 32.648875,
+      "label": "30.4",
+      "tempo": 315.4436,
+      "rhythm": 190.2083,
+      "dynamics": -22.222,
+      "timbre": 917.976,
+      "audioWindowCentre": 32.553771
+    },
+    {
+      "t": 32.648875,
+      "end": 32.848375,
+      "label": "31.1",
+      "tempo": 300.7519,
+      "rhythm": 199.5,
+      "dynamics": -27.1688,
+      "timbre": 1703.1681,
+      "audioWindowCentre": 32.748625
+    },
+    {
+      "t": 32.848375,
+      "end": 33.107687,
+      "label": "31.2",
+      "tempo": 231.3811,
+      "rhythm": 259.3125,
+      "dynamics": -31.8187,
+      "timbre": 1528.0512,
+      "audioWindowCentre": 32.978031
+    },
+    {
+      "t": 33.107687,
+      "end": 33.345125,
+      "label": "31.3",
+      "tempo": 252.6981,
+      "rhythm": 237.4375,
+      "dynamics": -10.7528,
+      "timbre": 934.9043,
+      "audioWindowCentre": 33.226406
+    },
+    {
+      "t": 33.345125,
+      "end": 33.567937,
+      "label": "31.4",
+      "tempo": 269.2847,
+      "rhythm": 222.8125,
+      "dynamics": -13.6215,
+      "timbre": 721.5679,
+      "audioWindowCentre": 33.456531
+    },
+    {
+      "t": 33.567937,
+      "end": 33.809917,
+      "label": "31.5",
+      "tempo": 247.9552,
+      "rhythm": 241.9792,
+      "dynamics": -18.4639,
+      "timbre": 1312.4447,
+      "audioWindowCentre": 33.688927
+    },
+    {
+      "t": 33.809917,
+      "end": 34.072292,
+      "label": "32.1",
+      "tempo": 228.6803,
+      "rhythm": 262.375,
+      "dynamics": -15.7014,
+      "timbre": 854.6252,
+      "audioWindowCentre": 33.941104
+    },
+    {
+      "t": 34.072292,
+      "end": 34.2515,
+      "label": "32.2",
+      "tempo": 334.8059,
+      "rhythm": 179.2083,
+      "dynamics": -17.118,
+      "timbre": 1285.9298,
+      "audioWindowCentre": 34.161896
+    },
+    {
+      "t": 34.2515,
+      "end": 34.478333,
+      "label": "32.3",
+      "tempo": 264.5114,
+      "rhythm": 226.8333,
+      "dynamics": -25.4336,
+      "timbre": 1229.5938,
+      "audioWindowCentre": 34.364917
+    },
+    {
+      "t": 34.478333,
+      "end": 34.678146,
+      "label": "32.4",
+      "tempo": 300.2815,
+      "rhythm": 199.8125,
+      "dynamics": -29.5156,
+      "timbre": 1388.0919,
+      "audioWindowCentre": 34.57824
+    },
+    {
+      "t": 34.678146,
+      "end": 34.858324,
+      "label": "33.1",
+      "tempo": 333.003,
+      "rhythm": 180.1785,
+      "dynamics": -25.7025,
+      "timbre": 1981.6531,
+      "audioWindowCentre": 34.768235
+    },
+    {
+      "t": 34.858324,
+      "end": 35.149021,
+      "label": "33.2",
+      "tempo": 206.4009,
+      "rhythm": 290.6965,
+      "dynamics": -31.0318,
+      "timbre": 1763.5203,
+      "audioWindowCentre": 35.003673
+    },
+    {
+      "t": 35.149021,
+      "end": 35.369875,
+      "label": "33.3",
+      "tempo": 271.6725,
+      "rhythm": 220.8542,
+      "dynamics": -11.9101,
+      "timbre": 1093.9575,
+      "audioWindowCentre": 35.259448
+    },
+    {
+      "t": 35.369875,
+      "end": 35.568583,
+      "label": "33.4",
+      "tempo": 301.9501,
+      "rhythm": 198.7083,
+      "dynamics": -16.2987,
+      "timbre": 890.7327,
+      "audioWindowCentre": 35.469229
+    },
+    {
+      "t": 35.568583,
+      "end": 35.853729,
+      "label": "33.5",
+      "tempo": 210.4186,
+      "rhythm": 285.1458,
+      "dynamics": -19.8102,
+      "timbre": 1449.5825,
+      "audioWindowCentre": 35.711156
+    },
+    {
+      "t": 35.853729,
+      "end": 36.099063,
+      "label": "34.1",
+      "tempo": 244.5652,
+      "rhythm": 245.3333,
+      "dynamics": -14.234,
+      "timbre": 886.1386,
+      "audioWindowCentre": 35.976396
+    },
+    {
+      "t": 36.099063,
+      "end": 36.285063,
+      "label": "34.2",
+      "tempo": 322.5806,
+      "rhythm": 186.0,
+      "dynamics": -16.2093,
+      "timbre": 1312.0225,
+      "audioWindowCentre": 36.192063
+    },
+    {
+      "t": 36.285063,
+      "end": 36.492771,
+      "label": "34.3",
+      "tempo": 288.8666,
+      "rhythm": 207.7083,
+      "dynamics": -19.9472,
+      "timbre": 1016.5369,
+      "audioWindowCentre": 36.388917
+    },
+    {
+      "t": 36.492771,
+      "end": 36.681729,
+      "label": "34.4",
+      "tempo": 317.5303,
+      "rhythm": 188.9583,
+      "dynamics": -25.5088,
+      "timbre": 1445.6906,
+      "audioWindowCentre": 36.58725
+    },
+    {
+      "t": 36.681729,
+      "end": 36.878083,
+      "label": "35.1",
+      "tempo": 305.5703,
+      "rhythm": 196.3542,
+      "dynamics": -26.0058,
+      "timbre": 1914.9496,
+      "audioWindowCentre": 36.779906
+    },
+    {
+      "t": 36.878083,
+      "end": 37.18475,
+      "label": "35.2",
+      "tempo": 195.6522,
+      "rhythm": 306.6667,
+      "dynamics": -33.6722,
+      "timbre": 1690.7339,
+      "audioWindowCentre": 37.031417
+    },
+    {
+      "t": 37.18475,
+      "end": 37.443542,
+      "label": "35.3",
+      "tempo": 231.8467,
+      "rhythm": 258.7917,
+      "dynamics": -12.6544,
+      "timbre": 925.109,
+      "audioWindowCentre": 37.314146
+    },
+    {
+      "t": 37.443542,
+      "end": 37.669125,
+      "label": "35.4",
+      "tempo": 265.9771,
+      "rhythm": 225.5833,
+      "dynamics": -15.8813,
+      "timbre": 771.5796,
+      "audioWindowCentre": 37.556333
+    },
+    {
+      "t": 37.669125,
+      "end": 38.105208,
+      "label": "35.5",
+      "tempo": 137.5884,
+      "rhythm": 436.0833,
+      "dynamics": -18.9907,
+      "timbre": 910.1278,
+      "audioWindowCentre": 37.887167
+    }
+  ],
+  "method": {
+    "tempo": "60 / Δt; annotated eighth-note markers; unit ♪/min",
+    "rhythm": "1000 × Δt; annotated marker interval, not detected note onset",
+    "dynamics": "20 log10 RMS; mono 22050 Hz; 100 ms centered between markers; digital dBFS, not perceived loudness",
+    "timbre": "FFT magnitude spectral centroid; Hann window 100 ms; Hz; timbral descriptor, not instrument recognition",
+    "alignment": "Each row represents [t,end). Audio window is centred in that interval. Outside marked support: missing.",
+    "score": "Score totals only. MEI not aligned to audio; no time-local pitch/harmony/mode/form inferred."
+  },
+  "scoreFacts": {
+    "notes": 751,
+    "chords": 190,
+    "slurs": 38,
+    "articulations": 346,
+    "articulationTypes": [
+      "acc",
+      "stacc",
+      "stacciss"
+    ],
+    "staffCount": 3
+  },
+  "sourceHashes": {
+    "Sunshine-ZAZ-XBN-2024_B73-107.csv": "89678008af1cdf44ac773e4c1da7c491db8978d9bc681baa35df502bac128a55",
+    "Sunshine-ZAZ-XBN-2024_B73-107.mei": "f52ee1738492e0d33fbe61f59222150c7a549cd1f2c17a3407028be3b8665db1",
+    "Sunshine-ZAZ-XBN-2024_B73-107.mp4": "5a6355e1149fb28e05261b49d3aab4cd1b80da38b25df1ddd21a3f6276213539"
+  }
+}

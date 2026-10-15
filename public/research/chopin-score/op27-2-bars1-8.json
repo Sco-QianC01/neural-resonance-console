@@ -1,0 +1,1004 @@
+{
+  "schema": "chopin-score-evidence-v1",
+  "workId": 6,
+  "title": "肖邦 · 降D大調夜曲 Op.27 No.2",
+  "range": [
+    1,
+    8
+  ],
+  "staff": 1,
+  "voice": "upper-monophonic",
+  "unit": "quarter-note",
+  "source": {
+    "title": "First Editions of Fryderyk Chopin's Music",
+    "institution": "The Fryderyk Chopin Institute",
+    "copyright": "Copyright 2017–2021 The Fryderyk Chopin Institute",
+    "website": "https://chopinscores.org",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "url": "https://github.com/pl-wnifc/humdrum-chopin-first-editions/blob/95dfb105c1669c72d10b04088566154f12d3dc1c/kern/027-1-Sm-002.krn",
+    "file": "./public/research/chopin-score/027-1-Sm-002.krn",
+    "sha256": "a3df083ed687d752b411df97ee2448b9f261d537c101c574ed6e18cf62eec60a",
+    "commit": "95dfb105c1669c72d10b04088566154f12d3dc1c",
+    "edition": "M. Schlesinger, Paris · PL-Wbfc 3744/n · RISM 1001022558",
+    "transformation": "Extracted bars 1–8, upper staff monophonic voice; ties merged, grace notes separated."
+  },
+  "context": {
+    "key": "降D大調",
+    "basis": "explicit-source-key",
+    "meter": "6/8",
+    "quartersPerBar": 3,
+    "scale": [
+      {
+        "step": "D",
+        "alter": -1
+      },
+      {
+        "step": "E",
+        "alter": -1
+      },
+      {
+        "step": "F",
+        "alter": 0
+      },
+      {
+        "step": "G",
+        "alter": -1
+      },
+      {
+        "step": "A",
+        "alter": -1
+      },
+      {
+        "step": "B",
+        "alter": -1
+      },
+      {
+        "step": "C",
+        "alter": 0
+      }
+    ]
+  },
+  "events": [
+    {
+      "id": "op27-2-L24",
+      "bar": 1,
+      "onset": [
+        0,
+        1
+      ],
+      "sourceRows": [
+        24
+      ],
+      "tokens": [
+        "2.rdd"
+      ],
+      "duration": [
+        3,
+        1
+      ],
+      "kind": "rest",
+      "pitch": null
+    },
+    {
+      "id": "op27-2-L38",
+      "bar": 2,
+      "onset": [
+        0,
+        1
+      ],
+      "sourceRows": [
+        38
+      ],
+      "tokens": [
+        "(>4.ff"
+      ],
+      "duration": [
+        3,
+        2
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "F",
+        "alter": 0,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L44",
+      "bar": 2,
+      "onset": [
+        3,
+        2
+      ],
+      "sourceRows": [
+        44
+      ],
+      "tokens": [
+        "8ee-L"
+      ],
+      "duration": [
+        1,
+        2
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "E",
+        "alter": -1,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L46",
+      "bar": 2,
+      "onset": [
+        2,
+        1
+      ],
+      "sourceRows": [
+        46
+      ],
+      "tokens": [
+        "8.dd-"
+      ],
+      "duration": [
+        3,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "D",
+        "alter": -1,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L49",
+      "bar": 2,
+      "onset": [
+        11,
+        4
+      ],
+      "sourceRows": [
+        49
+      ],
+      "tokens": [
+        "16fJk)"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "F",
+        "alter": 0,
+        "octave": 4
+      }
+    },
+    {
+      "id": "op27-2-L52",
+      "bar": 3,
+      "onset": [
+        0,
+        1
+      ],
+      "sourceRows": [
+        52,
+        58
+      ],
+      "tokens": [
+        "[<4.a-",
+        "(>8a-L]"
+      ],
+      "duration": [
+        2,
+        1
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "A",
+        "alter": -1,
+        "octave": 4
+      }
+    },
+    {
+      "id": "op27-2-L60",
+      "bar": 3,
+      "onset": [
+        2,
+        1
+      ],
+      "sourceRows": [
+        60
+      ],
+      "tokens": [
+        "8dd-"
+      ],
+      "duration": [
+        1,
+        2
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "D",
+        "alter": -1,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L62",
+      "bar": 3,
+      "onset": [
+        5,
+        2
+      ],
+      "sourceRows": [
+        62
+      ],
+      "tokens": [
+        "8ffJ"
+      ],
+      "duration": [
+        1,
+        2
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "F",
+        "alter": 0,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L65",
+      "bar": 4,
+      "onset": [
+        0,
+        1
+      ],
+      "sourceRows": [
+        65,
+        71
+      ],
+      "tokens": [
+        "[>4.bb-",
+        "16bb-LL]"
+      ],
+      "duration": [
+        7,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "B",
+        "alter": -1,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L72",
+      "bar": 4,
+      "onset": [
+        7,
+        4
+      ],
+      "sourceRows": [
+        72
+      ],
+      "tokens": [
+        "16aa-"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "A",
+        "alter": -1,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L73",
+      "bar": 4,
+      "onset": [
+        2,
+        1
+      ],
+      "sourceRows": [
+        73
+      ],
+      "tokens": [
+        "16een"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "E",
+        "alter": 0,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L74",
+      "bar": 4,
+      "onset": [
+        9,
+        4
+      ],
+      "sourceRows": [
+        74
+      ],
+      "tokens": [
+        "16ff"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "F",
+        "alter": 0,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L75",
+      "bar": 4,
+      "onset": [
+        5,
+        2
+      ],
+      "sourceRows": [
+        75
+      ],
+      "tokens": [
+        "16cc"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "C",
+        "alter": 0,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L77",
+      "bar": 4,
+      "onset": [
+        11,
+        4
+      ],
+      "sourceRows": [
+        77
+      ],
+      "tokens": [
+        "16dd-JJ"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "D",
+        "alter": -1,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L80",
+      "bar": 5,
+      "onset": [
+        0,
+        1
+      ],
+      "sourceRows": [
+        80
+      ],
+      "tokens": [
+        "(<2.an^>/)"
+      ],
+      "duration": [
+        3,
+        1
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "A",
+        "alter": 0,
+        "octave": 4
+      }
+    },
+    {
+      "id": "op27-2-L95",
+      "bar": 6,
+      "onset": [
+        0,
+        1
+      ],
+      "sourceRows": [
+        95
+      ],
+      "tokens": [
+        "4.b-)"
+      ],
+      "duration": [
+        3,
+        2
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "B",
+        "alter": -1,
+        "octave": 4
+      }
+    },
+    {
+      "id": "op27-2-L101",
+      "bar": 6,
+      "onset": [
+        3,
+        2
+      ],
+      "sourceRows": [
+        101
+      ],
+      "tokens": [
+        "16r"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "rest",
+      "pitch": null
+    },
+    {
+      "id": "op27-2-L102",
+      "bar": 6,
+      "onset": [
+        7,
+        4
+      ],
+      "sourceRows": [
+        102
+      ],
+      "tokens": [
+        "(>16cccLL"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "C",
+        "alter": 0,
+        "octave": 6
+      }
+    },
+    {
+      "id": "op27-2-L103",
+      "bar": 6,
+      "onset": [
+        2,
+        1
+      ],
+      "sourceRows": [
+        103
+      ],
+      "tokens": [
+        "16bb-"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "B",
+        "alter": -1,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L104",
+      "bar": 6,
+      "onset": [
+        9,
+        4
+      ],
+      "sourceRows": [
+        104
+      ],
+      "tokens": [
+        "16ff"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "F",
+        "alter": 0,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L105",
+      "bar": 6,
+      "onset": [
+        5,
+        2
+      ],
+      "sourceRows": [
+        105
+      ],
+      "tokens": [
+        "16aa-"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "A",
+        "alter": -1,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L107",
+      "bar": 6,
+      "onset": [
+        11,
+        4
+      ],
+      "sourceRows": [
+        107
+      ],
+      "tokens": [
+        "16gg-JJ)"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "G",
+        "alter": -1,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L111",
+      "bar": 7,
+      "onset": [
+        0,
+        1
+      ],
+      "sourceRows": [
+        111
+      ],
+      "tokens": [
+        "(>4ff"
+      ],
+      "duration": [
+        1,
+        1
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "F",
+        "alter": 0,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L115",
+      "bar": 7,
+      "onset": [
+        1,
+        1
+      ],
+      "sourceRows": [
+        115,
+        119
+      ],
+      "tokens": [
+        "[>8ee-)",
+        "(>8ee-L]"
+      ],
+      "duration": [
+        1,
+        1
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "E",
+        "alter": -1,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L121",
+      "bar": 7,
+      "onset": [
+        2,
+        1
+      ],
+      "sourceRows": [
+        121
+      ],
+      "tokens": [
+        "8ff"
+      ],
+      "duration": [
+        1,
+        2
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "F",
+        "alter": 0,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L123",
+      "bar": 7,
+      "onset": [
+        5,
+        2
+      ],
+      "sourceRows": [
+        123
+      ],
+      "tokens": [
+        "8gg-J)"
+      ],
+      "duration": [
+        1,
+        2
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "G",
+        "alter": -1,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L129",
+      "bar": 8,
+      "onset": [
+        0,
+        1
+      ],
+      "sourceRows": [
+        129
+      ],
+      "tokens": [
+        "4.ggg-"
+      ],
+      "duration": [
+        3,
+        2
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "G",
+        "alter": -1,
+        "octave": 6
+      }
+    },
+    {
+      "id": "op27-2-L142",
+      "bar": 8,
+      "onset": [
+        3,
+        2
+      ],
+      "sourceRows": [
+        142
+      ],
+      "tokens": [
+        "(>16cc'>LL"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "C",
+        "alter": 0,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L143",
+      "bar": 8,
+      "onset": [
+        7,
+        4
+      ],
+      "sourceRows": [
+        143
+      ],
+      "tokens": [
+        "16dd-'>"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "D",
+        "alter": -1,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L144",
+      "bar": 8,
+      "onset": [
+        2,
+        1
+      ],
+      "sourceRows": [
+        144
+      ],
+      "tokens": [
+        "16ddn'>"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "D",
+        "alter": 0,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L145",
+      "bar": 8,
+      "onset": [
+        9,
+        4
+      ],
+      "sourceRows": [
+        145
+      ],
+      "tokens": [
+        "16ee-'>"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "E",
+        "alter": -1,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L146",
+      "bar": 8,
+      "onset": [
+        5,
+        2
+      ],
+      "sourceRows": [
+        146
+      ],
+      "tokens": [
+        "16ff'>"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "F",
+        "alter": 0,
+        "octave": 5
+      }
+    },
+    {
+      "id": "op27-2-L148",
+      "bar": 8,
+      "onset": [
+        11,
+        4
+      ],
+      "sourceRows": [
+        148
+      ],
+      "tokens": [
+        "16gg-'>JJ"
+      ],
+      "duration": [
+        1,
+        4
+      ],
+      "kind": "note",
+      "pitch": {
+        "step": "G",
+        "alter": -1,
+        "octave": 5
+      }
+    }
+  ],
+  "ornaments": [
+    {
+      "id": "op27-2-L127",
+      "bar": 8,
+      "onset": [
+        0,
+        1
+      ],
+      "sourceRows": [
+        127
+      ],
+      "tokens": [
+        "8qgg-/"
+      ],
+      "pitch": {
+        "step": "G",
+        "alter": -1,
+        "octave": 5
+      },
+      "duration": null,
+      "kind": "ornament"
+    },
+    {
+      "id": "op27-2-L136",
+      "bar": 8,
+      "onset": [
+        3,
+        2
+      ],
+      "sourceRows": [
+        136
+      ],
+      "tokens": [
+        "(<8qeee-/L"
+      ],
+      "pitch": {
+        "step": "E",
+        "alter": -1,
+        "octave": 6
+      },
+      "duration": null,
+      "kind": "ornament"
+    },
+    {
+      "id": "op27-2-L137",
+      "bar": 8,
+      "onset": [
+        3,
+        2
+      ],
+      "sourceRows": [
+        137
+      ],
+      "tokens": [
+        "8qddd-/"
+      ],
+      "pitch": {
+        "step": "D",
+        "alter": -1,
+        "octave": 6
+      },
+      "duration": null,
+      "kind": "ornament"
+    },
+    {
+      "id": "op27-2-L138",
+      "bar": 8,
+      "onset": [
+        3,
+        2
+      ],
+      "sourceRows": [
+        138
+      ],
+      "tokens": [
+        "8qbb--/"
+      ],
+      "pitch": {
+        "step": "B",
+        "alter": -2,
+        "octave": 5
+      },
+      "duration": null,
+      "kind": "ornament"
+    },
+    {
+      "id": "op27-2-L139",
+      "bar": 8,
+      "onset": [
+        3,
+        2
+      ],
+      "sourceRows": [
+        139
+      ],
+      "tokens": [
+        "8qgg-/"
+      ],
+      "pitch": {
+        "step": "G",
+        "alter": -1,
+        "octave": 5
+      },
+      "duration": null,
+      "kind": "ornament"
+    },
+    {
+      "id": "op27-2-L140",
+      "bar": 8,
+      "onset": [
+        3,
+        2
+      ],
+      "sourceRows": [
+        140
+      ],
+      "tokens": [
+        "8qee-/J)"
+      ],
+      "pitch": {
+        "step": "E",
+        "alter": -1,
+        "octave": 5
+      },
+      "duration": null,
+      "kind": "ornament"
+    }
+  ],
+  "dynamics": [
+    {
+      "bar": 1,
+      "onset": [
+        0,
+        1
+      ],
+      "mark": "p",
+      "sourceRow": 24,
+      "grace": false
+    },
+    {
+      "bar": 8,
+      "onset": [
+        0,
+        1
+      ],
+      "mark": "fz",
+      "sourceRow": 127,
+      "grace": true
+    }
+  ]
+}

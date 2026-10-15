@@ -1,6 +1,6 @@
 import {buildWormTrace} from './worm-model.mjs';
 const colours={delta:'#f098a2',theta:'#d4df8c',alpha:'#d6a5eb',beta:'#89d6bd'};
-export function drawWaveforms(canvas,history,key,now=Date.now(),{mask=false,row=0,rows=1}={}){
+export function drawWaveforms(canvas,history,key,now=Date.now(),{mask=false,row=0,rows=1,baseline=false}={}){
   const ratio=Math.min(2,globalThis.devicePixelRatio||1);
   const width=canvas.clientWidth||1920,height=canvas.clientHeight||1080;
   if(!mask){
@@ -10,24 +10,31 @@ export function drawWaveforms(canvas,history,key,now=Date.now(),{mask=false,row=
   const w=mask?canvas.width:width,h=mask?canvas.height/rows:height,offset=mask?row*h:0;
   if(!mask)ctx.clearRect(0,0,w,h);
   const pad=mask?25:48,top=offset+18,bottom=offset+h-32;
-  const values=history.filter(p=>p.timestamp>=now-60000&&p.timestamp<=now&&(p.transportFresh??p.signalValid)&&Number.isFinite(p.bands?.[key]));
-  const max=Math.max(1e-8,...values.map(p=>p.bands[key]));
+  const read=p=>p.spectralBands?.[key]??p.bands?.[key];
+  const values=[],seen=new Set();
+  for(const p of history){
+    const at=p.raw?.fieldTimestamps?.[key]??p.raw?.fieldTimestamps?.[key==='alpha'?'lowAlpha':key==='beta'?'lowBeta':key]??p.timestamp/1000;
+    const id=JSON.stringify([p.source,p.sessionId,p.connectionEpoch,p.transport,at]),timestamp=at*1000;
+    if(timestamp>=now-60000&&timestamp<=now&&(p.transportFresh??p.signalValid)&&Number.isFinite(read(p))&&!seen.has(id)){seen.add(id);values.push({...p,timestamp});}
+  }
+  const base=baseline&&values.length?values.slice(0,10).reduce((s,p)=>s+read(p),0)/Math.min(10,values.length):0;
+  const high=Math.max(0,...values.map(p=>baseline?Math.abs(read(p)-base):read(p)));
+  const max=high===0?1:2**Math.ceil(Math.log2(high)),lo=baseline?-max:0;
   if(!mask){
     ctx.strokeStyle='#24323c';ctx.lineWidth=.7;ctx.fillStyle='#8298a4';ctx.font='9px Consolas,monospace';
-    for(let i=0;i<4;i++){const y=top+(bottom-top)*i/3;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-10,y);ctx.stroke();ctx.fillText((max*(1-i/3)).toPrecision(2),3,y+3);}
+    for(let i=0;i<=4;i++){const y=top+(bottom-top)*i/4;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-10,y);ctx.stroke();ctx.fillText((max-(max-lo)*i/4).toPrecision(4),3,y+3);}
     for(const seconds of [-60,-45,-30,-15,0])ctx.fillText(`${seconds}s`,pad+(w-pad-20)*(seconds+60)/60-8,offset+h-11);
   }
-  ctx.strokeStyle=mask?'#ffffff':colours[key];ctx.lineWidth=mask?3:1.5;ctx.beginPath();
+  ctx.strokeStyle=mask?'#ffffff':colours[key]??colours[key.toLowerCase().includes('alpha')?'alpha':key.toLowerCase().includes('beta')?'beta':'theta'];ctx.lineWidth=mask?3:1.5;ctx.beginPath();
   let previous=null,previousUnit=null;
-  for(const p of history){
-    if(p.timestamp>now||!(p.transportFresh??p.signalValid)||!Number.isFinite(p.bands?.[key])){previous=null;continue;}
-    const x=pad+(w-pad-20)*(1-(now-p.timestamp)/60000),y=bottom-(p.bands[key]/max)*(bottom-top);
+  for(const p of values){
+    const x=pad+(w-pad-20)*(1-(now-p.timestamp)/60000),y=bottom-((read(p)-base-lo)/(max-lo))*(bottom-top);
     if(x<pad)continue;
     if(!previous||p.timestamp-previous.timestamp>3000||p.connectionEpoch!==previous.connectionEpoch||p.transport!==previous.transport||p.bandUnits!==previousUnit)ctx.moveTo(x,y);else ctx.lineTo(x,y);
     previous=p;
     previousUnit=p.bandUnits;
   }
-  ctx.stroke();canvas.dataset.samples=String(values.length);
+  ctx.stroke();canvas.dataset.samples=String(values.length);canvas.dataset.baseline=String(base);canvas.dataset.scale=String(max);canvas.dataset.representation=baseline?'baseline-deviation':'relative-power';
 }
 
 export function drawIndices(canvas,history,now=Date.now()){
@@ -40,16 +47,20 @@ export function drawIndices(canvas,history,now=Date.now()){
     const y=bottom-(bottom-top)*value/100;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();ctx.fillText(String(value),6,y+3);
   }
   for(const seconds of [-60,-45,-30,-15,0])ctx.fillText(`${seconds}s`,left+(right-left)*(seconds+60)/60-9,h-9);
-  for(const [key,colour] of [['attention','#e2c18a'],['relaxation','#88d2ce']]){
-    ctx.strokeStyle=colour;ctx.lineWidth=1.8;ctx.beginPath();let previous=null;
+  for(const [key,colour] of [['attention','#e39b86'],['relaxation','#9dd0b6']]){
+    ctx.setLineDash(key==='relaxation'?[5,3]:[]);ctx.strokeStyle=colour;ctx.lineWidth=1.8;ctx.beginPath();let previous=null,previousAt=null;const seen=new Set();
     for(const p of history){
-      if(p.timestamp<now-60000||p.timestamp>now||!p.valid||!Number.isFinite(p[key])){previous=null;continue;}
-      const x=left+(right-left)*(1-(now-p.timestamp)/60000),y=bottom-p[key]*(bottom-top)/100;
-      if(!previous||p.timestamp-previous.timestamp>3000||p.connectionEpoch!==previous.connectionEpoch)ctx.moveTo(x,y);else ctx.lineTo(x,y);
-      previous=p;
+      const at=p.indexTimestamp??p.timestamp,id=JSON.stringify([p.source,p.sessionId,p.connectionEpoch,p.transport,p.indexSampleKey??at]);
+      if(at<now-60000||at>now||!p.valid||!Number.isFinite(p[key])){previous=null;continue;}
+      if(seen.has(id))continue;
+      seen.add(id);
+      const x=left+(right-left)*(1-(now-at)/60000),y=bottom-p[key]*(bottom-top)/100;
+      if(!previous||at-previousAt>3000||p.connectionEpoch!==previous.connectionEpoch||p.source!==previous.source||p.sessionId!==previous.sessionId||p.transport!==previous.transport)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+      previous=p;previousAt=at;
     }
     ctx.stroke();
   }
+  ctx.setLineDash([]);
 }
 
 export function wormViewport(width,height){

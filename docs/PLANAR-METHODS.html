@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="source-sha256" content="5bddefe24e5a4b038781fe7b9cb53b351eeab4c1799944ea93954e780897acde">
+<title>二維神經蠕蟲：資料定義、公式與證據邊界 · 神經共振</title>
+<link rel="stylesheet" href="../neural-worm/style.css">
+<link rel="stylesheet" href="./method-documents.css"></head>
+<body class="method-document"><header class="document-header">
+<a href="../#worm">← 神經共振</a><a href="./PLANAR-METHODS.md" download>下載原文 Markdown</a>
+</header><main><article><h1>二維神經蠕蟲：資料定義、公式與證據邊界</h1>
+<p>核查日期：2026-10-11。本文對應目前二維觀測頁；不是球面調性空間或自主神經活動的驗證研究。</p>
+<h2>1. 圖形的研究對象</h2>
+<p>圖形呈現同一資料源隨時間提供的兩個設備指數。每個點是一筆有效觀測，尾跡依時間排列。X軸為Attention（關注指數），Y軸為Meditation（放鬆指數）；刻度保持設備的0–100原生範圍，不加百分號。</p>
+<p>NeuroSky將eSense稱為相對1–100量表；0表示當時不能可靠計算。其基線演算法屬專有方法，並含動態適應。[1,2] 因此本頁只能說「設備指數」，不能把數值當成標準化心理量表、效價／喚醒、診斷、情緒概率或交感／副交感神經的直接測量。其他適配器若合法定義0值，按來源協議處理；ThinkGear的0值則不畫有效位置。</p>
+<p>「神經蠕蟲」是本项目的界面名稱。將雙指數置於平面並顯示時間尾跡，是本项目的觀測布局，<strong>不等於已驗證的生理狀態空間模型</strong>。本文所列「關注／放鬆」「密集／松散」「和諧／緊張」可以形成後續研究假設，現有資料不能證明它們相互等價。</p>
+<h2>2. 位置與時間</h2>
+<p>若方形左上角為(L,T)，邊長為S，同一樣本的Attention=A、Meditation=M：</p>
+<pre><code>x = L + S · A / 100
+y = T + S · (1 − M / 100)
+</code></pre>
+<p>兩軸每個指數單位使用相同像素尺度。視口或顯示縮放改變時重算S，方盒不被拉成長方形。點位置使用原生數值；沒有動畫時鐘驅動的漂移，振幅也不參與XY計算。</p>
+<p>只連接相同來源／會話／連接身份的相鄰有效點；品質不良、無效指數及超過3秒的間隔斷開。時間戳重複、倒退或硬體封包計數不前進，不增加有效軌跡点。3秒是現有接口的新鮮度策略，不是生理閾值。</p>
+<p>目前有效資料與歷史樣本分開顯示。斷流後保留尾跡，但停止有效讀數和光暈。滑動時間游標可觀察已保存樣本；「暫停觀察」只凍結界面，采集仍繼續。「暫停回放」停止記錄播放。每次啟動／恢復回放使用獨立觀察身份，重新開始當輪尾跡；原記錄的來源、會話與時間戳保留，不被覆寫。</p>
+<h2>3. 原始振幅</h2>
+<p>ThinkGear的RAW與EEG_POWER／eSense是不同欄位。RAW是帶符號原始樣本，設備與模組可能有不同采樣率；協議同時記載128Hz與512Hz的情況。[1] 本頁不把頻段功率、Attention或Meditation當成原始振幅，不預設所有來源都是512Hz。</p>
+<p>取最新最多256個原始樣本，累積至少32個才顯示。令樣本為u₁…uₙ：</p>
+<pre><code>μ = (1/N) Σ uᵢ
+AC RMS = sqrt[(1/N) Σ (uᵢ − μ)²]
+</code></pre>
+<p>這是<strong>去直流均值的RMS幅度描述量</strong>，不等於未去均值RMS、峰值、峰峰值、頻段功率或已分離的神經振盪幅度。運算使用Welford二階矩，保留來源單位：ADC counts仍是ADC counts；沒有硬體增益／電壓標定時不轉換為µV。來源標示采樣率時可附名義窗口長度N/fs；未標示就不聲稱固定秒數。</p>
+<p><code>rawSequence</code>按接口約定表示累積接收原始樣本序號。序號重複或重疊會去重；缺口及<code>rawDropped</code>清空窗口。協議校驗失敗或已知欄位長度錯誤會被完整拒收，下一個有效原始樣本以<code>rawBreaks</code>標記斷點；它與本封包樣本陣列使用從0開始的索引。斷點前後不連線，RMS只取最後一個連續片段。<code>quality.protocolErrors</code>是協議錯誤計數，不等於丟失ADC樣本數；無法知道的數量保持未知。來源、單位、采樣率或序號模式變化，品質不良與超過3秒斷流，都重建窗口。沒有原始序號的來源仍可做幅度描述，但方法欄標示「連續性未回報」，不宣稱確認了硬體采樣連續性。</p>
+<p>空樣本封包報告丟樣或計數器前進時立即清空舊窗口，不等待3秒。計數器重啟只從新的樣本重建；空封包中的合法計數器亦保留，避免采樣率改變後把相同計數器的快取樣本當成新資料。負值、非安全整數或小於封包樣本數的計數器不能作連續性證據。</p>
+<p>振幅使用獨立時間：來源已有<code>fieldTimestamps.raw</code>或<code>fieldTimestamps.rawEegSamples</code>時按秒轉換並檢查新鮮度；未提供時使用封包到達時間，不能稱為硬體采樣時刻。原始字段過期、倒退或超出現有接口未來容差時停用該窗口。只更新其他欄位的封包不推進振幅時間。回放保留原始振幅時間，與重播時鐘分開。</p>
+<p>讀數使用小數或緊湊科學記號，避免小的非零振幅四捨五入顯示為0.0；例如0.005顯示為<code>5.00e-3</code>。這只改變文字格式，原始樣本、RMS數值、單位及光點映射不變。</p>
+<p>原生ThinkGear來源只有新鮮、整數且等於0的<code>poor_signal</code>才通過接觸品質門檻；缺失、過期或格式無效顯示未確認，不當作接觸良好。指數亦須為來源規定範圍內的整數。即使供應商的poor_signal為0，也未證明消除了眨眼、肌電、心電、動作等偽跡。[1] 本頁没有ICA、獨立偽跡判別或臨床級信號验证，RMS应理解為<strong>接收原始資料的幅度統計</strong>。</p>
+<p>原始波形橫軸按已接收樣本與來源聲明的采樣率折算名義秒數，兩相鄰樣本間距為1/fs；不是實測ADC時鐘。協議錯誤處的未知丟失時長不補造。頻段與雙指數圖優先使用各欄位來源時間，重複心跳不增加觀測點；接收封包時間仍保留，不能冒充硬體采樣時刻。</p>
+<p>波形面板保留可見窗口全部原始點及斷段；其RMS與峰峰統計只取窗口中最後一個連續片段，並顯示實際片段樣本數。這與光點使用的最多256點窗口分開，不能把兩個不同樣本窗口的統計當成同一讀數。</p>
+<h2>4. 光點的顯示規則</h2>
+<p>令R為RMS，C&gt;0為同來源單位的顯示參照，預設C=100：</p>
+<pre><code>I = R / (R + C)
+point radius = 4 + 2I               （CSS px）
+halo radius = R&gt;0 ? 7 + 19I : 0    （CSS px）
+</code></pre>
+<p>I單調增加並限制於[0,1)。增加R使光點白色內核及局部光暈增強；不改動位置、歷史數值、軌跡拓撲或測量維度。C是可修改的<strong>顯示參數</strong>，不是人群標準值、健康閾值或振幅校準。不同單位或不同參照下的明暗不能作跨人／跨設備比較。</p>
+<p>本文所列光的「深度／穿透」在這裡只取視覺層次含義。二維投影沒有Z坐標；2026-10-13時間方盒新增的深度只表示經過秒數，不主張物理穿透深度、量子粒子、音的球面幾何或脑区传播机制。調性網絡Tonnetz及聲學頻率空間處理的是另一些變量，不能替雙指數觀測提供自主神經的因果證據。</p>
+<h2>5. 音樂要素與對齊</h2>
+<p>只有來源提供同時刻<code>music-observations-v1</code>資料，且值、單位、來源類型、id、uri、方法皆完整，才顯示相應要素入口。未提供的要素不製造數值、頁面、譜面或假曲線。來源聲明不等於獨立驗證。</p>
+<p>支持旋律(MIDI音高)、節奏(events/bar)、和聲(標注)、力度／響度(明確單位)、速度(BPM)、調式(標注)、曲式(標注)、織體(聲部數)、音色(標注)、演奏法(標注)。MIDI velocity、dBFS、dB SPL、sone各有自己的含義，不互換成一個「響度」。資料必須在同一觀測時間對齊；回放一起平移合法對齊的時鐘，保留原始時間。</p>
+<p>2026-10-11 新增 Yang 2007 音樂研究案例的播放、演奏蠕蟲及播放期腦電配對。音樂來源的速度、相對振幅及拍點間隔和腦電指數保持獨立；見<a href="MUSIC-FUSION.html">音樂整合方法</a>。這沒有建立EEG→旋律／和聲的已驗證映射。一般參數映射／聲化是一種设计方法，需要明示資料維度、轉換與評估；不能單憑把數據映射到藝術参数就證明生理機制或療效。[3] 原有課件創作方案仍屬創作意圖，保留在折疊區，與觀測值分開。</p>
+<h2>6. 視覺與交互</h2>
+<p>網格是方形坐標參考，不是腦連接、旋律音網或解剖結構。按用戶最新確認，三頁共用深石墨背景、青灰軌跡、左側采集導航與標題欄；不以色彩標示健康等級。主圖保留來源、三項讀數、窗口與觀察操作；資料入口位於共同側欄，依據與公式放入折疊說明。Canvas與保存圖片使用同一組色彩。</p>
+<p>不需要自動鏡頭、轉球或粒子動畫；時間方盒可由用戶拖动轉向；變化只由樣本與用戶操作觸發。鍵盤可操作模式、窗口、時間游標、音樂要素、圖片保存與專注顯示，Escape離開專注顯示。遵循減少非必要動態的可達性方向，[4] 不宣稱僅靠幾項測試已符合完整WCAG。</p>
+<p>返回「實時」時由既有連接處理器重新連接已校驗接口；在運行的同一模式不重複建立連接。長來源編號、單位與方法在側欄自然換行。保存圖片按實際寬度排布全部說明，包含來源與資料狀態、觀測時間、必要的原始／回放時間、指數、RMS、樣本窗口及顯示參照。圖片的光點表示記錄時的觀測或明示合成資料，不替代原始記錄。</p>
+<p>新增全域0–100、精細50點與細微25點觀察尺度。這只改變可見坐標窗口，真實數值、原始記錄及品質門檻不變。來源提供指數欄位時鐘時按欄位時鐘去重，原始波形計數前進不冒充指數更新。蠕蟲的指數點保留字段時間和封包時間，原始RMS仍使用獨立原始波形時鐘。</p>
+<h2>7. 研討後的時序視圖</h2>
+<p>2026-10-13依研討錄音14:10–14:29與19:22–19:39新增關注、放鬆、經過秒數的時間方盒。第三軸是來源時間，不是新生理測量或振幅深度；二維投影保留。旋轉只改變正交投影，原始坐標和時間均不變。主流程依23:47–23:58與31:57–32:26改為音樂參考、神經響應、版本實驗。見<a href="LISTENING-METHODS.html">聆聽實驗方法</a>。</p>
+<h2>8. 可驗證範圍</h2>
+<p>自動測試檢查公式、來源邊界、斷段、回放、保存和模擬視口；不能替代實體EEG接入、電極接觸、USB/BLE重連、實體拓展屏幕、個體心理量表或自主神經指標的實驗驗證。圖形可用不等於心理／臨床效度成立。本頁不宣稱診斷、治療效果或「百分百無問題」。</p>
+<h2>一手來源</h2>
+<ol>
+<li>NeuroSky. <strong>ThinkGear Communications Protocol / Serial Stream SDK</strong>. 官方協議，RAW、eSense、poor_signal、模組差異。2026-10-11取得。
+<a href="https://developer.neurosky.com/docs/doku.php?id=thinkgear_communications_protocol" target="_blank" rel="noopener">https://developer.neurosky.com/docs/doku.php?id=thinkgear_communications_protocol</a></li>
+<li>NeuroSky. <strong>eSense(tm) Meters</strong>. 相對量表、0值、專有基線與慢適應。2026-10-11取得。
+<a href="https://developer.neurosky.com/docs/doku.php?id=esenses_tm" target="_blank" rel="noopener">https://developer.neurosky.com/docs/doku.php?id=esenses_tm</a></li>
+<li>Hermann T, Hunt A, Neuhoff JG (eds.). <strong>The Sonification Handbook</strong>. Logos Verlag, 2011. 官方書目與章節頁：Grond F, Berger J, “Parameter Mapping Sonification”, chapter 15。此處引用章節的主題及方法分類，並未以書目替代本項目的效度研究。
+<a href="https://sonification.de/handbook/" target="_blank" rel="noopener">https://sonification.de/handbook/</a>
+<a href="https://sonification.de/handbook/chapters/" target="_blank" rel="noopener">https://sonification.de/handbook/chapters/</a></li>
+<li>W3C WAI. <strong>Understanding SC 2.3.3: Animation from Interactions</strong>. 非必要動態可關閉的原則。2026-10-11取得。
+<a href="https://www.w3.org/WAI/WCAG22/Understanding/animation-from-interactions.html" target="_blank" rel="noopener">https://www.w3.org/WAI/WCAG22/Understanding/animation-from-interactions.html</a></li>
+</ol>
+</article></main></body></html>

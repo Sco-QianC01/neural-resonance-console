@@ -6,7 +6,7 @@ export const projectRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8',
   '.mjs':'text/javascript; charset=utf-8','.js':'text/javascript; charset=utf-8',
   '.svg':'image/svg+xml','.png':'image/png','.md':'text/plain; charset=utf-8',
-  '.json':'application/json; charset=utf-8'};
+  '.json':'application/json; charset=utf-8','.krn':'text/plain; charset=utf-8','.txt':'text/plain; charset=utf-8'};
 const allowed=['/index.html','/src/','/public/','/docs/','/neural-worm/'];
 
 /** Serve this project only. No device service, OS process scan or upstream proxy. */

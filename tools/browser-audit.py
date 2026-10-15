@@ -77,7 +77,8 @@ async def verify(args):
                     await page.click("#csv-export")
                 exported=await download.value
                 saved_csv=root/"recording.csv";await exported.save_as(saved_csv)
-                rows=list(csv.DictReader(io.StringIO(saved_csv.read_text(encoding="utf-8"))))
+                assert saved_csv.read_bytes().startswith(b"\xef\xbb\xbf"), "Spreadsheet CSV needs a UTF-8 BOM"
+                rows=list(csv.DictReader(io.StringIO(saved_csv.read_text(encoding="utf-8-sig"))))
                 assert len(rows)==len(recording["snapshots"])
                 assert rows[0]["spo2"]=="98" and rows[0]["pr"]=="72"
                 results["checks"].append("CSV sensor preservation")
@@ -97,13 +98,14 @@ async def verify(args):
                     await asyncio.sleep(.1)
                 else:raise AssertionError("New acquisition session did not reach the browser")
                 await page.click('[data-view="worm"]')
+                await page.locator(".worm-legacy > summary").click()
                 await page.click("#make-prompt")
                 assert "創作方案" in await page.input_value("#music-prompt")
                 state["freeze"]=True
                 await page.wait_for_function("document.querySelector('#make-prompt').disabled",timeout=6000)
-                before=await page.locator("#hero").get_attribute("data-coordinate")
+                before=await page.locator(".planar-canvas").get_attribute("data-timestamp")
                 await asyncio.sleep(.6)
-                after=await page.locator("#hero").get_attribute("data-coordinate")
+                after=await page.locator(".planar-canvas").get_attribute("data-timestamp")
                 assert before==after,{"before":before,"after":after,
                     "status":await page.locator("#worm-change").inner_text(),
                     "samples":await page.locator("#hero").get_attribute("data-samples"),"frames":frames}
@@ -137,10 +139,10 @@ async def verify(args):
                         assert not await page.locator("body").evaluate("e=>e.classList.contains('nav-open')")
                 await page.set_viewport_size({"width":1440,"height":1000})
                 await page.evaluate("location.hash='worm'")
-                await page.click("#worm-exhibit")
-                assert await page.locator("body").evaluate("e=>e.classList.contains('exhibit')")
+                await page.click("#research-worm [data-action=focus]")
+                assert await page.locator("body").evaluate("e=>e.classList.contains('research-focus')")
                 await page.keyboard.press("Escape")
-                assert not await page.locator("body").evaluate("e=>e.classList.contains('exhibit')")
+                assert not await page.locator("body").evaluate("e=>e.classList.contains('research-focus')")
                 await page.emulate_media(reduced_motion="reduce")
                 assert await page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches")
                 results["checks"].append("320/390/768/1920 layout, navigation and exhibition")

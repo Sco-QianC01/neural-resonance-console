@@ -1,17 +1,18 @@
 /** ThinkGear framing only. ADC values are preserved; no undocumented µV conversion. */
 export class ThinkGearDecoder{
-  constructor(){this.bytes=[];this.count=0;this.latest={};this.lastAt={};}
+  constructor(){this.bytes=[];this.count=0;this.latest={};this.lastAt={};this.errors=0;this.sequence=0;this.breakPending=false;}
   push(chunk,now=Date.now()){
-    this.bytes.push(...chunk);if(this.bytes.length>65536)this.bytes=this.bytes.slice(-65536);
+    this.bytes.push(...chunk);if(this.bytes.length>65536){this.bytes=this.bytes.slice(-65536);this.errors++;this.breakPending=true;}
     const packets=[];
     while(this.bytes.length>=4){
       if(this.bytes[0]!==0xaa||this.bytes[1]!==0xaa){this.bytes.shift();continue;}
       const length=this.bytes[2];
-      if(length>169){this.bytes.shift();continue;}
+      if(length>169){this.bytes.shift();this.errors++;this.breakPending=true;continue;}
       if(this.bytes.length<length+4)break;
-      const frame=this.bytes.splice(0,length+4),payload=frame.slice(3,-1);
+      const frame=this.bytes.slice(0,length+4),payload=frame.slice(3,-1);
       const checksum=(~payload.reduce((a,b)=>a+b,0))&255;
-      if(checksum!==frame.at(-1))continue;
+      if(checksum!==frame.at(-1)){this.bytes.shift();this.errors++;this.breakPending=true;continue;}
+      this.bytes.splice(0,length+4);
       let cursor=0,changed=false,raw=[],valid=true;
       const updates={};
       while(cursor<payload.length){
@@ -23,6 +24,7 @@ export class ThinkGearDecoder{
         if(!Number.isInteger(size)||cursor+size>payload.length){valid=false;break;}
         const values=payload.slice(cursor,cursor+size);cursor+=size;
         if(level>0)continue;
+        if(code===0x80&&size!==2||code===0x83&&size!==24){valid=false;break;}
         const set=(key,value)=>{updates[key]=value;changed=true;};
         if(code===2)set('poor_signal',values[0]);
         if(code===4)set('attention',values[0]);
@@ -33,14 +35,17 @@ export class ThinkGearDecoder{
             set(key,(values[i*3]<<16)|(values[i*3+1]<<8)|values[i*3+2]));
         }
       }
-      if(!valid||!changed)continue;
+      if(!valid){this.errors++;this.breakPending=true;continue;}
+      if(!changed)continue;
       // Commit a complete validated payload, never a partially parsed one.
       for(const [key,value] of Object.entries(updates)){this.latest[key]=value;this.lastAt[key]=now;}
+      const rawBreaks=raw.length&&this.breakPending?[0]:[];
+      if(raw.length){this.lastAt.raw=now;this.sequence+=raw.length;this.breakPending=false;}
       const eeg=Object.fromEntries(Object.entries(this.latest).filter(([key])=>now-this.lastAt[key]<=3000));
       packets.push({schemaVersion:'neural-resonance-live-v1',source:'device',ts:now/1000,
-        metricOrigin:'thinkgear-esense',quality:{eegPackets:++this.count},eeg,
+        metricOrigin:'thinkgear-esense',quality:{eegPackets:++this.count,protocolErrors:this.errors},eeg,
         fieldTimestamps:Object.fromEntries(Object.entries(this.lastAt).map(([key,at])=>[key,at/1000])),
-        rawEegSamples:raw,rawUnit:'ADC counts'});
+        rawEegSamples:raw,rawBreaks,rawSequence:this.sequence,rawUnit:'ADC counts'});
     }
     return packets;
   }
@@ -55,9 +60,15 @@ export class BrowserDeviceInput{
     this.bytes+=bytes.length;const packets=this.decoder.push(bytes,now);
     this.onStatus(packets.length?`已解析 ${this.decoder.count} 個腦波封包 · ${this.bytes} bytes`:
       `已收到 ${this.bytes} bytes；等待相容腦波封包`);
-    if(packets.length)this.onPacket({...packets.at(-1),
-      rawEegSamples:packets.flatMap(packet=>packet.rawEegSamples),
-      transport:this.port?'browser_usb':'browser_ble',connectionEpoch:this.connectionEpoch});
+    if(packets.length){
+      const rawEegSamples=[],rawBreaks=[];
+      for(const packet of packets){
+        rawBreaks.push(...packet.rawBreaks.map(i=>rawEegSamples.length+i));
+        rawEegSamples.push(...packet.rawEegSamples);
+      }
+      this.onPacket({...packets.at(-1),rawEegSamples,rawBreaks,
+        transport:this.port?'browser_usb':'browser_ble',connectionEpoch:this.connectionEpoch});
+    }
   }
   async serial(baudRate){
     if(!navigator.serial)throw new Error('此瀏覽器不支援 Web Serial；可使用桌面橋接器的 WebSocket。');

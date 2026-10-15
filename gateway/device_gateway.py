@@ -3,6 +3,8 @@ import argparse
 import asyncio
 import copy
 import json
+import logging
+from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
 import signal
@@ -16,8 +18,10 @@ from bleak import BleakClient, BleakScanner
 import serial
 from serial.tools import list_ports
 
-from acquisition import Stream, choose_port, inventory, ble_candidates
+from acquisition import Stream, choose_port, serial_selection, inventory, ble_candidates
 from protocols import ThinkGear, oxygen, gsr
+from runtime_support import BUILD, InstanceLock, instance_id, write_runtime
+from experiments import save_experiment, results_root
 
 FROZEN = getattr(sys, "frozen", False)
 
@@ -106,12 +110,14 @@ class Acquisition:
     def serial_worker(self, key):
         profile = self.config[key]
         stop_event, stream = self.stop_event, self.stream
+        reconnects = 0
         while not stop_event.is_set():
             handle, connection = None, None
             try:
                 ports = list(list_ports.comports())
-                selected = choose_port(ports, profile)
-                stream.status(key, port=selected, state="waiting",
+                selected, reason, count = serial_selection(ports, profile)
+                stream.status(key, port=selected, state="waiting", reason=reason,
+                                   candidates=count, reconnects=reconnects,
                                    message="等待唯一匹配设备" if not selected else "正在打开")
                 if not selected:
                     stop_event.wait(1)
@@ -129,7 +135,8 @@ class Acquisition:
                 last_check = last_bytes = time.monotonic()
                 last_valid = last_bytes
                 received = 0
-                stream.status(key, state="open-waiting-data", bytes=0,
+                stream.status(key, state="open-waiting-data", reason="waiting-data",
+                                   bytes=0, validPackets=0, protocolErrors=0,
                                    message="端口已打开，等待有效数据")
                 while not stop_event.is_set():
                     now = time.monotonic()
@@ -145,8 +152,9 @@ class Acquisition:
                         received += len(data)
                         last_bytes = time.monotonic()
                         if key == "eeg":
-                            for fields, raw in decoder.feed(data):
-                                valid |= stream.accept("usb", fields, raw, connection=connection)
+                            for fields, raw, errors in decoder.feed(data):
+                                valid |= stream.accept("usb", fields, raw, connection=connection,
+                                                       protocol_errors=errors)
                         else:
                             text.extend(data)
                             if len(text) > 8192:
@@ -167,14 +175,27 @@ class Acquisition:
                                     stream.clear_sensor("spo2")
                                     stream.clear_sensor("pr")
                                     stream.status(key, message="探头无有效信号")
-                        stream.status(key, bytes=received)
+                        stream.status(key, bytes=received, protocolErrors=decoder.errors,
+                                           validPackets=decoder.valid_frames if key == "eeg" else None)
                     if valid:
                         last_valid = time.monotonic()
-                        stream.status(key, state="receiving", message="已收到有效协议数据")
+                        stream.status(key, state="receiving", reason="valid-protocol",
+                                           message="已收到有效协议数据")
+                    elif time.monotonic() - last_valid > 3:
+                        stream.status(key, state="open-waiting-data",
+                                           reason="invalid-protocol" if received else "waiting-data",
+                                           message="有字节但未收到有效协议包" if received else "设备未发送数据")
                     if time.monotonic() - (last_valid if key == "eeg" else last_bytes) > 60:
                         raise TimeoutError("60秒无数据，重新识别设备")
             except Exception as error:
-                stream.status(key, state="retrying", port="", message=str(error))
+                reconnects += 1
+                message = str(error)
+                reason = ("access-or-port-busy" if isinstance(error, PermissionError)
+                          or any(word in message.lower() for word in
+                                 ("access is denied", "permission denied", "resource busy"))
+                          else "disconnected-or-read-error")
+                stream.status(key, state="retrying", port="", reason=reason,
+                                   reconnects=reconnects, message=message)
             finally:
                 if connection is not None:
                     stream.end_connection("usb", connection)
@@ -210,6 +231,7 @@ class Acquisition:
                     {"name": name, "address": device.address} for device, name in matches])
                 if len(matches) != 1:
                     stream.status("ble", state="waiting",
+                                       reason="device-not-found" if not matches else "ambiguous-devices",
                                        message="未发现目标设备" if not matches else "多个同名设备，需要指定身份")
                     await asyncio.sleep(2)
                     continue
@@ -221,10 +243,12 @@ class Acquisition:
 
                     def notification(characteristic, data, token=connection, decoders=decoders, last_valid=last_valid):
                         decoder = decoders.setdefault(str(characteristic.uuid), ThinkGear())
-                        for fields, raw in decoder.feed(bytes(data)):
-                            if stream.accept("desktop_ble", fields, raw, connection=token):
+                        for fields, raw, errors in decoder.feed(bytes(data)):
+                            total_errors = errors + sum(d.errors for d in decoders.values() if d is not decoder)
+                            if stream.accept("desktop_ble", fields, raw, connection=token, protocol_errors=total_errors):
                                 last_valid[0] = time.monotonic()
-                                stream.status("ble", state="receiving", message="收到有效协议数据")
+                                stream.status("ble", state="receiving", reason="valid-protocol",
+                                                    message="收到有效协议数据")
 
                     targets = []
                     for service in client.services:
@@ -237,10 +261,10 @@ class Acquisition:
                                 targets.append(characteristic)
                     if not targets:
                         raise ValueError("未找到指定通知特征，请按设备文档配置UUID")
+                    stream.status("ble", state="connected-waiting-data", reason="waiting-data",
+                                       name=name, address=device.address, message="等待有效协议包")
                     for characteristic in targets:
                         await client.start_notify(characteristic, notification)
-                    stream.status("ble", state="connected-waiting-data",
-                                       name=name, address=device.address, message="等待有效协议包")
                     while client.is_connected and not stop_event.is_set():
                         if stream.last_usb and time.time() - stream.last_usb < 3:
                             break
@@ -250,7 +274,8 @@ class Acquisition:
             except asyncio.CancelledError:
                 raise
             except Exception as error:
-                stream.status("ble", state="retrying", message=str(error))
+                stream.status("ble", state="retrying", reason="bluetooth-unavailable-or-denied",
+                                    message=str(error))
                 await asyncio.sleep(2)
             finally:
                 if connection is not None:
@@ -284,15 +309,16 @@ def allowed_origin(request):
     }
 
 
-def create_app(acquisition, config_path, upstream=None):
-    app = web.Application(client_max_size=32768)
+def create_app(acquisition, config_path, upstream=None, instance=None):
+    app = web.Application(client_max_size=16*1024*1024)
     sockets = set()
     config_lock = asyncio.Lock()
 
     async def health(_request):
         return web.json_response({"app": "neural-resonance-gateway", "version": "0.11.3",
                                   "standalone": True, "upstream": bool(upstream),
-                                  "platform": sys.platform})
+                                  "platform": sys.platform, "build": BUILD,
+                                  "instanceId": instance})
 
     async def runtime(_request):
         if upstream:
@@ -322,6 +348,8 @@ def create_app(acquisition, config_path, upstream=None):
             return await apply_config(request)
 
     async def apply_config(request):
+        if request.content_length and request.content_length > 32768:
+            raise web.HTTPRequestEntityTooLarge(max_size=32768, actual_size=request.content_length)
         try:
             change = await request.json()
             if not isinstance(change, dict):
@@ -382,7 +410,7 @@ def create_app(acquisition, config_path, upstream=None):
                     packet = stream.snapshot(cursor)
                     await asyncio.wait_for(socket.send_json(packet), 5)
                     cursor = packet["rawSequence"]
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.1)
         sender = asyncio.create_task(transmit())
         try:
             done, _pending = await asyncio.wait({reader, sender}, return_when=asyncio.FIRST_COMPLETED)
@@ -398,6 +426,29 @@ def create_app(acquisition, config_path, upstream=None):
             await asyncio.gather(reader, sender, return_exceptions=True)
         return socket
 
+    async def export_experiment(request):
+        if not allowed_origin(request):
+            raise web.HTTPForbidden()
+        try:
+            value = await request.json()
+            directory = await asyncio.to_thread(save_experiment, value, results_root(Path(config_path).parent))
+            return web.json_response({"directory": str(directory), "saved": True})
+        except (ValueError, TypeError, AttributeError) as error:
+            return web.json_response({"error": str(error)}, status=400)
+        except OSError:
+            return web.json_response({"error": "本机结果目录无法写入；数据仍保留在页面，可重试。"}, status=500)
+
+    async def research_media(request):
+        recording = request.match_info["recording"]
+        if recording not in ("c27_fou1978", "c27_barenboim1981", "c27_langlang2003", "c9_yundili2004"):
+            raise web.HTTPNotFound()
+        target = (results_root(Path(config_path).parent)
+                  / "20261014_神经蠕虫录音修订/音乐资料/音频" / (recording + ".mp3"))
+        if not target.is_file():
+            raise web.HTTPNotFound()
+        return web.FileResponse(target, headers={"Content-Type": "audio/mpeg",
+                                "X-Content-Type-Options": "nosniff"})
+
     async def static(request):
         name = request.match_info["path"] or "index.html"
         if not (name == "index.html" or name.startswith(("src/", "neural-worm/", "public/", "docs/"))):
@@ -405,7 +456,13 @@ def create_app(acquisition, config_path, upstream=None):
         target = (ROOT / name).resolve()
         if not target.is_relative_to(ROOT.resolve()) or not target.is_file():
             raise web.HTTPNotFound()
-        return web.FileResponse(target, headers={"Cache-Control": "no-cache"})
+        types = {".html": "text/html", ".css": "text/css", ".js": "text/javascript",
+                 ".mjs": "text/javascript", ".md": "text/plain", ".txt": "text/plain",
+                 ".json": "application/json", ".svg": "image/svg+xml", ".krn": "text/plain"}
+        headers = {"Cache-Control": "no-cache", "X-Content-Type-Options": "nosniff"}
+        if target.suffix.lower() in types:
+            headers["Content-Type"] = types[target.suffix.lower()] + "; charset=utf-8"
+        return web.FileResponse(target, headers=headers)
 
     async def startup(_app):
         app[CLIENT_KEY] = ClientSession(timeout=ClientTimeout(total=5))
@@ -423,6 +480,8 @@ def create_app(acquisition, config_path, upstream=None):
     app.router.add_get("/api/runtime", runtime)
     app.router.add_get("/api/gateway/devices", devices)
     app.router.add_post("/api/gateway/config", save_config)
+    app.router.add_post("/api/experiments", export_experiment)
+    app.router.add_get("/api/research-media/{recording}", research_media)
     app.router.add_get("/public/config.json", public_config)
     app.router.add_get("/ws/live", live)
     app.router.add_get("/{path:.*}", static)
@@ -435,13 +494,58 @@ async def run(args):
     directory = data_directory()
     directory.mkdir(parents=True, exist_ok=True)
     config_path = Path(args.config).resolve() if args.config else directory / "config.json"
-    config = validate_config(json.loads(config_path.read_text(encoding="utf-8"))
+    config = validate_config(json.loads(config_path.read_text(encoding="utf-8-sig"))
                              if config_path.exists() else {})
     if args.port is not None:
         config = validate_config({**config, "port": args.port})
+    ownership = InstanceLock(directory)
+    if not ownership.acquire():
+        # Only the OS lock plus a matching live instance can authorize reuse.
+        async with ClientSession(timeout=ClientTimeout(total=1)) as client:
+            for _ in range(40):
+                try:
+                    state = json.loads((directory / "runtime.json").read_text(encoding="utf-8"))
+                    url = state["url"]
+                    from urllib.parse import urlsplit
+                    parsed = urlsplit(url)
+                    if parsed.scheme != "http" or parsed.hostname != "127.0.0.1":
+                        raise ValueError("Untrusted local runtime URL")
+                    async with client.get(url.rstrip("/") + "/api/health") as response:
+                        health = await response.json()
+                    if (health.get("app") == "neural-resonance-gateway"
+                            and health.get("instanceId") == instance_id(directory)):
+                        if health.get("build") != BUILD:
+                            raise RuntimeError("既有采集程序版本不同，请先正常退出旧程序，再启动新包。")
+                        if bool(health.get("upstream")) != bool(args.reuse_local_core):
+                            raise RuntimeError("既有程序采集模式不同，请正常退出后以所需模式启动。")
+                        if not args.no_browser:
+                            webbrowser.open(url)
+                        print(f"Existing independent instance {url}", flush=True)
+                        return
+                except RuntimeError:
+                    raise
+                except (OSError, ValueError, KeyError, ClientError):
+                    pass
+                await asyncio.sleep(.25)
+        raise RuntimeError("本用户采集器已启动但尚未响应；未重复打开设备，请查看 startup-error.txt。")
+    try:
+        await run_owned(args, directory, config_path, config)
+    finally:
+        ownership.close()
+
+
+async def run_owned(args, directory, config_path, config):
     upstream = None
     async with ClientSession(timeout=ClientTimeout(total=2)) as client:
-        if config["reuseLocalCore"] and not args.standalone:
+        try:
+            async with client.get(f"http://127.0.0.1:{config['port']}/api/health",
+                                  timeout=ClientTimeout(total=.3)) as response:
+                previous = await response.json()
+            if previous.get("app") == "neural-resonance-gateway" and not previous.get("instanceId"):
+                raise RuntimeError("检测到不支持单实例校验的旧采集器，请正常退出旧程序后启动新包。")
+        except (ClientError, asyncio.TimeoutError, ValueError):
+            pass
+        if args.reuse_local_core and not args.standalone:
             try:
                 async with client.get("http://127.0.0.1:8002/api/device/status") as response:
                     state = await response.json()
@@ -449,19 +553,10 @@ async def run(args):
                         upstream = "http://127.0.0.1:8002"
             except Exception:
                 pass
-        for port in range(config["port"], min(65536, config["port"] + 10)):
-            try:
-                async with client.get(f"http://127.0.0.1:{port}/api/health",
-                                      timeout=ClientTimeout(total=0.3)) as response:
-                    health = await response.json()
-                    if health.get("app") == "neural-resonance-gateway":
-                        if not args.no_browser:
-                            webbrowser.open(f"http://127.0.0.1:{port}/")
-                        return
-            except Exception:
-                pass
+        if args.reuse_local_core and not upstream:
+            raise RuntimeError("已要求复用核心，但本机核心没有返回有效 LIVE 状态。")
     acquisition = Acquisition(config)
-    app = create_app(acquisition, config_path, upstream)
+    app = create_app(acquisition, config_path, upstream, instance=instance_id(directory))
     runner = web.AppRunner(app, access_log=None)
     await runner.setup()
     selected = None
@@ -479,7 +574,7 @@ async def run(args):
         raise RuntimeError("本地端口均被占用")
     url = f"http://127.0.0.1:{selected}/"
     print(f"Neural Resonance {url} ({'existing core' if upstream else 'independent acquisition'})", flush=True)
-    (directory / "runtime.json").write_text(json.dumps({"url": url, "pid": os.getpid()}), encoding="utf-8")
+    write_runtime(directory, url=url, mode="core-proxy" if upstream else "standalone")
     if not args.no_browser:
         webbrowser.open(url)
     done = asyncio.Event()
@@ -492,21 +587,46 @@ async def run(args):
         await done.wait()
     finally:
         await runner.cleanup()
+        write_runtime(directory, url=url, mode="stopped")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config")
     parser.add_argument("--port", type=int)
-    parser.add_argument("--standalone", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--standalone", action="store_true")
+    mode.add_argument("--reuse-local-core", action="store_true")
     parser.add_argument("--no-browser", action="store_true")
+    logger = logging.getLogger("neural-resonance")
     try:
+        data_directory().mkdir(parents=True, exist_ok=True)
+        handler = RotatingFileHandler(data_directory() / "service.log", maxBytes=256000,
+                                      backupCount=2, encoding="utf-8")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+        logger.info("Start build=%s platform=%s", BUILD, sys.platform)
         asyncio.run(run(parser.parse_args()))
     except KeyboardInterrupt:
         pass
     except Exception as error:
         print(f"无法启动：{error}", file=sys.stderr)
-        if FROZEN:
-            data_directory().mkdir(parents=True, exist_ok=True)
+        logger.error("Startup failed: %s", error)
+        try:
             (data_directory() / "startup-error.txt").write_text(str(error), encoding="utf-8")
+        except OSError:
+            pass
+        if FROZEN and "--no-browser" not in sys.argv:
+            if sys.platform == "win32":
+                import ctypes
+                ctypes.windll.user32.MessageBoxW(None, f"{error}\n\n详细记录：{data_directory()}",
+                                                "Neural Resonance — 无法启动", 0x10)
+            elif sys.platform == "darwin":
+                import subprocess
+                # AppleScript string literal, passed as an argument without a shell.
+                message = json.dumps(f"{error}\n\n记录：{data_directory()}", ensure_ascii=False)
+                subprocess.run(["osascript", "-e",
+                                f'display alert "Neural Resonance — 无法启动" message {message}'],
+                               check=False)
         raise SystemExit(1)

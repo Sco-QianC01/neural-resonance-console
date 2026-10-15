@@ -6,11 +6,12 @@
   <title>神經共振 · 波形、蠕蟲與設備</title>
   <link rel="icon" type="image/svg+xml" href="./public/mark.svg">
   <link rel="stylesheet" href="./neural-worm/style.css">
+  <link rel="stylesheet" href="./neural-worm/planar.css">
 </head>
 <body>
 <button id="nav-toggle" class="nav-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="開啟左側導航">☰</button>
 <aside id="app-sidebar" class="sidebar">
-  <header class="header"><a href="./" class="wordmark"><span class="mark" aria-hidden="true"><svg viewBox="0 0 40 40" width="36" height="36"><path d="M4 22h6l4-12 7 22 5-16 4 6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="10" r="2.6" fill="currentColor"/><circle cx="21" cy="32" r="2.6" fill="currentColor"/></svg></span><span>神經共振<small>NEURAL RESONANCE</small></span></a><nav class="view-nav" aria-label="三個介面"><button data-view="waveforms" aria-pressed="true"><span class="nav-number">01</span><span>波形捕獲</span></button><button data-view="worm" aria-pressed="false"><span class="nav-number">02</span><span>神經蠕蟲</span></button><button data-view="settings" aria-pressed="false"><span class="nav-number">03</span><span>設備設定</span></button></nav></header>
+  <header class="header"><a href="./" class="wordmark"><span class="mark" aria-hidden="true"><svg viewBox="0 0 40 40" width="36" height="36"><path d="M4 22h6l4-12 7 22 5-16 4 6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="10" r="2.6" fill="currentColor"/><circle cx="21" cy="32" r="2.6" fill="currentColor"/></svg></span><span>神經共振<small>NEURAL RESONANCE</small></span></a><nav class="view-nav" aria-label="研究流程"><button data-view="settings" aria-pressed="true"><span class="nav-number">01</span><span>設備設定</span></button><button data-view="worm" aria-pressed="false"><span class="nav-number">02</span><span>音樂與神經響應</span></button><button data-view="waveforms" aria-pressed="false"><span class="nav-number">03</span><span>波形捕獲</span></button></nav></header>
       <aside class="input">
         <div class="section-line"><span>01 / SIGNAL</span><small id="source">DEMO</small></div>
         <h2>腦波輸入</h2>
@@ -31,7 +32,7 @@
         <div class="signal-meta"><span>有效封包</span><b id="packets">—</b><span>資料狀態</span><b id="freshness">等待</b></div>
         <p id="source-note">示範由本頁生成，並非實際測量。</p>
         <div class="capture"><button id="record" class="outline">開始記錄</button><button id="export" class="text-button" disabled>匯出 JSON ↗</button><span id="count">0 個樣本</span></div>
-        <details><summary>資料與方法</summary><a href="./docs/EVIDENCE.md" target="_blank" rel="noopener">查看來源文件</a></details>
+        <details><summary>資料與方法</summary><a href="./docs/EVIDENCE.html" target="_blank" rel="noopener">查看來源文件</a></details>
       </aside>
 </aside>
   <main>
@@ -40,15 +41,19 @@
 
       <div class="field">
 <section id="view-waveforms" class="view-panel">
-  <div class="wave-head"><div><p class="eyebrow">01 / WAVEFORM CAPTURE</p><h2>四頻段 · 實時波形</h2></div><span id="wave-units">來源頻段值</span></div>
+  <div class="wave-head"><div><p class="eyebrow">01 / WAVEFORM CAPTURE</p><h2 id="wave-title">原始腦電與頻段功率</h2></div><div class="wave-head-tools"><span id="wave-units" class="whitebox-detail">來源頻段值</span><div class="analysis-layer-switch" role="group" aria-label="分析層級"><span>分析層級</span><button id="analysis-blackbox" class="text-button" aria-pressed="false" aria-controls="view-waveforms">黑盒 · 觀察結果</button><button id="analysis-whitebox" class="text-button" aria-pressed="true" aria-controls="view-waveforms">白盒 · 采集證據</button></div></div></div>
+  <p id="analysis-layer-note" class="analysis-layer-note">原始樣本、單位、采樣率與缺失斷點；設備內部指數算法仍未公開。</p>
   <div class="stream-strip" aria-label="即時采集狀態"><div><span>采集來源</span><b id="signal-transport">—</b></div><div><span>最後樣本</span><b id="signal-age">—</b></div><div><span>原始樣本累計</span><b id="signal-raw-count">—</b></div><div><span>接觸狀態</span><b id="signal-contact">—</b></div></div>
   <section class="indices-section"><div class="section-line"><span>NATIVE INDICES / 設備原生指數</span><small><i class="attention-key"></i> 專注度　<i class="relaxation-key"></i> 放鬆度</small></div><canvas id="indices-wave" aria-label="專注度與放鬆度的零至一百時間曲線"></canvas><p>僅繪製接觸良好且有效的設備指數；下方頻段和原始波形保留采集數值，接觸不良時不做音樂映射。</p></section>
-  <div id="wave-grid" class="wave-grid"></div>
-  <div class="wave-actions"><button id="wave-snapshot" class="outline">保存波形 PNG</button><button id="mask-snapshot" class="outline">保存透明遮罩</button><button id="csv-export" class="text-button" disabled>匯出 CSV ↗</button><span>最近 60 秒 · 收到多少，顯示多少</span></div>
-  <section class="raw-section"><div class="section-line"><span>RAW EEG / 原始腦波</span><small id="raw-status">等待原始樣本</small></div><canvas id="raw-wave" aria-label="原始腦波時間曲線"></canvas></section>
-  <p class="view-note">完整 Spout 即時輸出由獨立桌面波形工具提供。瀏覽器可保存透明 PNG；不宣稱瀏覽器直接輸出 Spout。</p>
+  <section class="raw-section whitebox-detail"><div class="section-line"><span>RAW EEG / 有符號原始腦電</span><small id="raw-status">等待原始樣本</small></div><div class="wave-actions"><label>窗口 <select id="raw-window"><option value="2">2 秒</option><option value="8">8 秒</option></select></label><label>縱軸 ± <select id="raw-scale"><option value="0">自動保持</option><option value=".001">0.001</option><option value=".01">0.01</option><option value=".1">0.1</option><option value="1">1</option><option value="100">100</option><option value="500">500</option><option value="2000">2000</option><option value="32768">32768</option></select></label><span id="raw-detail"></span></div><canvas id="raw-wave" aria-label="原始腦電：零線、正負振幅與缺失斷點"></canvas><p>零線上下保留正負方向；秒軸由來源采樣率與樣本序號推算。顯示倍率不代表設備電壓增益。</p></section>
+  <div class="wave-actions whitebox-detail"><label>頻段顯示 <select id="band-display"><option value="power">原始相對功率</option><option value="baseline">基線偏移</option></select></label><span>基線＝當前60秒窗口最早10個有效值的均值；負值表示低於基線。</span></div><div id="wave-grid" class="wave-grid whitebox-detail"></div>
+  <div class="wave-actions whitebox-detail"><button id="wave-snapshot" class="outline">保存波形 PNG</button><button id="mask-snapshot" class="outline">保存透明遮罩</button><button id="csv-export" class="text-button" disabled>匯出 CSV ↗</button><span>最近 60 秒 · 收到多少，顯示多少</span></div>
+  <p class="view-note whitebox-detail">完整 Spout 即時輸出由獨立桌面波形工具提供。瀏覽器可保存透明 PNG；不宣稱瀏覽器直接輸出 Spout。</p>
 </section>
 <div id="view-worm" class="view-panel" hidden>
+        <section id="research-worm" aria-label="音樂與神經響應研究"></section>
+        <details class="worm-legacy"><summary>采集記錄與創作方案</summary>
+        <div class="wave-actions"><button id="planar-record" class="outline">開始記錄</button><button id="planar-export" class="text-button" disabled>記錄 JSON</button><button id="planar-csv" class="text-button" disabled>記錄 CSV</button><span id="planar-count">0 個樣本</span></div>
         <section class="hero" aria-labelledby="selected-name">
           <div class="hero-header"><div><p class="eyebrow">02 / OBSERVED SIGNAL</p><h2 id="selected-name">專注 × 冥想／放鬆 <span>NATIVE INDEX TRACE</span></h2></div><div class="hero-value"><button id="worm-exhibit" class="text-button">展示</button><b id="selected-value">—</b><span id="selected-unit">資料狀態</span></div></div>
           <div class="worm-tools"><label>座標<select id="worm-space"><option value="eeg">原生指數 · 0–100</option><option value="control">坐標換算 · 0–127</option></select></label><label>觀察窗口<select id="worm-window"><option value="60">60 秒</option><option value="30">30 秒</option><option value="10">10 秒</option></select></label><label>顯示平滑<select id="worm-smoothing"><option value="0">原始位置 · 預設</option><option value="0.75">0.75 秒 · 僅顯示</option><option value="2">2 秒 · 僅顯示</option></select></label></div>
@@ -68,7 +73,7 @@
             <label id="plan-select-label">方案<select id="music-plan"><option value="gentle">舒緩</option><option value="bright">明快</option><option value="reflective">沉靜</option><option value="tension">張力</option></select></label>
             <label class="plan-import text-button">匯入規則<input id="plan-rules-file" type="file" accept=".json" aria-label="匯入音樂方案規則"></label>
             <button id="plan-rules-clear" class="text-button" hidden>恢復手動</button>
-            <a id="plan-source" href="./docs/MUSIC-PLANS.md" target="_blank" rel="noopener">課件音樂方案</a>
+            <a id="plan-source" href="./docs/MUSIC-PLANS.html" target="_blank" rel="noopener">課件音樂方案</a>
           </div>
           <div id="networks" class="network-grid"></div>
           <section id="element-detail" class="element-detail">
@@ -88,10 +93,11 @@
           <p id="prompt-status" role="status">等待產生</p>
           <p class="view-note">先以手動交接完成驗證。頁面不會呼叫雲端模型，也不會把示範或回放資料當成實測。</p>
         </section>
+        </details>
       </div>
 <section id="view-settings" class="view-panel" hidden>
   <div class="wave-head"><div><p class="eyebrow">03 / DEVICE &amp; INTERFACES</p><h2>設備與資料接口</h2></div><button id="check-capabilities" class="outline">重新檢查</button></div>
-  <section class="bridge-guide"><h3>本機自動采集</h3><p id="runtime-summary" role="status">啟動獨立采集器後，自動連接同源資料。已運行的音療核心可直接復用。</p><a class="outline" href="http://127.0.0.1:8767/" target="_blank" rel="noopener">開啟本機采集入口 ↗</a><p>第一次使用，可下載相應的完整應用包，解壓後啟動。Windows無需另裝Python或Node；Mac首次打開及藍牙權限按系統提示完成。</p><div class="wave-actions"><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-Windows-x64.zip">下載 Windows x64</a><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-macOS-arm64.zip">下載 Mac M系列</a><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-macOS-x64.zip">下載 Mac Intel</a></div><p>Safari通過本機采集器接入，不要求瀏覽器直接支援USB或BLE。</p></section>
+  <section class="bridge-guide"><h3>本機自動采集</h3><p id="runtime-summary" role="status">啟動獨立采集器後，自動連接同源資料。預設獨立運行，復用既有核心需明確選擇。</p><a id="gateway-open" class="outline" href="http://127.0.0.1:8767/" target="_blank" rel="noopener">開啟本機采集入口 ↗</a><p>完整應用包自帶運行環境。首次藍牙授權及缺失的廠商USB驅動，按系統提示完成；唯一相容設備插入後自動識別。</p><div class="wave-actions"><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-Windows-x64.zip">公開 Windows x64 版本</a><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-macOS-arm64.zip">公開 Mac M系列版本</a><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-macOS-x64.zip">公開 Mac Intel版本</a></div><p>公開版本以發佈頁為準。本機新包及源碼見交付目錄。Safari通過本機采集器接入，不要求瀏覽器直接支援USB或BLE。</p></section>
   <section id="gateway-panel" class="setting-section" hidden><div class="section-line"><span>本機設備</span><small id="gateway-platform">—</small></div><h3>已發現的設備</h3><div id="gateway-inventory" class="device-list"></div><div class="gateway-selects"><label>ThinkGear相容腦電USB<select id="gateway-eeg-select"></select></label><label>AFE4490文本血氧USB<select id="gateway-oxygen-select"></select></label><label>腦電藍牙身份<select id="gateway-ble-select"></select></label></div><button id="gateway-refresh" class="outline">重新掃描</button><button id="gateway-save" class="outline">保存设备身份</button><p id="gateway-message" role="status"></p></section>
   <section class="sensor-overview" aria-label="其他傳感器狀態"><div><span>血氧 SpO₂</span><b id="sensor-spo2">—</b><small>%</small></div><div><span>脈率</span><b id="sensor-pr">—</b><small>bpm</small></div><div><span>HRV</span><b id="sensor-hrv">—</b><small>來源原始值</small></div><div><span>皮膚電 GSR</span><b id="sensor-gsr">—</b><small>來源原始值</small></div></section>
   <div id="capabilities" class="capabilities"></div>
@@ -105,7 +111,7 @@
 </section>
 </div>
     </div>
-    <footer><span>NEURAL RESONANCE / v0.11.3</span><p>軌跡保留來源與時間。斷流時停止更新，保留最後觀察。</p><a href="./docs/EVIDENCE.md" target="_blank" rel="noopener">方法與來源</a></footer>
+    <footer><span>NEURAL RESONANCE / v0.11.3</span><p>軌跡保留來源與時間。斷流時停止更新，保留最後觀察。</p><a href="./docs/EVIDENCE.html" target="_blank" rel="noopener">方法與來源</a></footer>
   </main>
   <div id="notice" role="status" hidden></div>
   <script type="module" src="./neural-worm/app.mjs"></script>

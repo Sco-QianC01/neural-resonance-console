@@ -23,6 +23,7 @@ class ThinkGear:
             size = self.buffer[2]
             if size > 169:
                 del self.buffer[0]
+                self.errors += 1
                 continue
             if len(self.buffer) < size + 4:
                 break
@@ -36,7 +37,7 @@ class ThinkGear:
             parsed = self.parse(payload)
             if parsed is not None:
                 self.valid_frames += 1
-                output.append(parsed)
+                output.append((*parsed, self.errors))
             else:
                 self.errors += 1
         return output
@@ -66,6 +67,8 @@ class ThinkGear:
             i += size
             if extended:
                 continue
+            if (code == 0x80 and size != 2) or (code == 0x83 and size != 24):
+                return None
             if code in (2, 4, 5):
                 fields[{2: "poor_signal", 4: "attention", 5: "meditation"}[code]] = value[0]
             elif code == 0x80 and size == 2:

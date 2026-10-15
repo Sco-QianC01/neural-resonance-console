@@ -24,3 +24,47 @@ export function selectedProfile(profile,value){
   }
   return {...profile,...device,serialNumber:identity.serialNumber||'',location:identity.location||''};
 }
+
+/** Service reachability is separate from fresh, validated sensor acquisition. */
+export function liveAcquisitionStatus(snapshot,connectionState){
+  const direct=snapshot?.transport==='browser_usb'||snapshot?.transport==='browser_ble';
+  if(connectionState!=='connected'&&!direct){
+    const states={
+      connecting:{state:'waiting',text:'連接采集服務中'},
+      reconnecting:{state:'waiting',text:'采集服務重連中'},
+      error:{state:'error',text:'采集服務未連接'},
+      stopped:{state:'waiting',text:'采集已停止'},
+      invalid:{state:'error',text:'資料格式無效'},
+    };
+    return states[connectionState]??{state:'waiting',text:'等待資料源'};
+  }
+  // A disconnected adapter can retain cumulative counters or old indices.
+  if(!snapshot||snapshot.transport==='none'||!(snapshot.packets>0))
+    return {state:'waiting',text:'等待腦電設備'};
+  if(['demo','mock','replay'].includes(snapshot.source))
+    return {state:'warning',text:'資料並非即時設備來源'};
+  if(!snapshot.transportFresh)return {state:'stale',text:'腦電資料中斷'};
+  if(!snapshot.signalValid)return {state:'warning',text:'接觸品質待確認'};
+  return snapshot.valid?{state:'valid',text:'正在采集 · 指數有效'}
+    :{state:'receiving',text:'正在采集 · 等待指數'};
+}
+
+/** A running HTTP interface is not proof that a sensor is producing data. */
+export function deviceDiagnostic(devices){
+  const labels={eeg:'腦電 USB',bloodOxygen:'血氧 USB',gsr:'GSR',ble:'腦電 BLE'};
+  const reasons={
+    'profile-unconfigured':'尚未配置設備型號',
+    'device-not-found':'尚未識別相容設備；檢查電源、資料線及廠商驅動',
+    'saved-device-missing':'已保存設備未出現；可重新選擇身份',
+    'ambiguous-devices':'多台設備匹配，請選擇身份',
+    'waiting-data':'尚無有效設備資料',
+    'invalid-protocol':'有字節但無有效協議包；核對設備協議及波特率',
+    'access-or-port-busy':'端口被占用或權限不足；關閉其他采集程式並檢查權限',
+    'disconnected-or-read-error':'已斷線，采集器會重新識別',
+    'bluetooth-unavailable-or-denied':'藍牙不可用、權限或連接異常；檢查系統藍牙設定',
+  };
+  return Object.entries(devices??{}).filter(([key,row])=>labels[key]&&row.state!=='disabled')
+    .map(([key,row])=>`${labels[key]}：${row.state==='receiving'
+      ?`有效資料 · ${row.bytes??0} bytes${Number.isInteger(row.validPackets)?` · ${row.validPackets} 封包`:''}`
+      :reasons[row.reason]||row.message||row.state||'等待'}`);
+}

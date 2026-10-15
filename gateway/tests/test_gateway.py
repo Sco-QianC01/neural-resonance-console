@@ -25,12 +25,40 @@ def port(name, vid=0x0483, pid=0x5740, serial=""):
 
 
 class ProtocolTests(unittest.TestCase):
+    def test_error_position_survives_inside_one_bulk_read(self):
+        decoder=ThinkGear()
+        broken=bytearray(frame(b'\x80\x02\x00\x63'));broken[-1]^=1
+        packets=decoder.feed(frame(b'\x80\x02\x00\x01')+broken+frame(b'\x80\x02\xff\xfe'))
+        self.assertEqual(packets,[({},[1],0),({},[-2],1)])
+        stream=Stream()
+        for fields,raw,errors in packets:
+            stream.accept('usb',fields,raw,now=10,protocol_errors=errors)
+        result=stream.snapshot(now=10)
+        self.assertEqual(result['rawEegSamples'],[1,-2])
+        self.assertEqual(result['rawBreaks'],[1])
+        self.assertEqual(stream.snapshot(1,now=10)['rawBreaks'],[0])
+        self.assertEqual(result['rawDropped'],0)
+        self.assertEqual(result['quality']['protocolErrors'],1)
+    def test_known_row_lengths_reject_earlier_native_fields(self):
+        for row in (b'\x80\x01\x01',b'\x83\x17'+bytes(23)):
+            decoder=ThinkGear()
+            self.assertEqual(decoder.feed(frame(b'\x04\x63'+row)),[])
+            self.assertEqual(decoder.errors,1)
+    def test_every_signed_raw_code_and_each_24_bit_power_channel(self):
+        decoder=ThinkGear()
+        for start in range(0,65536,256):
+            data=b''.join(frame(b'\x80\x02'+value.to_bytes(2,'big')) for value in range(start,start+256))
+            packets=decoder.feed(data[:13])+decoder.feed(data[13:])
+            self.assertEqual([p[1][0] for p in packets],[v if v<32768 else v-65536 for v in range(start,start+256)])
+        values=[0,1,255,256,65535,65536,0xffffff,123456]
+        result=decoder.feed(frame(b'\x83\x18'+b''.join(v.to_bytes(3,'big') for v in values)))[0][0]
+        self.assertEqual([result[k] for k in ('delta','theta','lowAlpha','highAlpha','lowBeta','highBeta','lowGamma','midGamma')],values)
     def test_fragmented_signed_raw_and_native_indices(self):
         decoder = ThinkGear()
         data = frame(b"\x02\x00\x04\x3e\x05\x4a\x80\x02\x80\x00")
         self.assertEqual(decoder.feed(data[:4]), [])
         self.assertEqual(decoder.feed(data[4:]),
-                         [({"poor_signal": 0, "attention": 62, "meditation": 74}, [-32768])])
+                         [({"poor_signal": 0, "attention": 62, "meditation": 74}, [-32768],0)])
 
     def test_malformed_rows_do_not_commit_earlier_fields(self):
         decoder = ThinkGear()
@@ -42,7 +70,7 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(len(ThinkGear().feed(packet * 1200)), 1200)
 
     def test_extended_code_does_not_become_native_attention(self):
-        self.assertEqual(ThinkGear().feed(frame(b"\x55\x04\x3e")), [({}, [])])
+        self.assertEqual(ThinkGear().feed(frame(b"\x55\x04\x3e")), [({}, [],0)])
 
     def test_oxygen_variants_and_reject_invalid_probe(self):
         self.assertEqual(oxygen("Sp02 : 98% ,Pulse rate :72 bpm"), (98, 72))
@@ -135,6 +163,9 @@ class StreamTests(unittest.TestCase):
         a = stream.snapshot(now=10)
         self.assertEqual(stream.snapshot(a["rawSequence"], now=10)["rawEegSamples"], [])
         self.assertEqual(stream.snapshot(now=10)["rawEegSamples"], [1, 2, 3])
+        self.assertEqual(stream.snapshot(now=10)["fieldTimestamps"]["raw"], 10)
+        stream.accept("usb", {"attention": 60}, [], now=11)
+        self.assertEqual(stream.snapshot(now=11)["fieldTimestamps"]["raw"], 10)
 
     def test_sensors_stay_independent_and_expire(self):
         stream = Stream()
@@ -146,6 +177,17 @@ class StreamTests(unittest.TestCase):
 
 
 class ApiTests(unittest.IsolatedAsyncioTestCase):
+    async def test_research_media_allowlist_and_range(self):
+        with patch.dict("os.environ", {"NEURAL_RESONANCE_DATA": self.tmp.name}):
+            target = Path(self.tmp.name) / "results/20261014_神经蠕虫录音修订/音乐资料/音频/c27_fou1978.mp3"
+            target.parent.mkdir(parents=True)
+            target.write_bytes(b"ID3" + b"a" * 100)
+            response = await self.client.get("/api/research-media/c27_fou1978", headers={"Range":"bytes=0-2"})
+            self.assertEqual(response.status, 206)
+            self.assertEqual(await response.read(), b"ID3")
+            self.assertEqual((await self.client.get("/api/research-media/unknown")).status, 404)
+            self.assertEqual((await self.client.get("/api/research-media/config.json")).status, 404)
+
     async def asyncSetUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         config = validate_config({
@@ -169,6 +211,13 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(config["autoConnect"])
         health = await (await self.client.get("/api/health")).json()
         self.assertEqual(health["app"], "neural-resonance-gateway")
+
+    async def test_chinese_static_documents_declare_utf8_for_direct_browser_navigation(self):
+        response = await self.client.get("/docs/PLANAR-METHODS.md")
+        self.assertEqual(response.charset, "utf-8")
+        self.assertIn("二維神經蠕蟲", await response.text())
+        module = await self.client.get("/src/gateway-settings.mjs")
+        self.assertEqual(module.charset, "utf-8")
 
     async def test_source_and_config_files_are_not_public(self):
         for path in ("/gateway/device_gateway.py", "/.runtime/config.json",

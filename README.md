@@ -2,6 +2,8 @@
 
 一個獨立運行的腦波交互前端，只有三個介面：
 
+2026-10-15：音樂參考新增「音高與旋律」，以肖邦研究院初版數字譜呈現Op.27 No.2第1–8小節的音高／時值／小節層，提供逐音行號、級進跳進、固定音階歸屬、節奏分量及JSON匯出。播放位置由來源拍點插值，未實測逐音起音；第9小節以後及其他作品無逐音資料。[資料與公式](docs/SCORE-EVIDENCE.html)。
+
 | 介面 | 可以做什麼 |
 |---|---|
 | **01 波形捕獲** | 看四頻段和原始腦波，記錄、回放，匯出 JSON／CSV，保存透明波形遮罩 |
@@ -27,7 +29,7 @@ Windows應用包解壓後，雙擊 **`NeuralResonance/NeuralResonance.exe`**。
 它自帶隔離的Python環境、設備采集器及網頁，不需要Node、作者的音療系統或私人服務器。
 USB按設備身份自動識別，端口變號或拔插後自動重試。可保存相容USB轉接器的VID/PID與序列號；BLE可保存地址／Mac UUID，改名後依身份識別。
 
-macOS源碼版首次運行 **`Start-macOS.command`**，會在项目`.runtime/`內安裝固定依賴并打開本機網頁：
+macOS源碼版首次運行 **`Start-macOS.command`**，會在本用戶的獨立目錄安裝固定依賴并打開本機網頁；已安裝並核對通過後可離線再次啟動：
 
 ```sh
 chmod +x Start-macOS.command
@@ -40,11 +42,15 @@ Windows源碼版使用PowerShell 7：
 .\Start-Windows.ps1
 ```
 
-macOS应用包由仓库的 **Portable desktop packages** 工作流分别构建Apple Silicon和Intel版本。
+macOS应用包由仓库的 **Portable desktop packages** 工作流分别构建Apple Silicon和Intel版本。本轮Mac原生构建与实机结果尚未取得，不能把CI配置当成已通过的安装包。
 首次蓝牙权限和缺失的厂商USB驱动按系统提示处理；真实Mac设备采集与应用构建分开验收。
+
+2026-10-12独立环境优化：默认独立采集、每用户单实例、中文/空格路径搬迁、环境摘要校验、Mac串口别名去重、热插拔诊断。分发仅包含公开源码与程序，保留用户数据与配置；不要求作者的Python、Node、VPN或私有服务器。Windows原生包双击exe或`Start-Windows.cmd`，不要求PowerShell。
 
 完整安装步骤见[跨平台部署](docs/PORTABLE-DEPLOYMENT.md)，支持范围见[设备矩阵](docs/DEVICE-MATRIX.md)。
 运行环境与自动化验收矩阵见[兼容范围](docs/COMPATIBILITY.md)。
+
+2026-10-12復檢版 `portable-audit-20261012-v2`：啟動時不只核對版本，還會實際導入采集所需的類別；依賴檔案遺失則重新安裝鎖定依賴。Windows/macOS的私有安裝工具损坏時保留原檔并重新下载、校驗。JSON匯入兼容UTF-8 BOM，CSV下載含UTF-8識別標記，直接開啟中文方法文檔亦聲明UTF-8。沒有設備／已斷開時不显示舊有效指數；音樂目錄讀取失敗可重試。
 
 ### 只运行前端：Node或静态网站
 
@@ -123,6 +129,7 @@ v0.11將三個入口放到左側，使用等比例畫布呈現時間軌跡。光
 記錄先保留在目前頁面。下載 JSON／CSV 才保存到設備；
 只有在設備頁明確按「上傳」才發送到你配置的 JSON POST 接口。
 回放保留原始樣本間隔與缺值，不會自動補齊。
+CSV使用帶BOM的UTF-8，便於桌面試算表識別中文；程式讀取CSV時使用`utf-8-sig`。JSON保持UTF-8，接受有／無BOM的檔案。
 
 ```sh
 npm test

@@ -8,6 +8,7 @@ data = [(str(project / "index.html"), ".")]
 data += [(str(project / name), name) for name in
          ("src", "neural-worm", "public", "docs")]
 data += [(str(project / "gateway/config.example.json"), "gateway")]
+data += [(str(project / "gateway/build-manifest.json"), "gateway")]
 analysis = Analysis(
     [str(project / "gateway/device_gateway.py")],
     pathex=[str(project / "gateway")], binaries=[], datas=data,

@@ -1,0 +1,5 @@
+{
+  "build": "score-evidence-20261015-v9",
+  "defaultMode": "standalone",
+  "singleInstance": true
+}

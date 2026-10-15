@@ -66,7 +66,7 @@ export function musicPlan(id,timestamp,{origin='manual',ruleId=null}={}){
 }
 export function parsePlanRules(text){
   if(typeof text!=='string'||text.length>65536)throw new Error('規則檔需小於64 KB。');
-  const value=JSON.parse(text);
+  const value=parseUtf8Json(text);
   if(value?.schemaVersion!=='neural-music-plan-rules-v1'||!Array.isArray(value.zones)
     ||value.zones.length<1||value.zones.length>64||typeof value.id!=='string'||!value.id.trim()
     ||typeof value.author!=='string'||!value.author.trim())throw new Error('請匯入帶作者與版本的音樂規則。');
@@ -104,3 +104,4 @@ export function resolvePlan(snapshot,{manualId='gentle',rules=null}={}){
     &&within(zone.relaxation,snapshot.relaxation));
   return zone?musicPlan(zone.planId,snapshot.timestamp,{origin:'imported-control-rule',ruleId:rules.id}):null;
 }
+import {parseUtf8Json} from './json-io.mjs';

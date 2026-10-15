@@ -23,7 +23,7 @@ export function createMusicPrompt(history,{current,now=Date.now(),windowSeconds=
   const ordered=[...new Map(candidates.map(s=>[s.timestamp,s])).values()]
     .sort((a,b)=>a.timestamp-b.timestamp);
   const trace=buildWormTrace(ordered,{now,windowSeconds,space:'eeg',smoothingSeconds:0});
-  const accepted=new Set(trace.points.map(p=>p.timestamp));
+  const accepted=new Set(trace.points.map(p=>p.packetTimestamp??p.timestamp));
   const samples=ordered.filter(p=>accepted.has(p.timestamp));
   if(!samples.length)return null;
   const mean=key=>+(samples.reduce((sum,s)=>sum+s[key],0)/samples.length).toFixed(2);

@@ -17,20 +17,32 @@ export function normalizeSnapshot(input, now = Date.now()) {
     || (finite(input.fieldTimestamps[key]) && now-input.fieldTimestamps[key]*1000>=-5000
         && now-input.fieldTimestamps[key]*1000<=STALE_MS);
   const has = key => Object.hasOwn(eeg, key);
+  const metricOrigin = input.metricOrigin==='thinkgear-esense' ? 'thinkgear-esense' : 'device-index';
   // The core's top-level fields can alias focus_index/relaxation_index. They
   // are ratios, not a calibrated 0–100 score; preserve them separately.
-  const attention = fieldFresh('attention') ? index(has('attention') ? eeg.attention
+  const readIndex=value=>metricOrigin==='thinkgear-esense'&&!Number.isInteger(value)?null:index(value);
+  const attention = fieldFresh('attention') ? readIndex(has('attention') ? eeg.attention
     : has('focus_index') ? null : input.attention) : null;
-  const relaxation = fieldFresh('meditation') ? index(has('meditation') ? eeg.meditation
+  const relaxation = fieldFresh('meditation') ? readIndex(has('meditation') ? eeg.meditation
     : has('relaxation_index') ? null : input.meditation) : null;
-  const metricOrigin = input.metricOrigin==='thinkgear-esense' ? 'thinkgear-esense' : 'device-index';
   // ThinkGear reserves zero for an unavailable eSense computation. Other
   // adapters and the explicit demo can still define valid zero-valued indices.
   const indicesAvailable = metricOrigin!=='thinkgear-esense' || (attention>0 && relaxation>0);
+  const times=input.fieldTimestamps;
+  const statedOriginal=input.originalFieldTimestamps;
+  const originalTimes=statedOriginal&&[statedOriginal.attention,statedOriginal.meditation].every(finite)?
+    statedOriginal:times;
+  const fieldClock=times&&[times.attention,times.meditation].every(finite);
+  const indexTimestamp=fieldClock?Math.max(times.attention,times.meditation)*1000:null;
+  const indexSampleKey=fieldClock?JSON.stringify([originalTimes.attention,originalTimes.meditation]):null;
+  const originalIndexTimestamp=fieldClock&&[originalTimes.attention,originalTimes.meditation].every(finite)?
+    Math.max(originalTimes.attention,originalTimes.meditation)*1000:input.originalTimestamp??timestamp;
   const packets = positive(input.quality?.eegPackets) ?? 0;
-  const poorSignal = positive(eeg.poor_signal ?? eeg.poorSignal);
-  const transportFresh = age >= -5000 && age <= STALE_MS && packets > 0;
-  const signalValid = transportFresh && !(poorSignal !== null && poorSignal > 0);
+  const qualityKey=has('poor_signal')?'poor_signal':'poorSignal',qualityValue=eeg[qualityKey];
+  const poorSignal = fieldFresh(qualityKey)&&Number.isInteger(qualityValue)&&qualityValue>=0&&qualityValue<=200?qualityValue:null;
+  const signalQuality=poorSignal===null?'unknown':poorSignal===0?'good':'poor';
+  const transportFresh = input.transport!=='none' && age >= -5000 && age <= STALE_MS && packets > 0;
+  const signalValid = transportFresh && (metricOrigin==='thinkgear-esense'?poorSignal===0:poorSignal===null||poorSignal===0);
   const bands = Object.fromEntries(['delta', 'theta', 'alpha', 'beta'].map(key => {
     const read=name=>fieldFresh(name)&&fieldFresh(key)?positive(eeg[name]):null;
     const direct = read(`${key}_mean`) ?? read(key);
@@ -38,17 +50,19 @@ export function normalizeSnapshot(input, now = Date.now()) {
     const high = read(`high${key[0].toUpperCase()}${key.slice(1)}`);
     return [key, direct ?? (low !== null && high !== null ? low + high : null)];
   }));
+  const spectralBands=Object.fromEntries(['delta','theta','lowAlpha','highAlpha','lowBeta','highBeta','lowGamma','midGamma']
+    .map(key=>[key,fieldFresh(key)?positive(eeg[key]):null]));
   return {
     timestamp, originalTimestamp: input.originalTimestamp ?? timestamp,
     source: ['device', 'core', 'mock', 'demo', 'replay'].includes(input.source) ? input.source : 'unknown',
     sessionId: typeof input.sessionId === 'string' ? input.sessionId : null,
     transport: input.transport ?? null, connectionEpoch: input.connectionEpoch ?? null,
-    attention, relaxation, bands, packets,
+    attention, relaxation, bands, spectralBands, packets,
     ratios: { focus: positive(eeg.focus_index), relaxation: positive(eeg.relaxation_index) },
     bandUnits: typeof input.bandUnits==='string'&&input.bandUnits.length<=80?input.bandUnits
       :input.source==='demo'?'合成示範相對值':'來源頻段值 · 單位未回報',
-    metricOrigin,
-    transportFresh, signalValid, valid: signalValid && attention !== null && relaxation !== null && indicesAvailable,
+    metricOrigin,indexTimestamp,indexSampleKey,originalIndexTimestamp,
+    poorSignal,signalQuality,transportFresh, signalValid, valid: signalValid && attention !== null && relaxation !== null && indicesAvailable,
     raw: input,
   };
 }
@@ -153,8 +167,8 @@ export function demoSnapshot(attention, relaxation, tick, timestamp = Date.now()
 
 export function parseRecording(text) {
   if (text.length > 20 * 1024 * 1024) throw new Error('記錄大於 20 MB，請先分段。');
-  const parsed = JSON.parse(text);
-  if (parsed.schemaVersion !== 'neural-resonance-recording-v1' || !Array.isArray(parsed.snapshots)
+  const parsed = parseUtf8Json(text);
+  if (!parsed || parsed.schemaVersion !== 'neural-resonance-recording-v1' || !Array.isArray(parsed.snapshots)
     || !parsed.snapshots.length || parsed.snapshots.length > 20000)
     throw new Error('請匯入本控制台導出的記錄（1–20000 個樣本）。');
   let previous = -Infinity;
@@ -165,3 +179,4 @@ export function parseRecording(text) {
   }
   return parsed;
 }
+import {parseUtf8Json} from './json-io.mjs';

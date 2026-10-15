@@ -19,39 +19,45 @@ export function buildWormTrace(history,{now=Date.now(),windowSeconds=60,space='c
   const latest=rows.at(-1);
   const currentIdentity=latest?identity(latest):null;
   const points=[];
-  let last=null,segment=-1,lastPackets=null,buffer=[];
+  let last=null,segment=-1,lastPackets=null,lastIndexKey=null,lastObservedAt=-Infinity,buffer=[];
   for(const p of rows){
-    if(p.timestamp<now-windowSeconds*1000||identity(p)!==currentIdentity){last=null;lastPackets=null;buffer=[];continue;}
+    if(p.timestamp<now-windowSeconds*1000||identity(p)!==currentIdentity){last=null;lastPackets=null;lastIndexKey=null;lastObservedAt=-Infinity;buffer=[];continue;}
     if(!usable(p)){last=null;buffer=[];continue;}
+    const timestamp=p.indexTimestamp??p.timestamp;
+    if(timestamp<now-windowSeconds*1000||timestamp>now)continue;
+    // Raw ADC packets may advance much faster than the device's index fields.
+    if(p.indexSampleKey&&p.indexSampleKey===lastIndexKey)continue;
+    if(timestamp<=lastObservedAt)continue;
     // Hardware counts must advance; transport heartbeats do not create trajectory samples.
-    if(last&&p.timestamp<=last.timestamp)continue;
+    if(last&&timestamp<=last.timestamp)continue;
     if(p.packets!==undefined&&p.packets===lastPackets)continue;
-    const gap=!last||p.timestamp-last.timestamp>STALE_MS;
+    const gap=!last||timestamp-last.timestamp>STALE_MS;
     if(gap){segment++;buffer=[];}
     const music=mapMusic(p);
     const rawX=space==='control'?control127(p.attention)/127:p.attention/100;
     const rawY=space==='control'?control127(p.relaxation)/127:p.relaxation/100;
-    const point={timestamp:p.timestamp,rawX,rawY,x:rawX,y:rawY,segment,
+    const point={timestamp,packetTimestamp:p.timestamp,indexTimestamp:timestamp,rawX,rawY,x:rawX,y:rawY,segment,
       attention:p.attention,relaxation:p.relaxation,
       controls127:{attention:control127(p.attention),relaxation:control127(p.relaxation)},
       source:p.source,sessionId:p.sessionId,connectionEpoch:p.connectionEpoch,
+      amplitude:p.amplitude??null,originalTimestamp:p.originalIndexTimestamp??p.originalTimestamp??p.timestamp,
       musicalParameters:music.parameters};
     buffer.push(point);
     if(smoothingSeconds>0){
       const sigma=smoothingSeconds*1000/2;
-      buffer=buffer.filter(q=>p.timestamp-q.timestamp<=3*sigma);
+      buffer=buffer.filter(q=>timestamp-q.timestamp<=3*sigma);
       // Time support weights keep high-rate packets from dominating low-rate intervals.
       let total=0,x=0,y=0;
       for(let j=0;j<buffer.length;j++){
         const q=buffer[j],next=buffer[j+1];
         const support=next?Math.max(1,next.timestamp-q.timestamp)
           :Math.max(1,j?q.timestamp-buffer[j-1].timestamp:1);
-        const weight=support*Math.exp(-.5*((p.timestamp-q.timestamp)/sigma)**2);
+        const weight=support*Math.exp(-.5*((timestamp-q.timestamp)/sigma)**2);
         total+=weight;x+=q.rawX*weight;y+=q.rawY*weight;
       }
       point.x=x/total;point.y=y/total;
     }
-    points.push(point);last=p;lastPackets=p.packets??null;
+    points.push(point);last=point;lastPackets=p.packets??null;lastIndexKey=p.indexSampleKey??null;lastObservedAt=timestamp;
   }
   return {version:WORM_VERSION,space,windowSeconds,smoothingSeconds,points,
     currentIdentity,source:latest?.source??null,

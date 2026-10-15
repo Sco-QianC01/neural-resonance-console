@@ -4,7 +4,7 @@ import {mapMusic} from '../src/music.mjs';
 import {networkStates,networkGeometry} from '../src/neural-networks.mjs';
 import {createMusicPrompt} from '../src/prompt.mjs';
 import {normalizeSnapshot,parseRecording} from '../src/eeg.mjs';
-import {captureSnapshot,replayPacket,recordingCsv} from '../src/recording.mjs';
+import {captureSnapshot,replayPacket,recordingCsv,spreadsheetCsv} from '../src/recording.mjs';
 
 const sample={valid:true,timestamp:1000,attention:65,relaxation:45,
   source:'device',sessionId:'test',transport:'usb',connectionEpoch:1,packets:1};
@@ -15,6 +15,16 @@ const observed=()=>({...sample,musicFeatures:{
     tempo:{value:80,unit:'BPM',source},
     dynamics:{value:-18,unit:'dBFS',source:{...source,method:'RMS amplitude converted to dBFS.'}},
   }}});
+
+test('spreadsheet exports identify UTF-8 and preserve Chinese provenance without altering CSV values',()=>{
+  const packet={schemaVersion:'neural-resonance-live-v1',source:'device',ts:1,
+    quality:{eegPackets:1},eeg:{attention:65,meditation:45},rawUnit:'來源原始值',
+    creativeIntent:{title:'舒緩、沉靜'}};
+  const csv=spreadsheetCsv([packet]);
+  assert.equal(csv.codePointAt(0),0xfeff);
+  assert.equal(csv.slice(1),recordingCsv([packet]));
+  assert.match(csv,/來源原始值/);assert.match(csv,/舒緩、沉靜/);
+});
 
 test('EEG indices alone never produce ten invented music measurements or mesh nodes',()=>{
   const mapping=mapMusic(sample);

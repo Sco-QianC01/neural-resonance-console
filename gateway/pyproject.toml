@@ -5,7 +5,8 @@ description = "Portable local EEG acquisition and web console"
 requires-python = ">=3.11,<3.14"
 dependencies = [
   "aiohttp==3.14.4",
-  "bleak==3.0.2",
+  "bleak==2.1.1; sys_platform == 'win32'",
+  "bleak==3.0.2; sys_platform != 'win32'",
   "pyserial==3.5",
 ]
 

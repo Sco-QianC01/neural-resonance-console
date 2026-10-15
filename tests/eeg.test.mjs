@@ -3,6 +3,19 @@ import assert from 'node:assert/strict';
 import { SCHEMA, StreamState, LiveConnection, normalizeSnapshot, demoSnapshot, parseRecording } from '../src/eeg.mjs';
 const now=1791266400000;
 const packet=(overrides={})=>({...demoSnapshot(60,70,10,now),source:'core',...overrides});
+test('native ThinkGear needs fresh known contact quality and integer eSense values',()=>{
+  const base=packet({metricOrigin:'thinkgear-esense',eeg:{attention:60,meditation:70,poor_signal:0}});
+  assert.equal(normalizeSnapshot(base,now).valid,true);
+  for(const input of [
+    {...base,eeg:{attention:60,meditation:70}},
+    {...base,fieldTimestamps:{poor_signal:(now-4000)/1000}},
+    {...base,eeg:{...base.eeg,poor_signal:201}},
+    {...base,eeg:{...base.eeg,poor_signal:-1}},
+    {...base,eeg:{...base.eeg,attention:60.5}},
+  ])assert.equal(normalizeSnapshot(input,now).valid,false);
+  const stale=normalizeSnapshot({...base,fieldTimestamps:{poor_signal:(now-4000)/1000}},now);
+  assert.equal(stale.poorSignal,null);assert.equal(stale.signalQuality,'unknown');
+});
 
 test('core schema preserves native scores, bands, units and source',()=>{
   const result=normalizeSnapshot(packet(),now);
@@ -28,6 +41,17 @@ test('stale, future, zero-packet and poor-contact data are invalid',()=>{
     packet({quality:{eegPackets:0}}),packet({eeg:{attention:60,meditation:70,poorSignal:10}})]){
     assert.equal(normalizeSnapshot(p,now).valid,false);
   }
+});
+test('an explicit disconnected transport cannot keep old indices, bands or interaction valid',()=>{
+  const result=normalizeSnapshot(packet({transport:'none'}),now);
+  assert.equal(result.attention,60,'native fields remain preserved');
+  assert.equal(result.transportFresh,false);
+  assert.equal(result.signalValid,false);
+  assert.equal(result.valid,false);
+});
+test('UTF-8 BOM recordings import without changing values, units or timestamps',()=>{
+  const input={schemaVersion:'neural-resonance-recording-v1',snapshots:[packet()]};
+  assert.deepEqual(parseRecording('\ufeff'+JSON.stringify(input)),input);
 });
 test('fresh heartbeats with unchanged hardware counts time out',()=>{
   const state=new StreamState(); state.accept(packet(),now);

@@ -1,0 +1,27 @@
+/** Equal physical axis scales; layout never changes the source coordinates. */
+export function plotBox(width,height){
+  const leftMargin=width<420?43:58,rightMargin=22,topMargin=28,bottomMargin=48;
+  const size=Math.max(1,Math.min(width-leftMargin-rightMargin,height-topMargin-bottomMargin));
+  return {left:leftMargin+(width-leftMargin-rightMargin-size)/2,
+    top:topMargin+(height-topMargin-bottomMargin-size)/2,size};
+}
+export function plotPosition(point,box,ranges={x:[0,100],y:[0,100]}){
+  if(![point?.attention,point?.relaxation].every(n=>Number.isFinite(n)&&n>=0&&n<=100))return null;
+  const x=(point.attention-ranges.x[0])/(ranges.x[1]-ranges.x[0]);
+  const y=(point.relaxation-ranges.y[0])/(ranges.y[1]-ranges.y[0]);
+  return {x:box.left+x*box.size,y:box.top+(1-y)*box.size};
+}
+/** Wrap by measured output width, preserving every Unicode code point. */
+export function wrapText(text,width,measure){
+  if(!Number.isFinite(width)||width<=0||typeof measure!=='function')throw new TypeError('無效的文字寬度');
+  const lines=[];
+  for(const paragraph of String(text).split(/\r?\n/)){
+    let line='';
+    for(const char of Array.from(paragraph)){
+      if(line&&measure(line+char)>width){lines.push(line);line=char;}
+      else line+=char;
+    }
+    lines.push(line);
+  }
+  return lines;
+}

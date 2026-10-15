@@ -1,7 +1,7 @@
 {
   "schemaVersion": "neural-gateway-config-v1",
   "port": 8767,
-  "reuseLocalCore": true,
+  "reuseLocalCore": false,
   "eeg": {
     "enabled": true, "vid": 1155, "pid": 22336,
     "serialNumber": "", "location": "", "baud": 115200,

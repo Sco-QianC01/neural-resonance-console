@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="source-sha256" content="8b3126e49d67b06d21b215b4e8972b83e45ba1ad178c5a97de547afc53b833c9">
+<title>音高、旋律與記譜時值 · 神經共振</title>
+<link rel="stylesheet" href="../neural-worm/style.css">
+<link rel="stylesheet" href="./method-documents.css"></head>
+<body class="method-document"><header class="document-header">
+<a href="../#worm">← 神經共振</a><a href="./SCORE-EVIDENCE.md" download>下載原文 Markdown</a>
+</header><main><article><h1>音高、旋律與記譜時值</h1>
+<h2>資料範圍</h2>
+<p>音符視圖使用肖邦 Op.27 No.2 第1–8小節，6/8拍，上譜表的單旋律。不是音訊轉譜結果，也不是全曲逐音分析。Op.9 No.2 和第9小節以後仍缺逐音資料。</p>
+<p>來源為 <strong>First Editions of Fryderyk Chopin&#x27;s Music</strong>，Copyright 2017–2021 The Fryderyk Chopin Institute (<a href="https://nifc.pl" target="_blank" rel="noopener">https://nifc.pl</a>)。網站 <a href="https://chopinscores.org，數字譜庫" target="_blank" rel="noopener">https://chopinscores.org，數字譜庫</a> <a href="https://github.com/pl-wnifc/humdrum-chopin-first-editions，授權" target="_blank" rel="noopener">https://github.com/pl-wnifc/humdrum-chopin-first-editions，授權</a> <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">https://creativecommons.org/licenses/by/4.0/</a> 。</p>
+<p>固定提交 <code>95dfb105c1669c72d10b04088566154f12d3dc1c</code>，檔案 <code>027-1-Sm-002.krn</code>；M. Schlesinger, Paris，PL-Wbfc 3744/n，RISM 1001022558。來源原檔 SHA256：</p>
+<pre><code class="language-text">a3df083ed687d752b411df97ee2448b9f261d537c101c574ed6e18cf62eec60a
+</code></pre>
+<p>本系統擷取第1–8小節、指定上譜表、合併延音續音、分列裝飾音並計算描述量。原譜的和弦、多聲部拆合、局部轉調及後續小節不在此擷取器範圍，遇到未支持結構即拒絕，不按最高音猜旋律。</p>
+<h2>從源譜到事件</h2>
+<p>每個事件保留原譜行號和 **kern token、音名階級與升降記號、八度、小節、起點、記譜時值。所有起點和時值以分子／分母保存，單位為四分音符。</p>
+<p>Humdrum **kern 的倒數記譜時值以 <code>4 / denominator</code> 換算四分音符單位；附點乘 <code>1 + 1/2 + …</code>。實際音名依token記譜，不以調號省略已編碼的升降音。規格參見 Humdrum 官方 **kern 解釋 <a href="https://www.humdrum.org/rep/kern/" target="_blank" rel="noopener">https://www.humdrum.org/rep/kern/</a> 。</p>
+<p>第1小節上譜表為休止。第2小節為 F5、E♭5、D♭5、F4，時值為 3/2、1/2、3/4、1/4 個四分音符；前兩個音程是二度級進，第三個是下行六度。第3小節的 A♭4 延音合併為2個四分音符，不重計起音。第6小節休止後重新起音，不計算跨休止音程。第8小節6個裝飾音沒有實測秒數或時長，單列並排除常規時值／密度統計。</p>
+<h2>透明分量</h2>
+<ol>
+<li><strong>音高</strong>：MIDI 編號 <code>12 × (octave + 1) + 自然音級半音 + alter</code>，C4=60。保留原音名拼寫，異名同音不抹去。</li>
+<li><strong>音階歸屬</strong>：只比對來源明示降D大調的 D♭、E♭、F、G♭、A♭、B♭、C 音名拼寫。這是固定參照，不是局部調性辨識；音階外音不是錯音，也不代表和聲不協和、情緒或品質。</li>
+<li><strong>旋律音程</strong>：保存相鄰常規起音的有向半音差、音名級數。完全同音、同字母半音變化、二度級進、三度及以上跳進分開。休止斷鏈；裝飾音未入鏈。相鄰音程描述的是旋律橫向關係，不能由二度音程直接推定同時和聲不協和。</li>
+<li><strong>起音密度</strong>：每小節常規旋律起音數／3個四分音符。這是譜面密度，不是每秒事件率。</li>
+<li><strong>記譜時值變化</strong>：相鄰常規起音 <code>log₂(duration_current / duration_previous)</code>，可正可負；沒有跨休止的比。保存逐事件數值和時值直方圖，不自定“突然”的閾值。</li>
+<li><strong>每小節統計</strong>：起音數、音階外起音數／起音數、級進數／有效音程數、跳進數／有效音程數、休止時值／3、時值分布。跨小節的音程歸入後音小節。分母為0顯示0/0，代表沒有可用音程，不能讀成0%。</li>
+</ol>
+<p>這些分量沒有合成“線性聚焦度”或“非線性離散度”。兩個構念的運算窗口、權重、閾值及效度尚未確定；也沒有定義 <code>Y=100−X</code>。原速度結構頁的R²和速度log₂比繼續是速度描述量，沒有改名冒充新構念。</p>
+<h2>小節層與播放定位</h2>
+<p>音符視圖 X=音高MIDI，Y=記譜時值（四分音符），深度=整數小節。第1–8小節各一層；小節間虛線只表示譜面順序，休止處斷開。圓點／菱形區分固定參照音階內／外音，亮度區分播放進程；不編碼生理狀態或聲學穿透。</p>
+<p>僅對同作品、完整錄音、來源明示 <code>kind=beats, bpb=6, bar0=1, meter=6/8</code> 且有至少49個遞增拍點的版本提供時間定位。每八分音符為1個來源拍，每小節6拍；四分音符為2個來源拍。令音符的絕對記譜位置為Q，<code>j=floor(2Q)</code>、<code>f=2Q−j</code>：</p>
+<pre><code class="language-text">t(Q) = t[j] + f × (t[j+1] − t[j])
+</code></pre>
+<p>整數拍位直接取該來源拍點；小節時長隨實際標注變化，不用固定秒數。完整保存原始拍點、標注ID、來源CSV哈希、譜面原檔哈希、事件、分量與方法。第8小節末後不外推，切換作品／無匹配標注時不沿用舊時間定位。</p>
+<p>此法依賴原站 <code>bar0</code> 的小節對應，<strong>沒有人工逐音核對音訊起音，也沒有確認所有演奏與這一初版逐音相同</strong>。版本差異、裝飾、rubato、拍內不等時及原始拍點誤差可造成定位偏差。因此圖中選音和估計秒數是譜面導覽，不是已校準的逐音演奏測量。記譜時值更不是實際聲音長度，延音踏板和實際音量未測量。</p>
+<h2>力度、腦電與缺失</h2>
+<p>只逐條展示譜中顯式 <code>p</code>、<code>fz</code> 等標記及其行號。<code>fz</code> 是局部強調，不自動延續成全段強度。沒有把符號換算成dB、SPL或音訊振幅。舊演奏視圖的來源相對振幅0–100保持獨立。</p>
+<p>設備 Attention／Meditation 仍是原廠原生指數。未用它們填補音高、調性、旋律、力度或節奏；當前特徵也未建立與EEG的因果、耦合或自主神經證據。</p>
+<h2>復算與驗證</h2>
+<p>執行 <code>python3 tools/build-chopin-score.py</code>，會核對固定原檔SHA256並重建JSON；不下載新版本。擷取器使用精確分數驗證每小節3個四分音符完整覆蓋，拒絕聲部變化、和弦或超出範圍的語法。JavaScript測試覆蓋拼寫、同音、級進／跳進、延音、休止、裝飾音、密度、時值變化、變速拍點、越界和不相容標注。</p>
+<p>JSON匯出保留 <code>noteOnsetsMeasured=false</code>、<code>editionMatchVerified=false</code>、兩個未定義構念為null。軟體回歸、瀏覽器播放及圖形定位不等於實體設備校準或音樂心理效度驗證。</p>
+</article></main></body></html>

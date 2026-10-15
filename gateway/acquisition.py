@@ -6,29 +6,46 @@ import time
 import uuid
 
 
-def choose_port(ports, profile):
-    """Unique VID/PID identity; never select a recycled name or guess ambiguity."""
+def unique_ports(ports):
+    """macOS's cu/tty aliases name the same serial device, not two sensors."""
+    names = {p.device for p in ports}
+    return [p for p in ports if not (p.device.startswith("/dev/tty.")
+            and "/dev/cu." + p.device[len("/dev/tty."):] in names)]
+
+
+def serial_selection(ports, profile):
     if not profile.get("enabled", True):
-        return ""
+        return "", "disabled", 0
     if profile.get("vid") is None or profile.get("pid") is None:
-        return ""
+        return "", "profile-unconfigured", 0
     matches = []
-    for port in ports:
+    model_count = 0
+    for port in unique_ports(ports):
         if (port.vid, port.pid) != (profile["vid"], profile["pid"]):
             continue
+        model_count += 1
         if profile.get("serialNumber") and port.serial_number != profile["serialNumber"]:
             continue
         if profile.get("location") and getattr(port, "location", "") != profile["location"]:
             continue
         matches.append(port.device)
-    return matches[0] if len(matches) == 1 else ""
+    if len(matches) == 1:
+        return matches[0], "selected", 1
+    if len(matches) > 1:
+        return "", "ambiguous-devices", len(matches)
+    return "", ("saved-device-missing" if model_count else "device-not-found"), 0
+
+
+def choose_port(ports, profile):
+    """Unique VID/PID identity; never select a recycled name or guess ambiguity."""
+    return serial_selection(ports, profile)[0]
 
 
 def inventory(ports):
     return [{"port": p.device, "description": p.description,
              "vid": p.vid, "pid": p.pid, "serialNumber": p.serial_number or "",
              "location": getattr(p, "location", "") or ""}
-            for p in ports]
+            for p in unique_ports(ports)]
 
 def ble_candidates(found, profile):
     """Prefer an explicitly saved address/UUID; names only identify unique defaults."""
@@ -56,6 +73,8 @@ class Stream:
         self.fields, self.field_times = {}, {}
         self.raw = deque(maxlen=8192)
         self.sequence = 0
+        self.protocol_errors = 0
+        self.raw_break_pending = False
         self.frames = 0
         self.last_eeg = None
         self.last_usb = None
@@ -88,10 +107,14 @@ class Stream:
         self.raw.clear()
         self.last_eeg = None
         self.last_usb = None
+        self.protocol_errors = 0
+        self.raw_break_pending = False
 
-    def accept(self, source, fields, raw, now=None, connection=None):
+    def accept(self, source, fields, raw, now=None, connection=None, protocol_errors=None):
         now = time.time() if now is None else now
         if not fields and not raw:
+            return False
+        if protocol_errors is not None and (type(protocol_errors) is not int or protocol_errors < 0):
             return False
         with self.lock:
             if connection is not None and self.connections.get(source) != connection:
@@ -106,6 +129,14 @@ class Stream:
                 self.fields.clear()
                 self.field_times.clear()
                 self.raw.clear()
+                self.protocol_errors = 0
+                self.raw_break_pending = False
+            if protocol_errors is not None:
+                if protocol_errors < self.protocol_errors:
+                    return False
+                if protocol_errors > self.protocol_errors:
+                    self.raw_break_pending = True
+                self.protocol_errors = protocol_errors
             self.frames += 1
             self.last_eeg = now
             if source == "usb":
@@ -114,7 +145,10 @@ class Stream:
             self.field_times.update({key: now for key in fields})
             for value in raw:
                 self.sequence += 1
-                self.raw.append((self.sequence, value))
+                self.raw.append((self.sequence, value, self.raw_break_pending))
+                self.raw_break_pending = False
+            if raw:
+                self.field_times["raw"] = now
             return True
 
     def sensor(self, key, value, now=None):
@@ -137,19 +171,22 @@ class Stream:
             fresh = self.last_eeg is not None and 0 <= now - self.last_eeg <= 3
             eeg = {key: value for key, value in self.fields.items()
                    if 0 <= now - self.field_times[key] <= 3}
-            rows = [(seq, value) for seq, value in self.raw if seq > cursor] if fresh else []
+            rows = [row for row in self.raw if row[0] > cursor] if fresh else []
             packet = {
                 "schemaVersion": "neural-resonance-live-v1", "source": "device",
                 "ts": now, "transport": self.source if fresh else "none",
                 "connectionEpoch": self.epoch, "sampleRate": self.sample_rate,
                 "sessionId": self.session_id,
                 "rawSequence": self.sequence, "rawUnit": "ADC counts",
-                "rawEegSamples": [value for _, value in rows],
+                "bandUnits": "ThinkGear relative power",
+                "rawEegSamples": [row[1] for row in rows],
+                "rawBreaks": [i for i, row in enumerate(rows) if row[2]],
                 "rawDropped": max(0, rows[0][0] - cursor - 1) if rows else 0,
                 "lastSampleAt": self.last_eeg, "metricOrigin": "thinkgear-esense",
                 "fieldTimestamps": dict(self.field_times), "eeg": eeg,
                 "sensorTimestamps": {key: state["at"] for key, state in self.sensors.items()},
                 "quality": {"eegPackets": self.frames,
+                            "protocolErrors": self.protocol_errors,
                             "spo2Samples": self.sensors["spo2"]["count"],
                             "prSamples": self.sensors["pr"]["count"],
                             "gsrSamples": self.sensors["gsr"]["count"]},

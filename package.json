@@ -5,10 +5,12 @@
   "license": "MIT",
   "type": "module",
   "description": "Independent EEG interaction console for music research",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node tools/serve.mjs",
-    "test": "node --test tests/eeg.test.mjs tests/music.test.mjs tests/sensors.test.mjs tests/standalone.test.mjs tests/device.test.mjs tests/prompt.test.mjs tests/connection.test.mjs tests/gateway-settings.test.mjs tests/worm.test.mjs tests/evidence.test.mjs tests/music-plan.test.mjs tests/worm-render.test.mjs tests/audit.test.mjs",
+    "test": "node --test tests/eeg.test.mjs tests/music.test.mjs tests/sensors.test.mjs tests/standalone.test.mjs tests/device.test.mjs tests/prompt.test.mjs tests/connection.test.mjs tests/gateway-settings.test.mjs tests/worm.test.mjs tests/evidence.test.mjs tests/music-plan.test.mjs tests/worm-render.test.mjs tests/audit.test.mjs tests/performance.test.mjs tests/tonal.test.mjs tests/amplitude.test.mjs tests/fusion.test.mjs tests/temporal.test.mjs tests/listening-experiment.test.mjs tests/teacher-revision.test.mjs tests/score-evidence.test.mjs",
     "build": "node tools/build.mjs"
   }
 }

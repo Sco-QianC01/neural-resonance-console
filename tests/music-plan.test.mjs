@@ -35,6 +35,13 @@ test('explicit imported regions have unambiguous boundaries and no inferred defa
   assert.equal(resolvePlan(p(60),{rules:sparse}),null);
   assert.throws(()=>parsePlanRules(JSON.stringify({...rules,zones:[rules.zones[0],rules.zones[0]]})));
 });
+test('UTF-8 BOM rules preserve Chinese author and region selection',()=>{
+  const input={schemaVersion:'neural-music-plan-rules-v1',id:'bom-test',author:'音樂研究者',
+    zones:[{attention:[0,100],relaxation:[0,100],planId:'gentle'}]};
+  const rules=parsePlanRules('\ufeff'+JSON.stringify(input));
+  assert.equal(rules.author,'音樂研究者');
+  assert.equal(resolvePlan({valid:true,timestamp:1,attention:50,relaxation:50},{rules}).id,'gentle');
+});
 test('summary keeps creative intentions separate from source-gated music measurements',()=>{
   const snapshot={valid:true,timestamp:1000,attention:60,relaxation:40,
     source:'device',sessionId:'test',packets:1};
