@@ -2,7 +2,7 @@ import {PlanarScene} from './planar-scene.mjs';
 import {plotBox} from './planar-model.mjs';
 import {lightEncoding} from './amplitude-model.mjs';
 import {drawTempoProfile} from './tempo-profile.mjs';
-import {timeToBar,timeToScorePosition,tempoSummary,barTicks} from './fusion-model.mjs';
+import {timeToBar,timeToScorePosition,tempoSummary,barTicks,barLayerWindow,musicExtent} from './fusion-model.mjs';
 const format=n=>Number(n.toFixed(1)).toString();
 const normalize=(n,r)=>(n-r[0])/(r[1]-r[0]);
 
@@ -63,8 +63,19 @@ export class ComparisonScene extends PlanarScene{
     const structural=s.layer==='structure',timeline=!['worm','structure'].includes(s.layer),score=timeline&&s.model.known;
     const range=s.layer==='rhythm'?s.ioiRange:s.layer==='dynamics'?[0,100]:s.tempoRange;
     const summary=tempoSummary(s.model.raw);
-    const xr=structural?[0,1]:timeline?(score?[summary.firstBar,summary.layerEnd??summary.lastBar+1]:timeRange):s.tempoRange;
-    const yr=structural?[0,Math.max(.1,...s.model.structure.map(p=>p.jump??0))]:timeline?range:[0,100];
+    const layers=!timeline?barLayerWindow(s.model.raw,s.time,s.barWindow??8):null;
+    const mp=(structural?s.model.structure:s.points).filter(p=>p.t<=s.time
+      &&(timeline?(score||p.t>=s.time-12):layers?.bars.includes(p.bar)));
+    const current=structural?[...s.model.structure].reverse().find(p=>p.t<=s.time):s.current;
+    if(current&&(!mp.length||mp.at(-1).t<current.t))mp.push(current);
+    const visibleTempo=musicExtent(mp.map(p=>({tempo:p.tempo})));
+    const levelValues=mp.map(p=>p.level).filter(Number.isFinite);
+    const levelLo=levelValues.length?Math.min(...levelValues):0;
+    const levelHi=levelValues.length?Math.max(...levelValues):100;
+    const levelPad=Math.max(1,(levelHi-levelLo)*.2);
+    const visibleLevel=[Math.max(0,levelLo-levelPad),Math.min(100,levelHi+levelPad)];
+    const xr=structural?[0,1]:timeline?(score?[summary.firstBar,summary.layerEnd??summary.lastBar+1]:timeRange):visibleTempo;
+    const yr=structural?[0,Math.max(.1,...s.model.structure.map(p=>p.jump??0))]:timeline?range:visibleLevel;
     const project=(p,kind='music',key=null)=>{
       let x,y;
       if(kind==='eeg'){
@@ -93,9 +104,6 @@ export class ComparisonScene extends PlanarScene{
       }
       ctx.restore();
     }
-    const mp=(structural?s.model.structure:s.points).filter(p=>p.t<=s.time&&(score||p.t>=s.time-12));
-    const current=structural?[...s.model.structure].reverse().find(p=>p.t<=s.time):s.current;
-    if(current&&(!mp.length||mp.at(-1).t<current.t))mp.push(current);
     this.hits=mp.filter(p=>p.pickable!==false).map(point=>({point,...project(point)})).filter(hit=>Number.isFinite(hit.x)&&hit.x>=left&&hit.x<=right&&hit.y>=top&&hit.y<=bottom);
     const ep=s.paired.filter(p=>p.t<=s.time&&p.t>=s.time-12);
     const line=(points,color,kind,key=null,dashed=false)=>{
@@ -104,12 +112,30 @@ export class ComparisonScene extends PlanarScene{
       for(let i=1;i<points.length;i++){
         const a=project(points[i-1],kind,key),b=project(points[i],kind,key);
         if(!a||!b||points[i].segment!==points[i-1].segment||points[i].run!==points[i-1].run)continue;
-        ctx.globalAlpha=.18+.7*i/points.length;ctx.lineWidth=1.4;
+        ctx.globalAlpha=timeline?.18+.7*i/points.length:.55+.45*i/points.length;
+        ctx.lineWidth=timeline?1.4:2.8;
         ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
       }
       ctx.restore();
     };
     line(mp,music,'music');
+    if(!timeline){
+      const step=Math.max(1,Math.ceil(mp.length/90));
+      ctx.save();ctx.beginPath();ctx.rect(left,top,size,size);ctx.clip();
+      for(let i=0;i<mp.length;i+=step){
+        const p=project(mp[i]);if(!p)continue;
+        ctx.globalAlpha=.35+.55*i/Math.max(1,mp.length-1);ctx.fillStyle=music;
+        ctx.beginPath();ctx.arc(p.x,p.y,2.2,0,Math.PI*2);ctx.fill();
+      }
+      ctx.restore();ctx.globalAlpha=1;
+      let previousBar=null;
+      for(const point of mp){
+        if(point.bar===previousBar||!Number.isInteger(point.bar))continue;
+        previousBar=point.bar;const p=project(point);if(!p)continue;
+        ctx.fillStyle=theme.muted;ctx.font='10px ui-monospace,Consolas,monospace';ctx.textAlign='left';
+        ctx.fillText(String(point.bar),Math.min(right-18,p.x+7),Math.max(top+12,p.y-7));
+      }
+    }
     if(s.overlay&&s.layer==='tempo')line(mp,'#a68e76','music','level',true);
     if(s.overlay){
       line(ep,eeg,'eeg',timeline?'attention':null);
@@ -124,7 +150,9 @@ export class ComparisonScene extends PlanarScene{
       const grad=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,halo||1);
       grad.addColorStop(0,color);grad.addColorStop(1,theme.background);
       ctx.globalAlpha=.3;ctx.fillStyle=grad;ctx.fillRect(p.x-halo,p.y-halo,halo*2,halo*2);
-      ctx.globalAlpha=1;ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,3.5,0,Math.PI*2);ctx.fill();ctx.restore();
+      ctx.globalAlpha=1;ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,timeline?3.5:6,0,Math.PI*2);ctx.fill();
+      if(!timeline){ctx.strokeStyle=theme.text;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(p.x,p.y,10,0,Math.PI*2);ctx.stroke();}
+      ctx.restore();
     };
     head(current,music,'music');
     if(s.overlay&&s.layer==='tempo')head(s.current,'#a68e76','music','level');

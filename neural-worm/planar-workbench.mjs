@@ -329,6 +329,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
   };
   for(const button of host.querySelectorAll('button[data-layer]'))button.onclick=()=>{
     layer=button.dataset.layer;
+    if(layer==='worm'){space='plane';$('space').value=space;}
     host.querySelectorAll('button[data-layer]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));render();
   };
   $('case').onchange=()=>prepareCase($('case').value);
@@ -389,8 +390,8 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     }
     const eegKey=host.querySelector('.comparison-key .eeg-key');
     eegKey.hidden=visualMode!=='overlay';eegKey.textContent=layer==='worm'?'腦電 · 上軸關注／右軸放鬆':'腦電 · 關注（實線）／放鬆（虛線）';
-    host.querySelector('.comparison-key .music-key').textContent=layer==='structure'?'速度 · 線性代理 × 變幅代理 × 小節':layer==='worm'?'音樂 · 速度 × 相對振幅 × 小節':profile?'音樂 · 原始拍點／高斯顯示／相對振幅灰帶':layer==='rhythm'?'音樂 · 拍點間隔':layer==='dynamics'?'音樂 · 相對振幅 · 來源 0–100':'音樂 · 速度';
-    $('bar-window-label').hidden=space!=='time'||!['worm','structure'].includes(layer);
+    host.querySelector('.comparison-key .music-key').textContent=layer==='structure'?'速度 · 線性代理 × 變幅代理 × 小節':layer==='worm'?'音樂 · 速度 × 相對振幅 · 小節標記':profile?'音樂 · 原始拍點／高斯顯示／相對振幅灰帶':layer==='rhythm'?'音樂 · 拍點間隔':layer==='dynamics'?'音樂 · 相對振幅 · 來源 0–100':'音樂 · 速度';
+    $('bar-window-label').hidden=!['worm','structure'].includes(layer);
     scoreView.update(recordingData,t);
     if(layer==='notes'){
       action('export').disabled=host.querySelector('[data-score-export]').disabled;
@@ -447,6 +448,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     scoreView.setVisible(notes);
     host.querySelector('.scene-host').hidden=notes;
     $('space').options[0].textContent=musical?'小節分層':'時間方盒';
+    $('space').options[1].textContent=musical?'二維蠕蟲':'二維投影';
     $('profile-caption').hidden=!musical||layer!=='profile';
     host.querySelector('.music-player').hidden=!musical&&!recordingData;
     $('space').disabled=musical&&!['worm','structure'].includes(layer);host.querySelector('.time-view-hint').hidden=space!=='time'||musical&&!['worm','structure'].includes(layer);
