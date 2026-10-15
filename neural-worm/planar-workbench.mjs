@@ -21,7 +21,7 @@ const icon=name=>`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" st
 const sources={demo:'合成示範',replay:'記錄回放',device:'設備資料',core:'橋接資料',mock:'外部模擬',unknown:'外部接口'};
 export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{},onReplay=()=>{}}={}){
   let latest=null,held=null,frozen=false,cursor=null,selectedElement=null,signature='',reference=100,exportContext=null;
-  let stage='music',visualMode='music',space='time',scale=50,scaleAnchor=null,cases=null,recordingData=null,musicModel=null,layer='notes';
+  let stage='music',visualMode='music',space='time',wormSpace='plane',scale=50,scaleAnchor=null,cases=null,recordingData=null,musicModel=null,layer='notes';
   let paired=[],run=0,startedAt=Infinity,lastPairKey=null,sourceIdentity='',animation=0,lastPaint=0;
   const models=new Map();let versionPlots=[],versionWork=null,casesLoading=null;
   let curation=null;
@@ -48,7 +48,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
         <dl class="planar-values"><dt>關注指數</dt><dd data-role="attention">—</dd><dt>放鬆指數</dt><dd data-role="relaxation">—</dd><dt>振幅 RMS</dt><dd data-role="amplitude">—</dd></dl>
         <span class="planar-unit" data-role="amplitude-unit"></span>
         <p class="planar-state" data-role="state" role="status">等待有效資料</p>
-        <label class="planar-window">視圖<select data-role="space" aria-label="神經響應視圖"><option value="time">時間方盒</option><option value="plane">二維投影</option></select></label><small class="time-view-hint">拖動轉向 · Home 重置</small><label class="planar-window">窗口<select data-role="window" aria-label="觀察窗口"><option value="60">60 秒</option><option value="30">30 秒</option><option value="10">10 秒</option></select></label>
+        <label class="planar-window">視圖<select data-role="space" aria-label="神經響應視圖"><option value="time">三維時間方盒</option><option value="plane">二維投影</option></select></label><small class="time-view-hint">拖動旋轉 · 方向鍵微調 · Home 重置</small><label class="planar-window">窗口<select data-role="window" aria-label="觀察窗口"><option value="60">60 秒</option><option value="30">30 秒</option><option value="10">10 秒</option></select></label>
         <label class="planar-window planar-scale">觀察尺度<select data-role="scale" aria-label="腦電觀察尺度"><option value="100">全域 · 0–100</option><option value="50" selected>精細 · 50點</option><option value="25">細微 · 25點</option></select></label>
         <small class="scale-note" data-role="scale-note">坐標窗口，未改變原生指數</small><small class="acquisition-details" data-role="acquisition-details"></small>
         <section class="reference-readouts" hidden aria-label="音樂原始觀測">
@@ -63,7 +63,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
         <div class="planar-replay" hidden><label class="replay-file-label">匯入記錄<input data-role="file" type="file" accept=".json"></label><button data-action="replay">播放記錄</button></div>
         <section class="planar-music" hidden aria-label="來源聲明的音樂觀測"><h3 data-role="music-title"></h3><strong data-role="music-value"></strong><small data-role="music-unit"></small><details><summary>來源</summary><p data-role="music-method"></p><span data-role="music-source"></span><p>來源聲明，未獨立驗證。</p></details></section>
       </section>
-      <section class="research-plot" aria-label="觀測坐標"><div class="music-layer-tabs" role="group" aria-label="音樂可視化" hidden>${[['notes','音高與旋律'],['profile','速度曲線'],['tempo','逐拍速度'],['dynamics','相對振幅'],['rhythm','拍點間隔'],['worm','演奏蠕蟲'],['structure','速度結構']].map(([key,label])=>`<button data-layer="${key}" aria-pressed="${key==='notes'}">${label}</button>`).join('')}<label class="bar-window" data-role="bar-window-label">小節範圍<select data-role="bar-window" aria-label="可見小節層數"><option value="8">8 小節</option><option value="16">16 小節</option><option value="0">全曲</option></select></label></div><p class="profile-caption" data-role="profile-caption" hidden></p><div class="score-evidence" hidden></div><div class="scene-host"></div><p class="comparison-key" hidden><span class="eeg-key">腦電 · 關注 × 放鬆</span><span class="music-key">音樂 · 速度 × 相對振幅 × 小節</span><span data-role="pair-status"></span></p></section>
+      <section class="research-plot" aria-label="觀測坐標"><div class="music-layer-tabs" role="group" aria-label="音樂可視化" hidden>${[['notes','音高與旋律'],['profile','速度曲線'],['tempo','逐拍速度'],['dynamics','相對振幅'],['rhythm','拍點間隔'],['worm','演奏蠕蟲'],['structure','速度結構']].map(([key,label])=>`<button data-layer="${key}" aria-pressed="${key==='notes'}">${label}</button>`).join('')}<label class="bar-window" data-role="bar-window-label">觀察範圍<select data-role="bar-window" aria-label="可見小節範圍"><option value="8">8 小節</option><option value="16">16 小節</option><option value="0">全曲</option></select></label></div><p class="profile-caption" data-role="profile-caption" hidden></p><div class="score-evidence" hidden></div><div class="scene-host"></div><p class="comparison-key" hidden><span class="eeg-key">腦電 · 關注 × 放鬆</span><span class="music-key">音樂 · 速度 × 相對振幅 × 播放時間</span><span data-role="pair-status"></span></p></section>
     </div>
     <details class="version-comparisons" hidden><summary>同作品版本對照<span data-role="version-count"></span></summary><p>共用小節軸與速度刻度；原始拍點、平滑曲線、相對振幅灰帶及平均速度線。每列可選取播放。</p><div data-role="version-plots"></div></details>
     <div class="element-tabs" role="tablist" aria-label="已提供的音樂觀測" hidden>${ELEMENTS.map(([key,name])=>`<button role="tab" data-element="${key}" aria-selected="false" hidden>${name}</button>`).join('')}</div>
@@ -81,7 +81,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
       <a href="./docs/PLANAR-METHODS.html" target="_blank" rel="noopener">公式與一手來源 ↗</a>
       <p>音樂參考使用 Yang 2007 人工拍點和原站相對振幅；音樂小節與腦電秒軸分開。版本實驗在播放期建立時間配對；來源時鐘、聲卡輸出與設備延遲未校準，不能據此判定耦合或因果。關係方向另按分窗統計導出，不能由波形向上或向下直接推斷。</p>
       <p>線性代理：最近最多8個有效原始拍點的速度對小節內拍位做最小二乘直線擬合，顯示R²；常量段標為恆定。變幅代理：相鄰原始拍速度比的絕對log₂，0表示未變，1表示倍增／減半。兩者是可重算的探索性描述量，不能作為已驗證的審美或神經機制指標；沒有音符時值標注時，不冒稱已測全音符到64分音符的跳變。</p>
-      <p>音樂空間每個整數小節一層；小節內保留逐拍速度與振幅變化。跨小節以虛線連接，同小節的軌跡維持同一層；小節內拍位與小節編號分開保存。</p>
+      <p>三維音樂蠕蟲以速度、相對振幅和播放時間為三軸，使用正交投影，不以透視改變數值比例。小節只作觀察範圍與邊界信息，不作遮擋軌跡的實體平面；來源拍點仍保持離散，沒有觀測的位置不補點。</p>
       <p>相對振幅採原站平滑振幅與0–100標度，網格內線性插值；譜面力度未提供，不從振幅推定。此值未作聲壓或響度校準，不能作跨錄音的絕對強弱比較。</p>
       <a href="./docs/LISTENING-METHODS.html" target="_blank" rel="noopener">時序與版本實驗方法 ↗</a>
       <a href="./docs/MUSIC-FUSION.html" target="_blank" rel="noopener">音樂方法、配對與來源 ↗</a>
@@ -106,7 +106,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     getImage:()=>scene.exportPNG(['版本實驗 · 當前觀測圖形',recordingData?.title??'',recordingData?.performer??'']),
   });
   host.dataset.ready='true';host.dataset.presentation='research-time-study';host.dataset.visualMode='music';host.dataset.stage='music';
-  $('space').onchange=()=>{space=$('space').value;render();};
+  $('space').onchange=()=>{space=$('space').value;if(layer==='worm')wormSpace=space;render();};
   $('bar-window').onchange=render;
   host.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=>{frozen=false;held=null;cursor=null;signature='';onMode(button.dataset.mode);});
   $('window').onchange=()=>{cursor=null;onWindow(Number($('window').value));};
@@ -329,7 +329,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
   };
   for(const button of host.querySelectorAll('button[data-layer]'))button.onclick=()=>{
     layer=button.dataset.layer;
-    if(layer==='worm'){space='plane';$('space').value=space;}
+    if(layer==='worm'){space=wormSpace;$('space').value=space;}
     host.querySelectorAll('button[data-layer]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));render();
   };
   $('case').onchange=()=>prepareCase($('case').value);
@@ -390,7 +390,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     }
     const eegKey=host.querySelector('.comparison-key .eeg-key');
     eegKey.hidden=visualMode!=='overlay';eegKey.textContent=layer==='worm'?'腦電 · 上軸關注／右軸放鬆':'腦電 · 關注（實線）／放鬆（虛線）';
-    host.querySelector('.comparison-key .music-key').textContent=layer==='structure'?'速度 · 線性代理 × 變幅代理 × 小節':layer==='worm'?'音樂 · 速度 × 相對振幅 · 小節標記':profile?'音樂 · 原始拍點／高斯顯示／相對振幅灰帶':layer==='rhythm'?'音樂 · 拍點間隔':layer==='dynamics'?'音樂 · 相對振幅 · 來源 0–100':'音樂 · 速度';
+    host.querySelector('.comparison-key .music-key').textContent=layer==='structure'?'速度 · 線性代理 × 變幅代理 × 小節':layer==='worm'?(space==='time'?'音樂 · 速度 × 相對振幅 × 播放時間':'音樂 · 速度 × 相對振幅 · 小節標記'):profile?'音樂 · 原始拍點／高斯顯示／相對振幅灰帶':layer==='rhythm'?'音樂 · 拍點間隔':layer==='dynamics'?'音樂 · 相對振幅 · 來源 0–100':'音樂 · 速度';
     $('bar-window-label').hidden=!['worm','structure'].includes(layer);
     scoreView.update(recordingData,t);
     if(layer==='notes'){
@@ -447,7 +447,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     const notes=musical&&layer==='notes';
     scoreView.setVisible(notes);
     host.querySelector('.scene-host').hidden=notes;
-    $('space').options[0].textContent=musical?'小節分層':'時間方盒';
+    $('space').options[0].textContent=musical?(layer==='worm'?'三維時間蠕蟲':layer==='structure'?'三維小節結構':'三維音樂空間'):'三維時間方盒';
     $('space').options[1].textContent=musical?'二維蠕蟲':'二維投影';
     $('profile-caption').hidden=!musical||layer!=='profile';
     host.querySelector('.music-player').hidden=!musical&&!recordingData;

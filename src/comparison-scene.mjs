@@ -88,7 +88,7 @@ export class ComparisonScene extends PlanarScene{
         y=normalize(value,key==='level'?[0,100]:yr);
       }else{
         if(structural){if(!Number.isFinite(p.linearity)||!Number.isFinite(p.jump))return null;x=normalize(p.linearity,xr);y=normalize(p.jump,yr);}
-        else{if(!Number.isFinite(p.level)||!Number.isFinite(p.tempo))return null;x=normalize(p.tempo,xr);y=p.level/100;}
+        else{if(!Number.isFinite(p.level)||!Number.isFinite(p.tempo))return null;x=normalize(p.tempo,xr);y=normalize(p.level,yr);}
       }
       return {x:left+x*size,y:bottom-y*size};
     };
