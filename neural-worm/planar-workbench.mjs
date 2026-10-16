@@ -2,6 +2,7 @@ import {TemporalScene} from '../src/temporal-scene.mjs';
 import {mountListening} from './listening-workbench.mjs';
 import {ELEMENTS,mapMusic} from '../src/music.mjs';
 import {formatAmplitude} from '../src/amplitude-model.mjs';
+import {neuralExportName} from '../src/planar-model.mjs';
 import {beatIntervals,onsetIntervals,gaussianTempo,musicPoint,musicExtent,rawMusicPoints,alignEEG,zoomRange,tempoSummary} from '../src/fusion-model.mjs';
 import {drawTempoProfile} from '../src/tempo-profile.mjs';
 import {structurePoints,scoreMusicPoint} from '../src/music-structure.mjs';
@@ -21,7 +22,7 @@ const icon=name=>`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" st
 const sources={demo:'合成示範',replay:'記錄回放',device:'設備資料',core:'橋接資料',mock:'外部模擬',unknown:'外部接口'};
 export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{},onReplay=()=>{}}={}){
   let latest=null,held=null,frozen=false,cursor=null,selectedElement=null,signature='',reference=100,exportContext=null;
-  let stage='music',visualMode='music',space='time',wormSpace='plane',scale=50,scaleAnchor=null,cases=null,recordingData=null,musicModel=null,layer='notes';
+  let stage='music',visualMode='music',space='plane',wormSpace='plane',scale=50,scaleAnchor=null,cases=null,recordingData=null,musicModel=null,layer='notes';
   let paired=[],run=0,startedAt=Infinity,lastPairKey=null,sourceIdentity='',animation=0,lastPaint=0;
   const models=new Map();let versionPlots=[],versionWork=null,casesLoading=null;
   let curation=null;
@@ -48,7 +49,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
         <dl class="planar-values"><dt>關注指數</dt><dd data-role="attention">—</dd><dt>放鬆指數</dt><dd data-role="relaxation">—</dd><dt>振幅 RMS</dt><dd data-role="amplitude">—</dd></dl>
         <span class="planar-unit" data-role="amplitude-unit"></span>
         <p class="planar-state" data-role="state" role="status">等待有效資料</p>
-        <label class="planar-window">視圖<select data-role="space" aria-label="神經響應視圖"><option value="time">三維時間方盒</option><option value="plane">二維投影</option></select></label><small class="time-view-hint">拖動旋轉 · 方向鍵微調 · Home 重置</small><label class="planar-window">窗口<select data-role="window" aria-label="觀察窗口"><option value="60">60 秒</option><option value="30">30 秒</option><option value="10">10 秒</option></select></label>
+        <label class="planar-window">視圖<select data-role="space" aria-label="神經響應視圖"><option value="plane">二維投影</option><option value="time">三維時間方盒</option></select></label><small class="time-view-hint">拖動旋轉 · 方向鍵微調 · Home 重置</small><label class="planar-window">窗口<select data-role="window" aria-label="觀察窗口"><option value="60">60 秒</option><option value="30">30 秒</option><option value="10">10 秒</option></select></label>
         <label class="planar-window planar-scale">觀察尺度<select data-role="scale" aria-label="腦電觀察尺度"><option value="100">全域 · 0–100</option><option value="50" selected>精細 · 50點</option><option value="25">細微 · 25點</option></select></label>
         <small class="scale-note" data-role="scale-note">坐標窗口，未改變原生指數</small><small class="acquisition-details" data-role="acquisition-details"></small>
         <section class="reference-readouts" hidden aria-label="音樂原始觀測">
@@ -167,7 +168,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
       lines.push(`振幅時間 UTC：${utc(amp.originalTimestamp)} · ${amp.timing==='source-field-time'?'來源欄位時間':'封包到達時間'}`);
       lines.push(`${amp.samples} 樣本 · ${amp.continuityVerified?'序號連續':'連續性未回報'} · 光暈參照 ${reference} ${amp.unit}（顯示參數）`);
     }
-    const link=document.createElement('a');link.href=scene.exportPNG(lines);link.download=`neural-worm-2d-${Date.now()}.png`;link.click();
+    const link=document.createElement('a');link.href=scene.exportPNG(lines);link.download=neuralExportName(space);link.click();
   };
   const audio=$('audio');
   audio.volume=.28;

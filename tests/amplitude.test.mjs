@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {RawAmplitude,acRms,lightEncoding,formatAmplitude} from '../src/amplitude-model.mjs';
-import {neuralTraceStyle,plotBox,plotPosition,wrapText} from '../src/planar-model.mjs';
+import {neuralExportName,neuralTraceStyle,plotBox,plotPosition,wrapText} from '../src/planar-model.mjs';
 import {captureSnapshot,replayPacket} from '../src/recording.mjs';
 import {normalizeSnapshot,StreamState} from '../src/eeg.mjs';
 const packet=(at,samples,extra={})=>({
@@ -150,6 +150,10 @@ test('neural trace visibility grows with recency and clamps invalid ages',()=>{
   assert.deepEqual(neuralTraceStyle(-1),oldest);
   assert.deepEqual(neuralTraceStyle(Number.NaN),oldest);
   assert.deepEqual(neuralTraceStyle(2),newest);
+});
+test('neural exports identify the rendered two- or three-dimensional view',()=>{
+  assert.equal(neuralExportName('plane',123),'neural-worm-2d-123.png');
+  assert.equal(neuralExportName('time',123),'neural-worm-3d-123.png');
 });
 test('narrow PNG text wraps without dropping source, units or Unicode characters',()=>{
   const text='記錄回放 · 原始為合成示範\nRMS 200.0 ADC counts · 256 samples · µV not assumed';

@@ -16,6 +16,9 @@ export function neuralTraceStyle(age){
   return {lineAlpha:.2+.72*t,lineWidth:1.8+1.6*t,
     pointAlpha:.24+.66*t,pointRadius:1.7+1.5*t};
 }
+export function neuralExportName(space,timestamp=Date.now()){
+  return `neural-worm-${space==='time'?'3d':'2d'}-${timestamp}.png`;
+}
 /** Wrap by measured output width, preserving every Unicode code point. */
 export function wrapText(text,width,measure){
   if(!Number.isFinite(width)||width<=0||typeof measure!=='function')throw new TypeError('無效的文字寬度');
