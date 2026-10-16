@@ -32,7 +32,7 @@ jobs:
             cat runtime-tests.log
           else
             cat runtime-tests.log
-            python -c 'from pathlib import Path; text=Path("runtime-tests.log").read_text(errors="replace")[-10000:]; print("::error title=Gateway regression::"+text.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'
+            python -c 'from pathlib import Path; text=Path("runtime-tests.log").read_text(errors="replace")[-3500:]; print("::error title=Gateway regression::"+text.replace("%","%25").replace("\r","%0D").replace("\n","%0A"))'
             exit 1
           fi
       - name: Install private macOS source runtime

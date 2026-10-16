@@ -25,6 +25,7 @@ async def verify(args):
         await server.start_server()
         producer=None
         browser=None
+        page=None
         state={"running":True,"freeze":False,"tick":0}
         results={"engine":args.engine,"hardwareOpened":False,"checks":[]}
         output=Path(args.output)
@@ -160,6 +161,18 @@ async def verify(args):
                 await browser.close();browser=None
         except Exception as error:
             results.update({"pass":False,"error":str(error)})
+            if page is not None and not page.is_closed():
+                try:
+                    results["layout"]=await page.evaluate("""()=>({
+                      width:innerWidth,scrollWidth:document.documentElement.scrollWidth,
+                      overflow:[...document.querySelectorAll('body *')].map(e=>({
+                        tag:e.tagName,id:e.id,cls:e.className?.baseVal??e.className,
+                        width:e.getBoundingClientRect().width,right:e.getBoundingClientRect().right
+                      })).filter(e=>e.right>innerWidth+1).sort((a,b)=>b.right-a.right).slice(0,15)
+                    })""")
+                    await page.screenshot(path=str(output.with_suffix(".png")))
+                except Exception:
+                    pass
             output.write_text(json.dumps(results,indent=2,ensure_ascii=False),encoding="utf-8")
             if os.environ.get("GITHUB_ACTIONS") == "true":
                 message=str(error).replace("%","%25").replace("\r","%0D").replace("\n","%0A")
