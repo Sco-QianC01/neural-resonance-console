@@ -36,6 +36,8 @@ def signature(project):
     settings = {key.strip(): value.strip()
                 for line in config.read_text(encoding="utf-8").splitlines() if "=" in line
                 for key, value in [line.split("=", 1)]}
+    if settings.get("include-system-site-packages", "").lower() != "false":
+        raise ValueError("Private environment must not include system site packages")
     home = settings.get("home", "")
     if not home or not Path(home).is_dir():
         raise ValueError("Virtual environment points to an absent Python installation")

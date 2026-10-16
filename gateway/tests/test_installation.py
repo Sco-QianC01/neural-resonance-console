@@ -30,3 +30,16 @@ class InstallationTests(unittest.TestCase):
         self.assertIn("pyserial", actual["packages"])
         self.assertIn("bleak", actual["packages"])
         self.assertIn("aiohttp", actual["packages"])
+
+    def test_virtual_environment_cannot_inherit_global_site_packages(self):
+        original = Path.read_text
+        config = Path(sys.prefix) / "pyvenv.cfg"
+        def contaminated(path, *args, **kwargs):
+            text = original(path, *args, **kwargs)
+            if path == config:
+                text = text.replace("include-system-site-packages = false",
+                                    "include-system-site-packages = true")
+            return text
+        with patch.object(Path, "read_text", contaminated):
+            with self.assertRaisesRegex(ValueError, "system site"):
+                runtime_check.signature(ROOT / "gateway")

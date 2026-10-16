@@ -75,17 +75,18 @@ if ($ready) {
 $venvConfig = Join-Path $runtime 'gateway\pyvenv.cfg'
 if (Test-Path -LiteralPath $venvConfig -PathType Leaf) {
     $content = Get-Content -LiteralPath $venvConfig -Raw
+    $validHome = $false
     if ($content -match '(?m)^home\s*=\s*(.+)$') {
-        $pythonHome = $Matches[1].Trim()
-        if (-not (Test-Path -LiteralPath $pythonHome -PathType Container)) {
-            if ($content -notmatch '(?m)^prompt\s*=\s*neural-resonance-gateway\s*$') {
-                throw 'The runtime directory contains another project. Choose a private runtime directory.'
-            }
-            $oldEnvironment = Join-Path $runtime 'gateway'
-            $savedEnvironment = Join-Path $runtime ('gateway-invalid-' + [guid]::NewGuid().ToString('N'))
-            Move-Item -LiteralPath $oldEnvironment -Destination $savedEnvironment
-            Write-Host 'Preserved the incompatible private environment; creating a new one.'
+        $validHome = Test-Path -LiteralPath $Matches[1].Trim() -PathType Container
+    }
+    if (-not $validHome -or $content -notmatch '(?mi)^include-system-site-packages\s*=\s*false\s*$') {
+        if ($content -notmatch '(?m)^prompt\s*=\s*neural-resonance-gateway\s*$') {
+            throw 'The runtime directory contains another project. Choose a private runtime directory.'
         }
+        $oldEnvironment = Join-Path $runtime 'gateway'
+        $savedEnvironment = Join-Path $runtime ('gateway-invalid-' + [guid]::NewGuid().ToString('N'))
+        Move-Item -LiteralPath $oldEnvironment -Destination $savedEnvironment
+        Write-Host 'Preserved the incompatible private environment; creating a new one.'
     }
 }
 $uv = Join-Path $runtime 'uv.exe'

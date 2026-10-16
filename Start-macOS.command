@@ -31,7 +31,8 @@ if [ -x "$PYTHON" ] && "$PYTHON" "$ROOT/tools/runtime-check.py" \
 fi
 if [ -f "$RUNTIME/gateway/pyvenv.cfg" ]; then
     PYTHON_BASE=$(awk '/^home[ \t]*=/ {sub(/^home[ \t]*=[ \t]*/, ""); sub(/\r$/, ""); print; exit}' "$RUNTIME/gateway/pyvenv.cfg")
-    if [ -n "$PYTHON_BASE" ] && [ ! -d "$PYTHON_BASE" ]; then
+    SYSTEM_SITE=$(awk '/^include-system-site-packages[ \t]*=/ {sub(/^[^=]*=[ \t]*/, ""); sub(/\r$/, ""); print tolower($0); exit}' "$RUNTIME/gateway/pyvenv.cfg")
+    if [ ! -d "$PYTHON_BASE" ] || [ "$SYSTEM_SITE" != "false" ]; then
         grep -q '^prompt *= *neural-resonance-gateway' "$RUNTIME/gateway/pyvenv.cfg" || {
             echo "Runtime belongs to another project; choose a private runtime directory."; exit 1;
         }

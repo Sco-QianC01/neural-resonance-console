@@ -4,6 +4,7 @@ import asyncio
 import csv
 import io
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -26,6 +27,8 @@ async def verify(args):
         browser=None
         state={"running":True,"freeze":False,"tick":0}
         results={"engine":args.engine,"hardwareOpened":False,"checks":[]}
+        output=Path(args.output)
+        output.parent.mkdir(parents=True,exist_ok=True)
         async def produce():
             while state["running"]:
                 if not state["freeze"]:
@@ -155,6 +158,13 @@ async def verify(args):
                 output.write_text(json.dumps(results,indent=2,ensure_ascii=False),encoding="utf-8")
                 await context.close()
                 await browser.close();browser=None
+        except Exception as error:
+            results.update({"pass":False,"error":str(error)})
+            output.write_text(json.dumps(results,indent=2,ensure_ascii=False),encoding="utf-8")
+            if os.environ.get("GITHUB_ACTIONS") == "true":
+                message=str(error).replace("%","%25").replace("\r","%0D").replace("\n","%0A")
+                print(f"::error title={args.engine} browser regression::{message}",flush=True)
+            raise
         finally:
             state["running"]=False
             if producer:producer.cancel();await asyncio.gather(producer,return_exceptions=True)
