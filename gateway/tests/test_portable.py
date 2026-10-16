@@ -121,11 +121,11 @@ class NotificationStatusTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual((await socket.receive_json())["rawEegSamples"], [])
                 state["port"] = "COM77"  # Insert after the server/browser has already started.
                 first = None
-                for _ in range(15):
-                    packet = await asyncio.wait_for(socket.receive_json(), 2)
-                    if packet["rawEegSamples"]:
-                        first = packet
-                        break
+                async with asyncio.timeout(6):
+                    while first is None:
+                        packet = await socket.receive_json()
+                        if packet["rawEegSamples"]:
+                            first = packet
                 self.assertIsNotNone(first)
                 self.assertEqual(first["eeg"]["attention"], 62)
                 self.assertEqual(first["rawEegSamples"], [1,-3])
@@ -137,11 +137,11 @@ class NotificationStatusTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(live["devices"]["eeg"]["validPackets"], 2)
                 state["port"] = "COM99"  # Disconnect/reconnect at a reassigned OS port.
                 second = None
-                for _ in range(20):
-                    packet = await asyncio.wait_for(socket.receive_json(), 2)
-                    if packet["rawEegSamples"] == [2]:
-                        second = packet
-                        break
+                async with asyncio.timeout(6):
+                    while second is None:
+                        packet = await socket.receive_json()
+                        if packet["rawEegSamples"] == [2]:
+                            second = packet
                 self.assertIsNotNone(second)
                 self.assertNotIn("attention", second["eeg"])
                 self.assertEqual(second["rawBreaks"], [])

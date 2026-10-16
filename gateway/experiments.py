@@ -96,7 +96,7 @@ def validate(value):
 def save_experiment(value, root):
     trials, image = validate(value)
     root = Path(root); root.mkdir(parents=True, exist_ok=True)
-    name = datetime.now().strftime('%Y%m%d_%H%M%S_聆听实验_') + uuid4().hex[:8]
+    name = datetime.now().strftime('%Y%m%d_%H%M%S') + '_聆听实验_' + uuid4().hex[:8]
     destination = root / name
     with tempfile.TemporaryDirectory(prefix='.listening-', dir=root) as temporary:
         target = Path(temporary)

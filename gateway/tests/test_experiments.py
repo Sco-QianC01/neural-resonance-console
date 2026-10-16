@@ -6,10 +6,21 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from datetime import datetime
+from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from experiments import save_experiment, validate, correlation
 
 class ExperimentTests(unittest.TestCase):
+    def test_export_names_work_with_ascii_only_platform_date_formatters(self):
+        class AsciiDateTime(datetime):
+            def strftime(self, format):
+                format.encode('ascii')
+                return super().strftime(format)
+        with tempfile.TemporaryDirectory() as root, patch('experiments.datetime', AsciiDateTime):
+            destination=save_experiment(self.payload(),root)
+            self.assertIn('聆听实验',destination.name)
+            self.assertTrue((destination/'experiment.json').is_file())
     def payload(self):
         image='data:image/png;base64,'+base64.b64encode(b'\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR'+b'\x00\x00\x00\x01'*2+b'\x08\x06\x00\x00\x00'+b'1234').decode()
         rows=[{'source':'device','transport':'usb','mediaTime':i,'indexTime':i*1000,'packetTime':i*1000,'attention':20+i,'relaxation':60-i,'tempo':90+i,'level':None} for i in range(3)]
