@@ -4,6 +4,10 @@ export function timeBounds(points,seconds=60){
  if(!Number.isFinite(end)||!Number.isFinite(start))return [0,seconds*1000];
  return [start,Math.max(start+seconds*1000,end)];
 }
+export function timeTailStrength(timestamp,currentTime,seconds=3){
+ if(![timestamp,currentTime,seconds].every(Number.isFinite)||seconds<=0)return 0;
+ return Math.max(0,Math.min(1,1-(currentTime-timestamp)/seconds));
+}
 export function temporalProjection(width,height,ranges,time,{yaw=.58,pitch=.38}={}){
  const rotate=(x,y,z)=>{
   const a=Math.cos(yaw)*x+Math.sin(yaw)*z,b=-Math.sin(yaw)*x+Math.cos(yaw)*z;

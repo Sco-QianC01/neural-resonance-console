@@ -1,5 +1,5 @@
 import {ComparisonScene} from './comparison-scene.mjs';
-import {timeBounds,temporalProjection} from './temporal-model.mjs';
+import {timeBounds,timeTailStrength,temporalProjection} from './temporal-model.mjs';
 import {lightEncoding} from './amplitude-model.mjs';
 import {timeToBar,barLayerWindow,barTicks,musicExtent} from './fusion-model.mjs';
 /** Orthographic source-time view, rendered without a WebGL dependency. */
@@ -102,19 +102,23 @@ export class TemporalScene extends ComparisonScene{
    for(let i=1;i<vertices.length;i++){
     const a=vertices[i-1],b=vertices[i];if(a.point.segment!==b.point.segment)continue;
     const crossing=!worm&&music&&a.point.bar!==b.point.bar;
-    const current=music&&(worm?i>=Math.max(1,vertices.length-12):a.point.bar===layers.current&&b.point.bar===layers.current);
+    const tail=worm?timeTailStrength(b.point.t,music.time):0;
+    const current=music&&(worm?tail>0:a.point.bar===layers.current&&b.point.bar===layers.current);
     if(crossing&&b.point.bar-a.point.bar!==1||Boolean(current)!==active)continue;
     ctx.setLineDash(crossing?[3,6]:[]);
-    ctx.globalAlpha=current?1:crossing?.28:.42;
-    line(a.q,b.q,current?(worm?'#f3d7b2':'#effff9'):crossing?'#60716c':worm?'#b69c7d':'#91aaa1',current?3.2:crossing?1:1.5);ctx.globalAlpha=1;
+    const age=worm?(b.point.t-visibleStart)/(visibleEnd-visibleStart):1;
+    ctx.globalAlpha=current?(worm ? .65+.35*tail : 1):crossing?.28:(worm ? .16+.34*age : .42);
+    line(a.q,b.q,current?(worm?'#f3d7b2':'#effff9'):crossing?'#60716c':worm?'#b69c7d':'#91aaa1',
+      current?(worm?2.4+1.8*tail:3.2):crossing?1:worm?1.1+.7*age:1.5);ctx.globalAlpha=1;
    }
   };
   drawPath(false);if(music)drawPath(true);
   ctx.setLineDash([]);
   for(let i=0;i<vertices.length;i++){
-   const {point,q}=vertices[i],active=music&&(worm?i>=Math.max(0,vertices.length-12):point.bar===layers.current);
-   ctx.fillStyle=active?(worm?'#f3d7b2':'#effff9'):worm?'#b69c7d':'#91aaa1';ctx.globalAlpha=active?.95:.36;ctx.beginPath();
-   ctx.arc(q.x,q.y,active?2.8:1.8,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+   const {point,q}=vertices[i],tail=worm?timeTailStrength(point.t,music.time):0;
+   const active=music&&(worm?tail>0:point.bar===layers.current),age=worm?(point.t-visibleStart)/(visibleEnd-visibleStart):1;
+   ctx.fillStyle=active?(worm?'#f3d7b2':'#effff9'):worm?'#b69c7d':'#91aaa1';ctx.globalAlpha=active ? .65+.3*tail : worm ? .14+.28*age : .36;ctx.beginPath();
+   ctx.arc(q.x,q.y,active?2.2+1.2*tail:1.4+.5*age,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
   }
   const current=music&&layers?.current!==null?(structural?[...music.model.structure].reverse().find(p=>p.t<=music.time&&p.bar===layers?.current):music.current):null;
   const selected=music?(current?convert({...current,t:music.time}):null):this.state.selected??points.at(-1);
@@ -123,8 +127,9 @@ export class TemporalScene extends ComparisonScene{
   const light=lightEncoding(amplitude?.rms,this.state.reference);
   if(pos){
    if(amplitude&&light.halo){const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,light.halo);g.addColorStop(0,'rgba(197,216,211,.38)');g.addColorStop(1,'rgba(197,216,211,0)');ctx.fillStyle=g;ctx.fillRect(pos.x-light.halo,pos.y-light.halo,light.halo*2,light.halo*2);}
+   if(worm){const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,22);g.addColorStop(0,'rgba(243,215,178,.3)');g.addColorStop(1,'rgba(243,215,178,0)');ctx.fillStyle=g;ctx.fillRect(pos.x-22,pos.y-22,44,44);}
    ctx.fillStyle=worm?'#f3d7b2':music||this.state.active?'#f4fff9':theme.muted;ctx.beginPath();ctx.arc(pos.x,pos.y,music?6:light.radius,0,Math.PI*2);ctx.fill();
-   if(music){ctx.strokeStyle=worm?'#f4fff9':'#c8ad8c';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(pos.x,pos.y,10,0,Math.PI*2);ctx.stroke();}
+   if(music){ctx.strokeStyle=worm?'#f4fff9':'#c8ad8c';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(pos.x,pos.y,worm?11:10,0,Math.PI*2);ctx.stroke();}
    if(amplitude){ctx.fillStyle=`rgba(255,255,255,${light.intensity})`;ctx.beginPath();ctx.arc(pos.x,pos.y,2,0,Math.PI*2);ctx.fill();}
   }
   ctx.font='11px ui-monospace,Consolas,monospace';ctx.textAlign='center';ctx.fillStyle=theme.muted;
@@ -162,7 +167,7 @@ export class TemporalScene extends ComparisonScene{
    segments:String(new Set(points.map(p=>p.segment)).size),rms:amplitude?String(amplitude.rms):'',rangeX:ranges.x.join(','),rangeY:ranges.y.join(','),
    camera:JSON.stringify(this.camera),pairedSamples:'0'});
   if(music)Object.assign(canvas.dataset,{musicTime:String(music.time),scoreBar:String(timeToBar(music.model.raw,music.time)??''),depthUnit:worm?'second':'bar',
-   layerBars:JSON.stringify(layers?.bars??[]),barTicks:JSON.stringify(ticks),layerCount:String(layers?.bars.length??0),timeSlices:worm?String(depthSteps+1):'0',
+   layerBars:JSON.stringify(layers?.bars??[]),barTicks:JSON.stringify(ticks),layerCount:String(layers?.bars.length??0),timeSlices:worm?String(depthSteps+1):'0',tailSeconds:worm?'3':'0',
    levelUnit:current?.levelUnit??'',levelSource:current?.levelSource??'',dynamicMark:'',
    representation:worm?'orthographic-3d-time-worm':'orthographic-3d-bar-structure',smoothing:music.smooth?'gaussian':'raw',tempo:current?.tempo??'',level:current?.level??''});
  }

@@ -1,5 +1,12 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {timeBounds,temporalProjection} from '../src/temporal-model.mjs';
+import {timeBounds,timeTailStrength,temporalProjection} from '../src/temporal-model.mjs';
+test('time tail is based on playback seconds and remains bounded',()=>{
+ assert.equal(timeTailStrength(97,100),0);
+ assert.equal(timeTailStrength(98.5,100),.5);
+ assert.equal(timeTailStrength(100,100),1);
+ assert.equal(timeTailStrength(102,100),1);
+ assert.equal(timeTailStrength(99,100,0),0);
+});
 test('time depth comes from source timestamps and preserves source coordinates',()=>{
  const points=[{timestamp:1000,attention:40,relaxation:60},{timestamp:9000,attention:40,relaxation:60}];
  const saved=structuredClone(points),bounds=timeBounds(points,60),project=temporalProjection(900,650,{x:[0,100],y:[0,100]},bounds);
