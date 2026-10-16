@@ -89,8 +89,11 @@ test('observation exports include the accepted packet when the index field prece
 
 test('Chopin public catalog retains every media ID and performer, without other composers', async()=>{
   const {readFile}=await import('node:fs/promises');
+  const {createHash}=await import('node:crypto');
   const catalog=JSON.parse(await readFile(new URL('../public/research/vmus-reference-cases.json',import.meta.url),'utf8'));
-  const source=JSON.parse(await readFile(new URL('../artifacts/chopin-catalog-20261012/contents-chopin.json',import.meta.url),'utf8'));
+  const bytes=await readFile(new URL('./fixtures/vmus-chopin-contents.json',import.meta.url));
+  assert.equal(createHash('sha256').update(bytes).digest('hex'),catalog.catalogSha256);
+  const source=JSON.parse(bytes);
   assert.deepEqual(catalog.recordings.map(r=>r.mediaId).sort((a,b)=>a-b),source.items.map(r=>r.media_id).sort((a,b)=>a-b));
   assert.equal(catalog.recordings.length,40);assert.equal(new Set(catalog.recordings.map(r=>r.performanceId)).size,15);
   assert.equal(catalog.works.length,2);assert.ok(catalog.works.every(w=>w.composer==='Frederic Chopin'));

@@ -27,6 +27,20 @@ jobs:
         run: uv sync --frozen --no-dev --python ${{ matrix.python }}
       - working-directory: gateway
         run: uv run --frozen --no-dev python -W error -m unittest discover -s tests -v
+      - name: Install private macOS source runtime
+        if: runner.os == 'macOS' && matrix.python == '3.13'
+        run: sh ./Start-macOS.command --setup-only
+      - name: Verify macOS source startup
+        if: runner.os == 'macOS' && matrix.python == '3.13'
+        run: gateway/.venv/bin/python tools/runtime-smoke.py --output artifacts/source-smoke.json
+      - name: Verify macOS offline relocation and restart
+        if: runner.os == 'macOS' && matrix.python == '3.13'
+        run: gateway/.venv/bin/python tools/portable-smoke.py --source --output artifacts/source-portable-smoke.json
+      - uses: actions/upload-artifact@v4
+        if: always() && runner.os == 'macOS' && matrix.python == '3.13'
+        with:
+          name: source-proof-${{ matrix.os }}
+          path: artifacts/*smoke.json
   node:
     strategy:
       matrix:
