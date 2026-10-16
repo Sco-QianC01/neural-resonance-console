@@ -89,7 +89,7 @@ export class PlanarScene{
     }
     ctx.font='13px "Segoe UI", "Microsoft YaHei", sans-serif';ctx.textAlign='center';
     ctx.fillText('關注指數',left+size/2,bottom+42);
-    ctx.save();ctx.translate(left-40,top+size/2);ctx.rotate(-Math.PI/2);ctx.fillText('放鬆指數',0,0);ctx.restore();
+    ctx.save();ctx.translate(Math.max(14,left-40),top+size/2);ctx.rotate(-Math.PI/2);ctx.fillText('放鬆指數',0,0);ctx.restore();
     if(!points.length){ctx.fillStyle=theme.muted;ctx.font='13px "Segoe UI", "Microsoft YaHei", sans-serif';ctx.fillText('等待有效資料',left+size/2,top+size/2);}
     canvas.dataset.plotSize=String(size);canvas.dataset.plotLeft=String(left);canvas.dataset.plotTop=String(top);
     canvas.dataset.samples=String(points.length);canvas.dataset.segments=String(new Set(points.map(p=>p.segment)).size);

@@ -20,8 +20,9 @@ export class ComparisonScene extends PlanarScene{
       }
       return selected;
     };
-    this.musicClick=e=>{const hit=this.nearest(e);if(hit)this.onMusicPick(hit.point.t);};
+    this.musicClick=e=>{if(this.moved)return;const hit=this.nearest(e);if(hit)this.onMusicPick(hit.point.t);};
     this.musicHover=e=>{
+      if(this.drag||this.moved){this.tooltip.hidden=true;return;}
       const hit=this.nearest(e);
       if(!hit){this.tooltip.hidden=true;return;}
       const p=hit.point;this.tooltip.textContent=`${p.bar!=null?'小節 '+p.bar+' · ':''}${p.t.toFixed(2)} s · ${p.tempo===null?'發音間隔 '+p.ioi.toFixed(1)+' ms':'速度 '+p.tempo.toFixed(2)+' '+this.state.comparison.tempoUnit} · 相對振幅 ${Number.isFinite(p.level)?p.level.toFixed(1):'—'}（來源 0–100）`;
@@ -174,7 +175,7 @@ export class ComparisonScene extends PlanarScene{
     ctx.fillStyle=music;ctx.font='12px "Segoe UI","Microsoft YaHei","NR CJK",sans-serif';ctx.textAlign='center';
     if(s.overlay&&!timeline){ctx.fillStyle=eeg;ctx.fillText('關注指數 / 0–100',left+size/2,top-26);ctx.fillStyle=music;}
     ctx.fillText(structural?'8拍線性擬合 / R²':timeline?(score?'譜面小節':'播放時間 / s'):`速度 / ${unit}`,left+size/2,bottom+41);
-    ctx.save();ctx.translate(left-42,top+size/2);ctx.rotate(-Math.PI/2);
+    ctx.save();ctx.translate(Math.max(14,left-42),top+size/2);ctx.rotate(-Math.PI/2);
     ctx.fillText(structural?'相鄰速度變幅 / |log₂比|':timeline?(s.layer==='rhythm'?'拍點間隔 / ms':s.layer==='dynamics'?'相對振幅 / 來源 0–100':`速度 / ${unit}`):'相對振幅 / 來源 0–100',0,0);ctx.restore();
     if(!s.current){ctx.fillStyle=theme.muted;ctx.fillText('此位置沒有有效音樂標注',left+size/2,top+size/2);}
     canvas.dataset.layer=s.layer;canvas.dataset.pairedSamples=String(ep.length);canvas.dataset.musicTime=String(s.time);

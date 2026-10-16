@@ -55,7 +55,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
         <small class="scale-note" data-role="scale-note">坐標窗口，未改變原生指數</small><small class="acquisition-details" data-role="acquisition-details"></small>
         <section class="reference-readouts" hidden aria-label="音樂原始觀測">
           <h3 data-role="reference-title"></h3>
-          <dl><dt>速度</dt><dd data-role="tempo">—</dd><dt>相對振幅</dt><dd data-role="level">—</dd><dt>拍點間隔</dt><dd data-role="ioi">—</dd><dt>線性代理 R²</dt><dd data-role="linearity">—</dd><dt>變幅代理 |log₂比|</dt><dd data-role="discreteness">—</dd></dl>
+          <dl><dt>原始逐拍速度</dt><dd data-role="tempo">—</dd><dt>相對振幅</dt><dd data-role="level">—</dd><dt>拍點間隔</dt><dd data-role="ioi">—</dd><dt>線性代理 R²</dt><dd data-role="linearity">—</dd><dt>變幅代理 |log₂比|</dt><dd data-role="discreteness">—</dd></dl>
           <small>振幅沿用來源 0–100 標度；未提供譜面力度與響度校準。線性與變幅為探索性代理。</small>
           <span data-role="beat-position"></span>
           <label class="music-smoothing"><input data-role="smoothing" type="checkbox" checked>速度高斯窗 · <span data-role="smoothing-width"></span></label>

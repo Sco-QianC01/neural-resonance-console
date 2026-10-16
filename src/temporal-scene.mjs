@@ -51,10 +51,13 @@ export class TemporalScene extends ComparisonScene{
   ctx.fillStyle=theme.background;ctx.fillRect(0,0,w,h);
   const music=this.state.comparison,structural=music?.layer==='structure',worm=Boolean(music&&!structural);
   const layers=music?barLayerWindow(music.model.raw,music.time,music.barWindow??8):null;
+  const current=music&&layers?.current!==null?(structural?[...music.model.structure].reverse().find(p=>p.t<=music.time&&p.bar===layers?.current):music.current):null;
   const original=music?(structural?music.model.structure:music.points):this.state.points;
   const convert=p=>music?{...p,attention:structural?p.linearity:p.tempo,relaxation:structural?p.jump:p.level,
    timestamp:(worm?p.t:p.bar??timeToBar(music.model.raw,p.t))*1000}:p;
   const points=music?original.filter(p=>p.t<=music.time&&layers?.bars.includes(p.bar)).map(convert):original;
+  if(worm&&Number.isFinite(current?.tempo)&&Number.isFinite(current?.level)&&(!points.length||points.at(-1).t<current.t))
+   points.push(convert(current));
   const levelRange=musicExtent(points.map(p=>({tempo:p.relaxation}))).map(v=>Math.max(0,Math.min(100,v)));
   const ranges=music?{x:structural?[0,1]:musicExtent(points.map(p=>({tempo:p.attention}))),
    y:structural?[0,Math.max(.1,...music.model.structure.map(p=>p.jump??0))]:levelRange}:
@@ -124,7 +127,6 @@ export class TemporalScene extends ComparisonScene{
    ctx.globalAlpha=active ? .65+.3*tail : worm ? .14+.28*age : music ? .36 : neural.pointAlpha;ctx.beginPath();
    ctx.arc(q.x,q.y,active?2.2+1.2*tail:worm?1.4+.5*age:music?1.9:neural.pointRadius,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
   }
-  const current=music&&layers?.current!==null?(structural?[...music.model.structure].reverse().find(p=>p.t<=music.time&&p.bar===layers?.current):music.current):null;
   const selected=music?(current?convert({...current,t:music.time}):null):this.state.selected??points.at(-1);
   const pos=selected?projection.point(selected):null,amplitude=this.state.active?selected?.amplitude:null;
   this.hits=music?points.filter(p=>p.pickable!==false).map(p=>({point:p,...projection.point(p)})).filter(p=>Number.isFinite(p.x)):[];
@@ -157,17 +159,16 @@ export class TemporalScene extends ComparisonScene{
    if(point)this.hits.push({point,x:q.x+19,y:q.y+5});
   }
   ctx.font='12px "Segoe UI","Microsoft YaHei","NR CJK",sans-serif';
-  const x=v(.5,0,1),y=v(0,.5,1),z=v(1,0,.5);
+  const x=v(.5,0,1);
   ctx.fillStyle='#e39b86';ctx.fillText(music?(structural?'8拍線性擬合 / R²':`速度 / ${music.tempoUnit}`):'關注指數',x.x,x.y+40);
-  ctx.fillStyle='#9dd0b6';ctx.fillText(music?(structural?'相鄰變幅 / log₂比':'相對振幅 / 來源尺度'): '放鬆指數',Math.max(music?82:38,y.x-43),y.y-16);
-  if(!worm||w>=520){
-   ctx.fillStyle=theme.muted;ctx.fillText(worm?'播放時間 / s':music?'小節層':'經過時間 / s',Math.min(w-51,z.x+54),z.y+27);
-  }
+  ctx.save();ctx.translate(Math.max(14,Math.min(...projection.corners.map(p=>p.x))-36),h/2);ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='#9dd0b6';ctx.fillText(music?(structural?'相鄰變幅 / log₂比':'相對振幅 / 來源 0–100'):'放鬆指數',0,0);ctx.restore();
+  ctx.textAlign='right';ctx.fillStyle=theme.muted;ctx.fillText(worm?'播放時間 / s':music?'小節層':'經過時間 / s',w-18,24);
   if(music&&layers.current!==null){
    ctx.textAlign='left';ctx.fillStyle=theme.signal;ctx.font='12px ui-monospace,Consolas,monospace';
    ctx.fillText(worm?`${music.time.toFixed(1)} s · 第 ${layers.current} 小節`:`第 ${layers.current} 小節 · ${layers.bars.length} 層`,18,24);
   }
-  if(!points.length){ctx.fillStyle=theme.muted;ctx.fillText(music?'此位置沒有有效音樂標注':'等待有效資料',w/2,h/2);}
+  if(!points.length){ctx.textAlign='center';ctx.fillStyle=theme.muted;ctx.fillText(music?'此位置沒有有效音樂標注':'等待有效資料',w/2,h/2);}
   canvas.style.touchAction='none';canvas.setAttribute('aria-label',worm?'三維音樂蠕蟲：速度、相對振幅與播放時間；目前軌跡高亮，拖動或方向鍵轉向，Home重置視角':music?'三維速度結構：線性代理、變幅代理與整數小節層；拖動或方向鍵轉向，Home重置視角':'關注、放鬆與經過時間的三維方盒軌跡；拖動或方向鍵轉向，Home重置視角');
   Object.assign(canvas.dataset,{layer:music?.layer??'eeg',space:'time',coordinate:selected?`${selected.attention},${selected.relaxation}`:'',
    timestamp:selected?String(selected.timestamp):'',elapsed:selected?String(projection.depth(selected)):'',samples:String(points.length),
