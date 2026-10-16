@@ -24,6 +24,12 @@ export function viewSpace(preferences,view,next){
   if(next!==undefined)preferences[key]=next==='time'?'time':'plane';
   return preferences[key]==='time'?'time':'plane';
 }
+export function viewLabels(musical,layer){
+  return {
+    time:musical?(layer==='worm'?'三維時間蠕蟲':layer==='structure'?'三維小節結構':'三維音樂空間'):'三維時間方盒',
+    plane:musical?'二維蠕蟲':'二維投影',
+  };
+}
 /** Wrap by measured output width, preserving every Unicode code point. */
 export function wrapText(text,width,measure){
   if(!Number.isFinite(width)||width<=0||typeof measure!=='function')throw new TypeError('無效的文字寬度');

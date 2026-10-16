@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {RawAmplitude,acRms,lightEncoding,formatAmplitude} from '../src/amplitude-model.mjs';
-import {neuralExportName,neuralTraceStyle,plotBox,plotPosition,viewSpace,wrapText} from '../src/planar-model.mjs';
+import {neuralExportName,neuralTraceStyle,plotBox,plotPosition,viewLabels,viewSpace,wrapText} from '../src/planar-model.mjs';
 import {captureSnapshot,replayPacket} from '../src/recording.mjs';
 import {normalizeSnapshot,StreamState} from '../src/eeg.mjs';
 const packet=(at,samples,extra={})=>({
@@ -161,6 +161,10 @@ test('music and neural worms retain independent view choices',()=>{
   assert.equal(viewSpace(spaces,'neural'),'plane');
   assert.equal(viewSpace(spaces,'neural','plane'),'plane');
   assert.equal(viewSpace(spaces,'music'),'time');
+});
+test('worm view labels stay attached to their actual values',()=>{
+  assert.deepEqual(viewLabels(true,'worm'),{time:'三維時間蠕蟲',plane:'二維蠕蟲'});
+  assert.deepEqual(viewLabels(false,'worm'),{time:'三維時間方盒',plane:'二維投影'});
 });
 test('narrow PNG text wraps without dropping source, units or Unicode characters',()=>{
   const text='記錄回放 · 原始為合成示範\nRMS 200.0 ADC counts · 256 samples · µV not assumed';
