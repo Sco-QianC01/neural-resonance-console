@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {RawAmplitude,acRms,lightEncoding,formatAmplitude} from '../src/amplitude-model.mjs';
-import {plotBox,plotPosition,wrapText} from '../src/planar-model.mjs';
+import {neuralTraceStyle,plotBox,plotPosition,wrapText} from '../src/planar-model.mjs';
 import {captureSnapshot,replayPacket} from '../src/recording.mjs';
 import {normalizeSnapshot,StreamState} from '../src/eeg.mjs';
 const packet=(at,samples,extra={})=>({
@@ -141,6 +141,15 @@ test('the square and axes have identical scale at phone, 1920x1080 and 4K sizes'
     assert.equal(c.x-a.x,a.y-c.y);
     assert.ok(b.left>=0&&b.top>=0&&b.left+b.size<=w&&b.top+b.size<=h);
   }
+});
+test('neural trace visibility grows with recency and clamps invalid ages',()=>{
+  const oldest=neuralTraceStyle(0),newest=neuralTraceStyle(1);
+  assert.ok(newest.lineWidth>oldest.lineWidth);
+  assert.ok(newest.lineAlpha>oldest.lineAlpha&&newest.lineAlpha<=1);
+  assert.ok(newest.pointRadius>oldest.pointRadius);
+  assert.deepEqual(neuralTraceStyle(-1),oldest);
+  assert.deepEqual(neuralTraceStyle(Number.NaN),oldest);
+  assert.deepEqual(neuralTraceStyle(2),newest);
 });
 test('narrow PNG text wraps without dropping source, units or Unicode characters',()=>{
   const text='記錄回放 · 原始為合成示範\nRMS 200.0 ADC counts · 256 samples · µV not assumed';

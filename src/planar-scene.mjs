@@ -1,4 +1,4 @@
-import {plotBox,plotPosition,wrapText} from './planar-model.mjs';
+import {neuralTraceStyle,plotBox,plotPosition,wrapText} from './planar-model.mjs';
 import {lightEncoding} from './amplitude-model.mjs';
 
 const instrumentTheme=host=>{
@@ -44,8 +44,9 @@ export class PlanarScene{
     const pos=selected?project(selected):null;
     const amplitude=this.state.active?selected?.amplitude:null,light=lightEncoding(amplitude?.rms,this.state.reference);
     ctx.save();ctx.beginPath();ctx.rect(left,top,size,size);ctx.clip();
-    if(pos&&this.state.active&&light.halo){
-      const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,light.halo);
+    const focusHalo=pos&&this.state.active?Math.max(14,light.halo):0;
+    if(focusHalo){
+      const g=ctx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,focusHalo);
       g.addColorStop(0,theme.signal);g.addColorStop(1,theme.background);
       ctx.globalAlpha=.12+.2*light.intensity;ctx.fillStyle=g;ctx.fillRect(left,top,size,size);ctx.globalAlpha=1;
     }
@@ -59,20 +60,22 @@ export class PlanarScene{
     }
     for(let i=1;i<points.length;i++){
       if(points[i].segment!==points[i-1].segment)continue;
-      const a=project(points[i-1]),b=project(points[i]),age=i/points.length;
-      ctx.strokeStyle=theme.signal;ctx.globalAlpha=.1+.65*age;ctx.lineWidth=1.1+.6*age;
+      const a=project(points[i-1]),b=project(points[i]),style=neuralTraceStyle(i/points.length);
+      ctx.strokeStyle=theme.signal;ctx.globalAlpha=style.lineAlpha;ctx.lineWidth=style.lineWidth;
       ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
       ctx.globalAlpha=1;
     }
     const stride=Math.max(1,Math.ceil(points.length/180));
     for(let i=0;i<points.length;i+=stride){
-      const p=project(points[i]),age=i/Math.max(1,points.length-1);
-      ctx.fillStyle=theme.signal;ctx.globalAlpha=.15+.6*age;ctx.beginPath();ctx.arc(p.x,p.y,1.4+1.1*age,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      const p=project(points[i]),style=neuralTraceStyle(i/Math.max(1,points.length-1));
+      ctx.fillStyle=theme.signal;ctx.globalAlpha=style.pointAlpha;ctx.beginPath();ctx.arc(p.x,p.y,style.pointRadius,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
     }
     if(pos){
+      const radius=Math.max(5.5,light.radius);
       ctx.globalAlpha=this.state.active?1:.5;
       ctx.fillStyle=this.state.active?theme.signal:theme.muted;
-      ctx.beginPath();ctx.arc(pos.x,pos.y,light.radius,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(pos.x,pos.y,radius,0,Math.PI*2);ctx.fill();
+      if(this.state.active){ctx.strokeStyle=theme.text;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(pos.x,pos.y,radius+4,0,Math.PI*2);ctx.stroke();}
       if(this.state.active&&amplitude){ctx.fillStyle=`rgba(255,255,255,${light.intensity})`;ctx.beginPath();ctx.arc(pos.x,pos.y,1.4+light.intensity,0,Math.PI*2);ctx.fill();}
       ctx.globalAlpha=1;
     }
@@ -95,7 +98,8 @@ export class PlanarScene{
     canvas.dataset.rms=amplitude?String(amplitude.rms):'';
     canvas.dataset.intensity=String(light.intensity);canvas.dataset.halo=String(light.halo);
     canvas.dataset.rangeX=ranges.x.join(',');canvas.dataset.rangeY=ranges.y.join(',');
-    canvas.dataset.layer='eeg';canvas.dataset.pairedSamples='0';
+    canvas.dataset.layer='eeg';canvas.dataset.pairedSamples='0';canvas.dataset.traceWidth='1.8,3.4';
+    canvas.dataset.currentRing=String(Boolean(pos&&this.state.active));
   }
   exportPNG(metadata){
     const out=document.createElement('canvas'),ratio=this.canvas.width/this.host.clientWidth;

@@ -11,6 +11,11 @@ export function plotPosition(point,box,ranges={x:[0,100],y:[0,100]}){
   const y=(point.relaxation-ranges.y[0])/(ranges.y[1]-ranges.y[0]);
   return {x:box.left+x*box.size,y:box.top+(1-y)*box.size};
 }
+export function neuralTraceStyle(age){
+  const t=Number.isFinite(age)?Math.max(0,Math.min(1,age)):0;
+  return {lineAlpha:.2+.72*t,lineWidth:1.8+1.6*t,
+    pointAlpha:.24+.66*t,pointRadius:1.7+1.5*t};
+}
 /** Wrap by measured output width, preserving every Unicode code point. */
 export function wrapText(text,width,measure){
   if(!Number.isFinite(width)||width<=0||typeof measure!=='function')throw new TypeError('無效的文字寬度');
