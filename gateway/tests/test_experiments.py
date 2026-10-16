@@ -9,9 +9,13 @@ import unittest
 from datetime import datetime
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from experiments import save_experiment, validate, correlation
+from experiments import save_experiment, validate, correlation, results_root
 
 class ExperimentTests(unittest.TestCase):
+    def test_result_directory_never_probes_another_project_on_the_host(self):
+        fallback=Path('private-user-data')
+        with patch('experiments.Path.is_dir',return_value=True):
+            self.assertEqual(results_root(fallback),fallback/'results')
     def test_export_names_work_with_ascii_only_platform_date_formatters(self):
         class AsciiDateTime(datetime):
             def strftime(self, format):

@@ -17,8 +17,8 @@
 .music-player input[type=range]{flex:1;min-width:80px;margin:0;accent-color:#c8ad8c;min-height:40px}
 .music-player .music-play-state{font-family:inherit;flex-basis:100%;font-size:11px;line-height:1.6}
 .music-selection{display:grid;grid-template-columns:minmax(200px,1fr) minmax(260px,1.2fr);gap:16px;flex-basis:100%;min-width:0}
-.music-selection label{flex:none;white-space:normal}
-.music-selection select{width:100%;min-width:0}
+.music-selection label{display:block;flex:none;white-space:normal}
+.music-selection select{display:block;width:100%;min-width:0;margin-top:6px}
 .profile-caption{font:11px/1.9 ui-monospace,Consolas,"NR CJK",monospace;color:var(--muted);margin:0 0 12px;overflow-wrap:anywhere}
 #research-worm[data-music-layer=profile][data-visual-mode=music] .scene-host,
 #research-worm[data-music-layer=profile][data-visual-mode=overlay] .scene-host{height:300px;min-height:240px}
@@ -65,7 +65,6 @@
 }
 @media(max-width:760px){
   .music-selection{grid-template-columns:minmax(0,1fr);gap:8px}
-  .music-selection label{display:grid;grid-template-columns:74px minmax(0,1fr)}
   .version-plot-head>span{flex-basis:100%;margin-left:0}
   .version-canvas{height:210px}
   .research-toolbar{flex-wrap:wrap;gap:10px}.visual-modes{order:3;flex-basis:100%}

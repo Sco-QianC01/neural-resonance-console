@@ -5,7 +5,6 @@ import html
 import io
 import json
 import math
-import os
 from pathlib import Path
 import statistics
 import struct
@@ -15,10 +14,7 @@ from uuid import uuid4
 
 
 def results_root(fallback):
-    if os.environ.get('NEURAL_RESONANCE_DATA'):
-        return Path(fallback) / 'results'
-    preferred = Path('Q:/音疗系统/澳门科技大学/01_核心系统/music-therapy-pod-sensors/results')
-    return preferred if preferred.is_dir() else Path(fallback) / 'results'
+    return Path(fallback) / 'results'
 
 
 def finite(value):

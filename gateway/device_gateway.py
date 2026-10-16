@@ -315,7 +315,7 @@ def create_app(acquisition, config_path, upstream=None, instance=None):
     config_lock = asyncio.Lock()
 
     async def health(_request):
-        return web.json_response({"app": "neural-resonance-gateway", "version": "0.11.3",
+        return web.json_response({"app": "neural-resonance-gateway", "version": "0.11.4",
                                   "standalone": True, "upstream": bool(upstream),
                                   "platform": sys.platform, "build": BUILD,
                                   "instanceId": instance})

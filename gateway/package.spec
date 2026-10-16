@@ -1,9 +1,11 @@
 # Run PyInstaller from gateway/. Native builds must run on their target OS.
 import sys
+import json
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_submodules
 
 project = Path(SPECPATH).parent
+version = json.loads((project / "package.json").read_text(encoding="utf-8"))["version"]
 data = [(str(project / "index.html"), ".")]
 data += [(str(project / name), name) for name in
          ("src", "neural-worm", "public", "docs")]
@@ -28,6 +30,8 @@ if sys.platform == "darwin":
         collection, name="Neural Resonance.app",
         bundle_identifier="org.neuralresonance.console",
         info_plist={
+            "CFBundleShortVersionString": version,
+            "CFBundleVersion": version,
             "NSBluetoothAlwaysUsageDescription": "Connect your EEG sensor to display local waveforms.",
             "NSBluetoothPeripheralUsageDescription": "Connect your EEG sensor to display local waveforms.",
             "NSHighResolutionCapable": True,

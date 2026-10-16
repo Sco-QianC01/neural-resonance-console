@@ -38,6 +38,7 @@ def stop(process):
 
 def run(args):
     began = time.monotonic()
+    build = json.loads((ROOT / "gateway/build-manifest.json").read_text(encoding="utf-8"))["build"]
     with tempfile.TemporaryDirectory(prefix="Neural 獨立 搬遷 ") as temporary:
         home = Path(temporary)
         data = home / "使用者資料"
@@ -100,12 +101,12 @@ def run(args):
                         runtime = json.loads((data / "runtime.json").read_text(encoding="utf-8"))
                         url = runtime["url"].rstrip("/")
                         health = get(url + "/api/health")
-                        if health.get("build") == "score-evidence-20261015-v9":
+                        if health.get("build") == build:
                             break
                     except (OSError, ValueError, KeyError):
                         pass
                     time.sleep(.1)
-                assert health and health["build"] == "score-evidence-20261015-v9"
+                assert health and health["build"] == build
                 assert not health["upstream"]
                 assert urlsplit(url).port != port
                 runtime = get(url + "/api/runtime")

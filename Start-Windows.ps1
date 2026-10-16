@@ -41,7 +41,7 @@ $package = Join-Path $root 'NeuralResonance\NeuralResonance.exe'
 $manifest = Join-Path $root 'NeuralResonance\_internal\gateway\build-manifest.json'
 $currentPackage = $false
 if ((Test-Path -LiteralPath $package) -and (Test-Path -LiteralPath $manifest)) {
-    try { $currentPackage = (Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).build -eq 'score-evidence-20261015-v9' } catch {}
+    try { $currentPackage = (Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).build -eq 'portable-20261016-v1' } catch {}
 }
 if ($currentPackage) {
     if ($SetupOnly) { Write-Output 'Portable application is ready.'; exit 0 }

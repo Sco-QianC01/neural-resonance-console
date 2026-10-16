@@ -1,5 +1,6 @@
 {
-  "build": "score-evidence-20261015-v9",
+  "build": "portable-20261016-v1",
+  "version": "0.11.4",
   "defaultMode": "standalone",
   "singleInstance": true
 }

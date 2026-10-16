@@ -136,7 +136,20 @@ async def verify(args):
                     for view in ("waveforms","worm","settings"):
                         await page.evaluate(f"location.hash='{view}'")
                         await page.wait_for_function(f"!document.querySelector('#view-{view}').hidden")
-                        assert await page.evaluate("document.documentElement.scrollWidth<=innerWidth"),(width,view)
+                        if not await page.evaluate("document.documentElement.scrollWidth<=innerWidth"):
+                            results["layout"]=await page.evaluate("""()=>({
+                              width:innerWidth,scrollX,scrollWidth:document.documentElement.scrollWidth,
+                              containers:[...document.querySelectorAll('body *')].filter(e=>e.scrollWidth>e.clientWidth+1).map(e=>({
+                                tag:e.tagName,id:e.id,cls:e.getAttribute('class'),width:e.clientWidth,
+                                scrollWidth:e.scrollWidth,overflow:getComputedStyle(e).overflowX
+                              })).slice(0,30),
+                              overflow:[...document.querySelectorAll('body *')].map(e=>({
+                                tag:e.tagName,id:e.id,cls:e.getAttribute('class'),
+                                width:e.getBoundingClientRect().width,right:e.getBoundingClientRect().right+scrollX
+                              })).filter(e=>e.right>innerWidth+1&&!['TABLE','CAPTION','THEAD','TBODY','TR','TH','TD'].includes(e.tag)).sort((a,b)=>b.right-a.right).slice(0,25)
+                            })""")
+                            await page.screenshot(path=str(output.with_suffix(".png")))
+                            raise AssertionError((width,view,results["layout"]))
                     if width<760:
                         await page.click("#nav-toggle")
                         await page.click('[data-view="worm"]')

@@ -7,7 +7,7 @@ import sys
 import time
 
 
-BUILD = "score-evidence-20261015-v9"
+BUILD = "portable-20261016-v1"
 
 
 def instance_id(directory):

@@ -6,7 +6,7 @@ SETUP_ONLY=0
 if [ "${1:-}" = "--setup-only" ]; then SETUP_ONLY=1; shift; fi
 if [ -d "Neural Resonance.app" ] && \
     [ -f "Neural Resonance.app/Contents/Resources/gateway/build-manifest.json" ] && \
-    grep -q '"score-evidence-20261015-v9"' "Neural Resonance.app/Contents/Resources/gateway/build-manifest.json"; then
+    grep -q '"portable-20261016-v1"' "Neural Resonance.app/Contents/Resources/gateway/build-manifest.json"; then
     if [ "$SETUP_ONLY" = 1 ]; then echo "Portable application is ready."; exit 0; fi
     open "$ROOT/Neural Resonance.app" --args "$@"
     exit 0

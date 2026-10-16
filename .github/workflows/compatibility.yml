@@ -64,8 +64,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        engine: [chromium, firefox, webkit]
-    runs-on: ubuntu-latest
+        include:
+          - os: ubuntu-latest
+            engine: chromium
+          - os: ubuntu-latest
+            engine: firefox
+          - os: ubuntu-latest
+            engine: webkit
+          - os: macos-15
+            engine: webkit
+          - os: macos-15-intel
+            engine: webkit
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -80,5 +90,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: browser-${{ matrix.engine }}
+          name: browser-${{ matrix.os }}-${{ matrix.engine }}
           path: artifacts/browser-*

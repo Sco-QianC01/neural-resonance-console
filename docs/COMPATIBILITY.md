@@ -17,6 +17,8 @@
 
 这些是明确的测试矩阵，不涵盖所有历史系统版本、浏览器版本、芯片、厂商私有协议或无限时长运行。
 
+2026-10-16：在 GitHub 的 Apple Silicon 与 Intel Mac runner 上，Python 3.11、3.12、3.13 网关测试，以及 Python 3.13 的源码安装、中文空格路径搬迁、离线再次启动、端口冲突、重复启动和重启已实际通过。对应记录见 Compatibility regression 的 `45c731a` 提交。该轮 WebKit 窄屏问题随后修正，原生包以 v0.11.4 的 Portable desktop packages 验收结果为准；实体 USB/BLE 与 Mac 首次权限仍不属于 CI 验收。
+
 2026-10-12復檢增加Windows Edge與Linux的Chromium／Firefox／WebKit實際交互流程：三頁切換、記錄與CSV匯出、回放、斷流、網絡恢復和響應式顯示。Linux WebKit在測試專用目錄補齊其系統庫後執行，沒有修改全域軟體配置；它不是macOS上的Safari驗收。Windows11完整包、中文空格路徑搬遷、離線重啟及缺依賴自動修復提供现场證據。Windows10、Windows ARM64和Mac ARM／Intel實機、冷開機與實體電極精度仍待目標環境核對。
 
 ## 设备与权限

@@ -23,6 +23,8 @@ macOS原生`.app`需在Mac构建；仓库的“Portable desktop packages”工�
 
 未签名的应用可能需要在“隐私与安全性”中允许打开。构建目前不包含Apple Developer签名或公证。
 
+源码不需要安装 Node、Python 或 Homebrew。可以从 GitHub **Code → Download ZIP** 下载并解压，再运行上面的命令；不要只下载 HTML 文件，也不要复制另一台电脑的虚拟环境。首次安装需要能访问 GitHub 和 Python 包来源，安装失败会在终端保留错误。之后双击同一入口即可复用已经核对的私有环境。
+
 ## Windows：源码安装启动
 
 安装PowerShell 7后运行：
@@ -52,6 +54,8 @@ macOS原生`.app`需在Mac构建；仓库的“Portable desktop packages”工�
 | Linux | `$XDG_DATA_HOME/neural-resonance`或`~/.local/share/neural-resonance` |
 
 可用`NEURAL_RESONANCE_DATA`指定新目录，`NEURAL_RESONANCE_RUNTIME`指定源码版隔离环境根目录。配置会按当前用户生成，不随应用包携带作者设备序列号。记录在网页中通过JSON/CSV下载，不自动上传。启动失败查看本用户目录内`startup-error.txt`，精简运行日志为`service.log`，最多保留三段，不包含脑电原始值、请求凭证或全局配置。
+
+v0.11.4 的聆听实验写入该用户数据目录的 `results`，不探测作者电脑的 Q 盘工程。历史目录与原始资料保留；需要迁移时由使用者另行复制自己的资料。私有运行时若开启了系统包继承，启动器保留旧环境后重新建立隔离环境；有完整私有缓存时可以离线修复。
 
 迁移应用时复制完整应用目录；迁移用户设备选择时另外复制自己的`config.json`。虚拟环境不要跨操作系统复制；源码启动器在目标系统重建环境。
 

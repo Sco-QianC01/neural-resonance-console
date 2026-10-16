@@ -6,6 +6,8 @@
 
 2026-10-16：修正三維蠕蟲旋轉後誤觸播放定位，以及顯示網格末點與目前游標之間的缺段；保留來源缺失處斷線。原始逐拍速度與平滑曲線讀數明確區分，坐標標題移出軌跡區域，窄屏縱軸與二維／三維選項不再裁切。
 
+v0.11.4：修正干净 GitHub 源码测试缺件、Windows 乐谱字节与中文导出、环境隔离检查及 WebKit 音乐选择布局。Mac M 系列与 Intel 分别执行源码启动、离线搬迁、重启和原生包回归，详见[发布说明](docs/RELEASE-v0.11.4.md)。
+
 | 介面 | 可以做什麼 |
 |---|---|
 | **01 波形捕獲** | 看四頻段和原始腦波，記錄、回放，匯出 JSON／CSV，保存透明波形遮罩 |
@@ -34,9 +36,13 @@ USB按設備身份自動識別，端口變號或拔插後自動重試。可保�
 macOS源碼版首次運行 **`Start-macOS.command`**，會在本用戶的獨立目錄安裝固定依賴并打開本機網頁；已安裝並核對通過後可離線再次啟動：
 
 ```sh
+git clone https://github.com/Sco-QianC01/neural-resonance-console.git
+cd neural-resonance-console
 chmod +x Start-macOS.command
 ./Start-macOS.command
 ```
+
+也可使用 GitHub 的 **Code → Download ZIP**，解压后在该目录执行最后两行；源码采集入口不需要另装 Node、Python 或 Homebrew。
 
 Windows源碼版使用PowerShell 7：
 
@@ -44,7 +50,7 @@ Windows源碼版使用PowerShell 7：
 .\Start-Windows.ps1
 ```
 
-macOS应用包由仓库的 **Portable desktop packages** 工作流分别构建Apple Silicon和Intel版本。本轮Mac原生构建与实机结果尚未取得，不能把CI配置当成已通过的安装包。
+macOS应用包由仓库的 **Portable desktop packages** 工作流分别在 Apple Silicon 和 Intel 上构建；发布前执行源码和原生包的实际启动、离线搬迁、重复启动和重启检查。
 首次蓝牙权限和缺失的厂商USB驱动按系统提示处理；真实Mac设备采集与应用构建分开验收。
 
 2026-10-12独立环境优化：默认独立采集、每用户单实例、中文/空格路径搬迁、环境摘要校验、Mac串口别名去重、热插拔诊断。分发仅包含公开源码与程序，保留用户数据与配置；不要求作者的Python、Node、VPN或私有服务器。Windows原生包双击exe或`Start-Windows.cmd`，不要求PowerShell。
