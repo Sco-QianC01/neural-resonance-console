@@ -2,7 +2,7 @@ import {TemporalScene} from '../src/temporal-scene.mjs';
 import {mountListening} from './listening-workbench.mjs';
 import {ELEMENTS,mapMusic} from '../src/music.mjs';
 import {formatAmplitude} from '../src/amplitude-model.mjs';
-import {neuralExportName} from '../src/planar-model.mjs';
+import {neuralExportName,viewSpace} from '../src/planar-model.mjs';
 import {beatIntervals,onsetIntervals,gaussianTempo,musicPoint,musicExtent,rawMusicPoints,alignEEG,zoomRange,tempoSummary} from '../src/fusion-model.mjs';
 import {drawTempoProfile} from '../src/tempo-profile.mjs';
 import {structurePoints,scoreMusicPoint} from '../src/music-structure.mjs';
@@ -22,7 +22,8 @@ const icon=name=>`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" st
 const sources={demo:'合成示範',replay:'記錄回放',device:'設備資料',core:'橋接資料',mock:'外部模擬',unknown:'外部接口'};
 export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{},onReplay=()=>{}}={}){
   let latest=null,held=null,frozen=false,cursor=null,selectedElement=null,signature='',reference=100,exportContext=null;
-  let stage='music',visualMode='music',space='plane',wormSpace='plane',scale=50,scaleAnchor=null,cases=null,recordingData=null,musicModel=null,layer='notes';
+  const spaces={neural:'plane',music:'plane'};
+  let stage='music',visualMode='music',space=viewSpace(spaces,'neural'),scale=50,scaleAnchor=null,cases=null,recordingData=null,musicModel=null,layer='notes';
   let paired=[],run=0,startedAt=Infinity,lastPairKey=null,sourceIdentity='',animation=0,lastPaint=0;
   const models=new Map();let versionPlots=[],versionWork=null,casesLoading=null;
   let curation=null;
@@ -107,7 +108,12 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     getImage:()=>scene.exportPNG(['版本實驗 · 當前觀測圖形',recordingData?.title??'',recordingData?.performer??'']),
   });
   host.dataset.ready='true';host.dataset.presentation='research-time-study';host.dataset.visualMode='music';host.dataset.stage='music';
-  $('space').onchange=()=>{space=$('space').value;if(layer==='worm')wormSpace=space;render();};
+  $('space').onchange=()=>{
+    space=$('space').value;
+    if(visualMode==='eeg')viewSpace(spaces,'neural',space);
+    else if(layer==='worm')viewSpace(spaces,'music',space);
+    render();
+  };
   $('bar-window').onchange=render;
   host.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=>{frozen=false;held=null;cursor=null;signature='';onMode(button.dataset.mode);});
   $('window').onchange=()=>{cursor=null;onWindow(Number($('window').value));};
@@ -323,14 +329,16 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
   }
   for(const button of host.querySelectorAll('[data-visual]'))button.onclick=()=>{
     if(experiment.busy())return;stage=button.dataset.visual;visualMode=stage==='eeg'?'eeg':'music';
-
+    if(visualMode==='eeg')space=viewSpace(spaces,'neural');
+    else if(layer==='worm')space=viewSpace(spaces,'music');
+    $('space').value=space;
     for(const b of host.querySelectorAll('[data-visual]'))b.setAttribute('aria-pressed',String(b===button));
     host.dataset.visualMode=visualMode;host.dataset.stage=stage;render();
     if(visualMode!=='eeg')loadCases();
   };
   for(const button of host.querySelectorAll('button[data-layer]'))button.onclick=()=>{
     layer=button.dataset.layer;
-    if(layer==='worm'){space=wormSpace;$('space').value=space;}
+    if(layer==='worm'){space=viewSpace(spaces,'music');$('space').value=space;}
     host.querySelectorAll('button[data-layer]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));render();
   };
   $('case').onchange=()=>prepareCase($('case').value);

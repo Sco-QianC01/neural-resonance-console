@@ -19,6 +19,11 @@ export function neuralTraceStyle(age){
 export function neuralExportName(space,timestamp=Date.now()){
   return `neural-worm-${space==='time'?'3d':'2d'}-${timestamp}.png`;
 }
+export function viewSpace(preferences,view,next){
+  const key=view==='music'?'music':'neural';
+  if(next!==undefined)preferences[key]=next==='time'?'time':'plane';
+  return preferences[key]==='time'?'time':'plane';
+}
 /** Wrap by measured output width, preserving every Unicode code point. */
 export function wrapText(text,width,measure){
   if(!Number.isFinite(width)||width<=0||typeof measure!=='function')throw new TypeError('無效的文字寬度');
