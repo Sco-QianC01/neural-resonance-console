@@ -1,8 +1,8 @@
-import {ELEMENTS,readObservations,selectTags,compilePrompt,validateOrder} from './contract.mjs';
+import {ELEMENTS,readObservations,readWorkspace,selectTags,compilePrompt,validateOrder} from './contract.mjs';
 import {parseUtf8Json} from '../src/json-io.mjs';
 
 const $=id=>document.getElementById(id);
-let catalogue=null,catalogueHash=null,result=null,revision=0,busy=false,requestController=null;
+let catalogue=null,catalogueHash=null,result=null,revision=0,inputTask=0,busy=false,requestController=null;
 const emptyInput=()=>JSON.stringify({schemaVersion:'music-prompt-input-v1',
   source:{id:'未提供观测',kind:'not-provided'}});
 const numberText=(n,digits=3)=>Number.isFinite(n)?Number(n.toFixed(digits)).toString():'—';
@@ -20,8 +20,11 @@ function intent(){
     tempoBpm:$('tempo-bpm').value===''?null:Number($('tempo-bpm').value),
     levels:Object.fromEntries(ELEMENTS.map(([key])=>[key,$(`level-${key}`).value===''?null:Number($(`level-${key}`).value)]))};
 }
+function workspace(){
+  return readWorkspace($('observation-json').value.trim()?$('observation-json').value:emptyInput());
+}
 function observation(){
-  return readObservations($('observation-json').value.trim()?$('observation-json').value:emptyInput());
+  return workspace().observations;
 }
 function updateMetrics(obs){
   const music=obs.tempo;
@@ -77,9 +80,9 @@ async function generate(useModel){
   busy=true;$('arrange').disabled=!useModel;$('preview').disabled=true;
   $('arrange').textContent=useModel?'取消编排':'Ollama 编排';
   try{
-    const obs=observation(),target=intent(),tags=selectTags(target,catalogue);
+    const {observations:obs,inputDocument}=workspace(),target=intent(),tags=selectTags(target,catalogue);
     updateMetrics(obs);updateTags(tags);
-    const inputHash=await hashText(JSON.stringify({observations:obs,intent:target}));
+    const inputHash=await hashText(JSON.stringify({inputDocument,intent:target}));
     let order=tags.map(t=>t.id),model=null,engine='rules';
     if(useModel){
       status('正在本机编排音乐标签…');
@@ -98,7 +101,7 @@ async function generate(useModel){
       if(body.inputHash!==inputHash)throw new Error('结果与输入版本不一致，已拒绝。');
     }
     if(revision!==startedRevision)throw new Error('输入已变化，请重新生成。');
-    present(compilePrompt({observations:obs,intent:target,tags,order,engine,model,inputHash}));
+    present(compilePrompt({observations:obs,inputDocument,intent:target,tags,order,engine,model,inputHash}));
     status(useModel?(model.cacheHit
       ?'已复用相同标签的本机模型结果；当前目标数值已重新校验。'
       :`本地模型编排完成；标签与数值已校验${Number.isFinite(model.durationMs)?` · ${(model.durationMs/1000).toFixed(1)} 秒`:''}。`)
@@ -128,10 +131,12 @@ async function checkRuntime(){
   }
 }
 async function loadReference(){
+  const task=++inputTask,startedRevision=revision;
   try{
     const response=await fetch('/public/research/vmus-reference-cases.json');
     if(!response.ok)throw new Error('已有标注文件读取失败。');
     const data=await response.json(),recording=data.recordings.find(r=>r.id==='c27_langlang2003');
+    if(task!==inputTask||revision!==startedRevision)return;
     const times=recording?.annotation?.t?.filter(t=>t<=60);
     if(!times||times.length<3||recording.annotation.meter!=='6/8')throw new Error('参考标注缺少明确拍值。');
     const values=times.slice(1).map((t,i)=>60/(t-times[i]));
@@ -140,7 +145,7 @@ async function loadReference(){
         reference:recording.annotationReference},
       windowSeconds:times.at(-1)-times[0],music:{tempo:{values,unit:'eighth-notes/min'}}},null,2);
     refresh();status('已读入既有标注前60秒内的完整拍间隔；不是实时设备数据。未加载或播放音频。');
-  }catch(error){status(error.message,true);}
+  }catch(error){if(task===inputTask&&revision===startedRevision)status(error.message,true);}
 }
 async function copy(text){
   try{await navigator.clipboard.writeText(text);status('已复制。');}catch{status('无法写入剪贴板，可选中文字复制或下载JSON。',true);}
@@ -183,20 +188,21 @@ async function init(){
     });
     $('input-file').addEventListener('change',async event=>{
       const file=event.target.files[0];if(!file)return;
+      const task=++inputTask,startedRevision=revision;
       try{
         if(file.size>1048576)throw new Error('JSON文件需小于1 MiB。');
-        const text=await file.text();readObservations(text);
-        const supplied=parseUtf8Json(text).intent;
-        if(supplied)selectTags(supplied,catalogue);
-        $('observation-json').value=text;
+        const text=await file.text();
+        if(task!==inputTask||revision!==startedRevision)return;
+        const {inputDocument,intent:supplied}=readWorkspace(text,catalogue);
+        $('observation-json').value=JSON.stringify(inputDocument,null,2);
         if(supplied){
           $('style').value=supplied.style;$('duration').value=supplied.duration;
           $('tempo-bpm').value=supplied.tempoBpm??'';
           for(const [key] of ELEMENTS)$(`level-${key}`).value=supplied.levels?.[key]??'';
         }
         refresh();
-      }catch(error){status(error.message,true);}
-      finally{event.target.value='';}
+      }catch(error){if(task===inputTask&&revision===startedRevision)status(error.message,true);}
+      finally{if(task===inputTask)event.target.value='';}
     });
     $('copy-prompt').addEventListener('click',()=>result&&copy(result.promptEn));
     $('copy-ace').addEventListener('click',()=>result&&copy(JSON.stringify(result.aceRequest,null,2)));

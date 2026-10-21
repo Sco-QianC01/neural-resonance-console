@@ -84,19 +84,48 @@ export function selectTags(intent,catalogue){
   });
 }
 
+/** Restore inputs only; saved prompts and model claims are not executable state. */
+export function readWorkspace(text,catalogue){
+  if(typeof text!=='string'||new TextEncoder().encode(text).length>1048576)
+    throw new Error('JSON文件需小于1 MiB。');
+  const data=parseUtf8Json(text),saved=data?.schemaVersion==='music-prompt-result-v1';
+  const input=saved?data.inputDocument:data;
+  if(saved&&(!input||!['music-prompt-input-v1','neural-observation-summary-v2'].includes(input.schemaVersion)))
+    throw new Error('此结果文件未保存支持的原始观测输入；请导入原始JSON，不能从统计摘要还原样本。');
+  const observations=readObservations(saved?JSON.stringify(input):text);
+  let inputDocument;
+  if(input.schemaVersion==='neural-observation-summary-v2'){
+    inputDocument={...observations.provenance,source:observations.source.id,
+      observedSamples:observations.samples,windowSeconds:observations.windowSeconds,
+      inputs:{...observations.neural}};
+  }else{
+    inputDocument={schemaVersion:'music-prompt-input-v1',source:{...observations.source},
+      ...(observations.windowSeconds!==null?{windowSeconds:observations.windowSeconds}:{}),
+      ...(input.music?.tempo?{music:{tempo:{values:[...input.music.tempo.values],unit:input.music.tempo.unit}}}:{})};
+  }
+  let intent=null;
+  if(catalogue&&(saved||data.intent!==null&&data.intent!==undefined)){
+    selectTags(data.intent,catalogue);
+    intent={style:data.intent.style,duration:data.intent.duration,
+      tempoBpm:data.intent.tempoBpm??null,levels:structuredClone(data.intent.levels??{})};
+  }
+  return {observations,inputDocument,intent};
+}
+
 export function validateOrder(order,ids){
   if(!Array.isArray(order)||order.length!==ids.length||new Set(order).size!==ids.length
     ||order.some(id=>!ids.includes(id)))throw new Error('模型输出有新增、重复或遗漏的标签，已拒绝。');
   return [...order];
 }
 
-export function compilePrompt({observations,intent,tags,order,engine='rules',model=null,inputHash=null}){
+export function compilePrompt({observations,inputDocument=null,intent,tags,order,engine='rules',model=null,inputHash=null}){
   if(!['rules','ollama'].includes(engine))throw new Error('未知生成来源。');
   const approved=validateOrder(order,tags.map(t=>t.id));
   const text=approved.map(id=>tags.find(t=>t.id===id).phrase).join('; ')+'.'
     +(finite(intent.tempoBpm)?` Target tempo: ${intent.tempoBpm} BPM.`:'');
   return {schemaVersion:'music-prompt-result-v1',createdAt:new Date().toISOString(),
     inputHash,engine,model,observations:structuredClone(observations),
+    ...(inputDocument?{inputDocument:structuredClone(inputDocument)}:{}),
     intent:{kind:'creative-intent',...structuredClone(intent),inferredFromEeg:false},
     tagIds:approved,catalogueVersion:'20261021-v1',promptEn:text,
     aceRequest:{ditModel:'acestep-v15-xl-sft',customMode:false,instrumental:true,title:'器乐创作',

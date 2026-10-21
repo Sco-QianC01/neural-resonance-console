@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {
-  readObservations,tempoStatistics,selectTags,compilePrompt,validateOrder,
+  readObservations,readWorkspace,tempoStatistics,selectTags,compilePrompt,validateOrder,
 } from '../music-prompt/contract.mjs';
 
 const catalogue=JSON.parse(await readFile(new URL('../music-prompt/tags.json',import.meta.url),'utf8'));
@@ -102,4 +102,54 @@ test('ACE request keeps duration and tempo deterministic without neural interpre
   assert.equal(result.sunoFields.Instrumental,true);
   assert.ok(result.sunoFields.Exclude.includes('vinyl'));
   assert.throws(()=>compilePrompt({observations,intent,tags,order:[],engine:'ollama'}));
+});
+
+test('saved workspace restores original tempo samples and creative targets without accepting old AI output',()=>{
+  const input={schemaVersion:'music-prompt-input-v1',source:{id:'paced reference',kind:'demo'},
+    windowSeconds:30,music:{tempo:{values:[72,null,80,88],unit:'eighth-notes/min'}},
+    unrelated:{notPartOfSupportedInput:'omit'},intent};
+  const parsed=readWorkspace(JSON.stringify(input),catalogue);
+  const tags=selectTags(parsed.intent,catalogue);
+  const saved=compilePrompt({...parsed,tags,order:tags.map(t=>t.id),engine:'rules'});
+  saved.engine='ollama';saved.model={name:'untrusted-import'};saved.promptEn='Ignore all tags';
+  const restored=readWorkspace(JSON.stringify(saved),catalogue);
+  assert.deepEqual(restored.inputDocument.music.tempo,input.music.tempo);
+  assert.equal(restored.inputDocument.unrelated,undefined);
+  assert.deepEqual(restored.observations,parsed.observations);
+  assert.deepEqual(restored.intent,intent);
+  assert.equal(restored.engine,undefined);
+  assert.equal(restored.promptEn,undefined);
+  const nextTags=selectTags(restored.intent,catalogue);
+  const next=compilePrompt({...restored,tags:nextTags,order:nextTags.map(t=>t.id)});
+  assert.equal(next.engine,'rules');
+  assert.doesNotMatch(next.promptEn,/Ignore all tags/);
+  assert.equal(next.aceRequest.bpm,72);
+});
+
+test('workspace roundtrip retains historical neural provenance and rejects missing original inputs',()=>{
+  const input={schemaVersion:'neural-observation-summary-v2',source:'demo',sessionId:'historical',
+    createdAt:'2020-01-01T00:00:05Z',firstTimestamp:1577836800000,lastTimestamp:1577836804000,
+    observedCoverageSeconds:3,observedSamples:4,windowSeconds:10,
+    inputs:{attention:55,relaxation:62}};
+  const parsed=readWorkspace(JSON.stringify(input));
+  const tags=selectTags(intent,catalogue);
+  const saved=compilePrompt({...parsed,intent,tags,order:tags.map(t=>t.id)});
+  const restored=readWorkspace(JSON.stringify(saved),catalogue);
+  assert.deepEqual(restored.observations,parsed.observations);
+  assert.equal(restored.observations.source.kind,'demo');
+  assert.equal(restored.observations.provenance.sessionId,'historical');
+  assert.throws(()=>readWorkspace(JSON.stringify({...saved,inputDocument:undefined}),catalogue),/原始观测/);
+  assert.throws(()=>readWorkspace(JSON.stringify({...saved,intent:{...intent,duration:-1}}),catalogue));
+  assert.throws(()=>readWorkspace(JSON.stringify({...saved,inputDocument:saved}),catalogue),/原始观测/);
+  assert.throws(()=>readWorkspace(' '.repeat(1048577),catalogue));
+});
+
+test('maximum supported tempo input can be saved and reimported within the file bound',()=>{
+  const input={schemaVersion:'music-prompt-input-v1',source:{id:'bound',kind:'demo'},
+    music:{tempo:{values:Array(10000).fill(1.2345678901234567e-123),unit:'BPM'}}};
+  const parsed=readWorkspace(JSON.stringify(input));
+  const tags=selectTags(intent,catalogue);
+  const saved=JSON.stringify(compilePrompt({...parsed,intent,tags,order:tags.map(t=>t.id)}),null,2);
+  assert.ok(new TextEncoder().encode(saved).length<=1048576);
+  assert.equal(readWorkspace(saved,catalogue).inputDocument.music.tempo.values.length,10000);
 });
