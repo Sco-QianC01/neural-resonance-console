@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>八小节谱面样例 · 神经共振</title>
+  <link rel="icon" href="../music-prompt/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../music-prompt/style.css">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./vendor/opensheetmusicdisplay.min.js" defer></script>
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <header>
+    <div class="identity"><span class="mark" aria-hidden="true">N / R</span><span>神经共振<span class="sub">独立创作工具</span></span></div>
+    <div class="runtime"><span id="runtime-dot" class="dot"></span><span id="runtime-status" role="status">正在检查音源</span><button id="check-runtime" class="quiet" type="button">检查</button></div>
+  </header>
+  <main>
+    <div class="page-title"><div><h1>八小节谱面样例</h1><p class="intro">同一份音符事件，生成谱面、MIDI 与音源音频。</p></div><a class="back-link" href="/music-prompt/">音乐提示词工作台 ↗</a></div>
+    <div class="score-workspace">
+      <section class="panel controls-panel" aria-labelledby="expression-title">
+        <div class="panel-title"><span class="step">01</span><h2 id="expression-title">小节与演奏</h2><span class="badge">4/4 · D 小调</span></div>
+        <div class="tempo-row"><label for="tempo">速度 / BPM</label><input id="tempo" type="number" min="48" max="160" step="1" value="80" inputmode="numeric"></div>
+        <div class="bar-heading" aria-hidden="true"><span>小节</span><span>演奏法</span><span>力度</span></div>
+        <div id="bar-controls" class="bar-controls"></div>
+        <p class="hint">每小节两个二分音符。力度为记谱指示；音源使用固定的预览映射，不代表实测响度。</p>
+        <div class="actions source-actions"><button id="reset" class="secondary" type="button">固定样例</button><button id="compose" class="secondary" type="button">本地模型规划音高</button></div>
+        <p id="source-label" class="hint">正在载入音符事件</p>
+      </section>
+      <div class="score-main">
+        <section class="panel notation-panel" aria-labelledby="notation-title">
+          <div class="panel-title"><span class="step">02</span><h2 id="notation-title">谱面</h2><span id="score-summary" class="badge">8 小节 · 16 音</span></div>
+          <div id="score-paper" class="score-paper" role="region" aria-label="八小节乐谱"><div id="notation"></div></div>
+          <nav id="bar-follow" class="bar-follow" aria-label="播放小节进度"></nav>
+          <div class="notation-footer"><span id="position">尚未播放</span><div class="download-row"><a id="xml-download" aria-disabled="true">MusicXML</a><a id="midi-download" aria-disabled="true">MIDI</a></div></div>
+        </section>
+        <section class="panel render-panel" aria-labelledby="render-title">
+          <div class="panel-title"><span class="step">03</span><h2 id="render-title">GM 弦乐预览</h2><span id="render-badge" class="badge">未渲染</span></div>
+          <div class="render-toolbar"><button id="render" type="button" disabled>渲染音频</button><span id="duration" class="duration">—</span></div>
+          <p id="operation-status" class="operation-status" role="status" aria-live="polite">正在载入样例</p>
+          <audio id="audio" controls preload="metadata" aria-label="弦乐渲染音频" hidden></audio>
+          <div id="render-downloads" class="download-row" hidden><a id="audio-download" download>WAV 音频</a><a id="events-download" download>事件 JSON</a><a id="report-download" download>渲染报告</a><a id="package-download" download>完整样例包</a></div>
+          <details><summary>音源与映射</summary><p class="hint">持续弦乐：GM 48；拨奏弦乐：GM 45，均为从 0 起算的程序号。这是两个通用弦乐预置，不是同一独奏小提琴采样库中的两种技巧。音频包含音源的释放尾音。</p><p id="renderer-detail" class="hint">音源尚未核查。</p></details>
+        </section>
+      </div>
+    </div>
+    <footer><span>谱面、事件与音频分别保留</span><a href="/docs/MUSIC-SCORE.md" target="_blank" rel="noopener">数据合同与方法</a><span>蠕虫与设备采集独立运行</span></footer>
+  </main>
+</body>
+</html>

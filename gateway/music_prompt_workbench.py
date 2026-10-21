@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 from aiohttp import ClientError, ClientSession, ClientTimeout, web
+from music_score_runtime import add_score_routes
 
 ROOT = Path(__file__).resolve().parents[1]
 OLLAMA_URL = "http://127.0.0.1:11435"
@@ -109,7 +110,7 @@ async def generate_order(tags):
     return validate_order(json.loads(message["content"]), ids)
 
 
-def create_app(root=ROOT):
+def create_app(root=ROOT, score_output=None):
     root = Path(root).resolve()
     catalogue_path = root / "music-prompt" / "tags.json"
     catalogue_bytes = catalogue_path.read_bytes()
@@ -209,17 +210,18 @@ def create_app(root=ROOT):
             name += "index.html"
         allowed_src = {"src/json-io.mjs"}
         allowed_public = {"public/research/vmus-reference-cases.json"}
-        allowed_docs = {"docs/MUSIC-PROMPT.md", "docs/MUSIC-PROMPT-RUNTIME.md"}
-        if not (name.startswith("music-prompt/") or name in allowed_src or name in allowed_public or name in allowed_docs):
+        allowed_docs = {"docs/MUSIC-PROMPT.md", "docs/MUSIC-PROMPT-RUNTIME.md", "docs/MUSIC-SCORE.md"}
+        if not (name.startswith(("music-prompt/", "music-score/")) or name in allowed_src or name in allowed_public or name in allowed_docs):
             raise web.HTTPNotFound()
         target = (root / name).resolve()
-        allowed_root = root / "music-prompt" if name.startswith("music-prompt/") else root / name.split("/", 1)[0]
+        allowed_root = root / name.split("/", 1)[0]
         if not target.is_relative_to(allowed_root) or not target.is_file():
             raise web.HTTPNotFound()
         return web.FileResponse(target)
 
     app.router.add_get("/api/music-prompt/health", health)
     app.router.add_post("/api/music-prompt/arrange", arrange)
+    add_score_routes(app, root, inference_lock, output_root=score_output)
     app.router.add_get("/{path:.*}", static)
     return app
 
@@ -227,10 +229,11 @@ def create_app(root=ROOT):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8771)
+    parser.add_argument("--score-output", type=Path, help="Local generated score/audio directory (not static assets)")
     options = parser.parse_args()
     if not 1024 <= options.port <= 65535:
         parser.error("port must be 1024–65535")
-    web.run_app(create_app(), host="127.0.0.1", port=options.port, access_log=None, handler_cancellation=True)
+    web.run_app(create_app(score_output=options.score_output), host="127.0.0.1", port=options.port, access_log=None, handler_cancellation=True)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ FILES = ("README.md", "LICENSE", "package.json", "index.html",
          "gateway/acquisition.py", "gateway/device_gateway.py", "gateway/protocols.py",
          "gateway/runtime_support.py", "gateway/experiments.py", "gateway/config.example.json",
          "gateway/watch.py", "gateway/music_prompt_workbench.py",
+         "gateway/music_score.py", "gateway/music_score_runtime.py",
          "gateway/build-manifest.json",
          "gateway/package.spec", "gateway/pyproject.toml", "gateway/uv.lock",
          "tools/runtime-check.py", "tools/runtime-smoke.py", "tools/portable-smoke.py",
@@ -22,7 +23,7 @@ FILES = ("README.md", "LICENSE", "package.json", "index.html",
          "tools/verify-teacher-workflow.py", "tools/verify-teacher-revision.py", "tools/build-chopin-score.py",
          "tools/verify-score-evidence.py", "tools/build-method-docs.py",
          ".github/workflows/compatibility.yml")
-TREES = ("src", "public", "docs", "neural-worm", "music-prompt", "tests", "gateway/tests")
+TREES = ("src", "public", "docs", "neural-worm", "music-prompt", "music-score", "tests", "gateway/tests")
 
 
 def package(output):

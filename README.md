@@ -181,6 +181,8 @@ uv run pyinstaller package.spec --noconfirm --distpath ../artifacts/desktop
 
 独立的 [音乐提示词工作台](docs/MUSIC-PROMPT.md) 使用单独端口8771，把观测JSON、人工创作目标与本机Ollama标签编排分开。它不修改蠕虫采集流程，也不自动提交线上生成任务；[运行说明](docs/MUSIC-PROMPT-RUNTIME.md) 包含隔离环境和当前验收边界。
 
+同一独立服务的 [八小节谱面样例](docs/MUSIC-SCORE.md) 提供事件JSON、MusicXML、MIDI与真实GM弦乐采样渲染。可逐小节修改持续/拨奏和力度，并用单独的本地模型规划16个音高；入口为`http://127.0.0.1:8771/music-score/`。音源为可选本机资产，源码不包含音源或模型权重。
+
 ## 0.11.6 采集与显示更新
 
 音乐／神经／对照使用独立坐标，主图与高级分析分层。新采集使用单调时钟及同报告指数配对，保留原始时间、独立单项读数和旧记录兼容。合同与边界见[采集时序](docs/STREAM-CLOCK.md)，本轮验收见[交付报告](docs/SYSTEM-CLARITY-DELIVERY-20261021.md)。

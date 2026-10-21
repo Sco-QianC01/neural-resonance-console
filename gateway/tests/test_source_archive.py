@@ -34,6 +34,8 @@ class SourceArchiveTests(unittest.TestCase):
                 cwd=root, env=env, capture_output=True, text=True, encoding="utf-8", timeout=20)
             self.assertEqual(imported.returncode, 0, imported.stderr)
             for entry in ("tools/start-music-prompt.py", "tools/build-watch.py",
+                          "gateway/music_score.py", "gateway/music_score_runtime.py",
+                          "music-score/index.html", "music-score/vendor/OSMD-LICENSE",
                           "watch/AndroidManifest.xml", "watch/src/org/neuralresonance/watch/MainActivity.java"):
                 self.assertTrue((root / entry).is_file(), entry)
             for arguments in (["--test", "tests/music-prompt.test.mjs"], ["tools/build.mjs"]):
