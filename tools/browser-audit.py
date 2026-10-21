@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 import tempfile
 import time
+import traceback
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"gateway"))
 from device_gateway import Acquisition,create_app,validate_config
@@ -73,9 +74,12 @@ async def verify(args):
                 exported=await download.value
                 saved=root/"recording.json";await exported.save_as(saved)
                 recording=json.loads(saved.read_text(encoding="utf-8"))
-                assert len(recording["snapshots"])>=2
-                assert all(packet["spo2"]==98 and packet["pr"]==72 for packet in recording["snapshots"])
-                assert all(packet["source"]=="device" for packet in recording["snapshots"])
+                results["recording"]={"samples":len(recording["snapshots"]),
+                    "sources":list(dict.fromkeys(packet["source"] for packet in recording["snapshots"])),
+                    "sensors":[[packet["spo2"],packet["pr"]] for packet in recording["snapshots"][:8]]}
+                assert len(recording["snapshots"])>=2, results["recording"]
+                assert all(packet["spo2"]==98 and packet["pr"]==72 for packet in recording["snapshots"]), results["recording"]
+                assert all(packet["source"]=="device" for packet in recording["snapshots"]), results["recording"]
                 results["checks"].append("shared views and sensor recording")
                 async with page.expect_download() as download:
                     await page.click("#csv-export")
@@ -175,7 +179,8 @@ async def verify(args):
                 await context.close()
                 await browser.close();browser=None
         except Exception as error:
-            results.update({"pass":False,"error":str(error)})
+            results.update({"pass":False,"error":str(error),"errorType":type(error).__name__,
+                "traceback":traceback.format_exc()})
             if page is not None and not page.is_closed():
                 try:
                     results["layout"]=await page.evaluate("""()=>({
