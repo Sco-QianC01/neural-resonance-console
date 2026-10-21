@@ -1,3 +1,4 @@
+import {PacketClock,hasStreamClock,observationNow} from './stream-clock.mjs';
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 export const SENSOR_FIELDS = {
   spo2: { label: '血氧飽和度', unit: '%', count: 'spo2Samples', valid: v => finite(v) && v > 0 && v <= 100 },
@@ -9,11 +10,12 @@ export const SENSOR_FIELDS = {
 /** Non-EEG channels have their own freshness; an EEG outage must not hide SpO2. */
 export class SensorState {
   constructor() { this.reset(); }
-  reset() { this.packet = null; this.progress = {}; this.lastTimestamp = -Infinity;this.identity=null; }
-  accept(packet, now = Date.now()) {
+  reset() { this.packet = null; this.progress = {}; this.lastTimestamp = -Infinity;this.identity=null;this.clock=new PacketClock();this.checkedAt=-Infinity; }
+  accept(packet, now = observationNow()) {
+    try{packet=this.clock.map(packet,now);}catch{return false;}
     if (!finite(packet?.ts)||packet.ts*1000>now+5000) return false;
     const identity=JSON.stringify([packet.source,packet.sessionId]);
-    if(identity!==this.identity){this.reset();this.identity=identity;}
+    if(identity!==this.identity){this.packet=null;this.progress={};this.lastTimestamp=-Infinity;this.identity=identity;this.checkedAt=-Infinity;}
     if(packet.ts <= this.lastTimestamp)return false;
     this.lastTimestamp = packet.ts; this.packet = packet;
     for (const [key, field] of Object.entries(SENSOR_FIELDS)) {
@@ -24,7 +26,8 @@ export class SensorState {
     }
     return true;
   }
-  current(now = Date.now()) {
+  current(now = observationNow()) {
+    now=this.checkedAt=Math.max(this.checkedAt,now);
     const packet = this.packet;
     const age = packet ? now - packet.ts * 1000 : Infinity;
     const transportFresh = age >= -5000 && age <= 3000;
@@ -32,13 +35,17 @@ export class SensorState {
       const progress = this.progress[key];
       const hasCount = finite(packet?.quality?.[field.count]);
       const at=packet?.sensorTimestamps?.[key];
-      const fieldFresh=!packet?.sensorTimestamps||!Object.hasOwn(packet.sensorTimestamps,key)
+      const fieldFresh=packet&&hasStreamClock(packet)
+        ?finite(packet.sensorAgesMs?.[key])&&packet.sensorAgesMs[key]>=0
+          &&packet.sensorAgesMs[key]+Math.max(0,age)<=15000
+        :!packet?.sensorTimestamps||!Object.hasOwn(packet.sensorTimestamps,key)
         ||(finite(at)&&now-at*1000>=-5000&&now-at*1000<=15000);
       // The API already clears values after 15 seconds. Also reject a stuck
       // counter even if a faulty producer keeps sending fresh heartbeats.
       const valid = transportFresh && fieldFresh && field.valid(packet?.[key])
         && (!hasCount || (progress?.count > 0 && now - progress.advancedAt <= 15000));
       return [key, { value: valid ? packet[key] : null, count: progress?.count ?? null,
+        source: valid && typeof packet?.sensorSources?.[key]==='string'?packet.sensorSources[key]:null,
         valid, age: transportFresh ? age / 1000 : null }];
     }));
   }

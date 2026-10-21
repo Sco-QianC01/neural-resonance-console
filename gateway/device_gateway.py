@@ -22,6 +22,7 @@ from acquisition import Stream, choose_port, serial_selection, inventory, ble_ca
 from protocols import ThinkGear, oxygen, gsr
 from runtime_support import BUILD, InstanceLock, instance_id, write_runtime
 from experiments import save_experiment, results_root
+from watch import validate_watch, watch_worker
 
 FROZEN = getattr(sys, "frozen", False)
 
@@ -96,6 +97,7 @@ def validate_config(value):
     for name in ("dtr", "rts"):
         if type(config["eeg"][name]) is not bool:
             raise ValueError(f"EEG {name} must be boolean")
+    validate_watch(config["watch"])
     return config
 
 
@@ -106,6 +108,7 @@ class Acquisition:
         self.stop_event = threading.Event()
         self.threads = []
         self.ble_task = None
+        self.watch_task = None
 
     def serial_worker(self, key):
         profile = self.config[key]
@@ -132,8 +135,7 @@ class Acquisition:
                 if key == "eeg":
                     connection = stream.new_connection("usb")
                 decoder, text = ThinkGear(), bytearray()
-                last_check = last_bytes = time.monotonic()
-                last_valid = last_bytes
+                last_check = last_valid = time.monotonic()
                 received = 0
                 stream.status(key, state="open-waiting-data", reason="waiting-data",
                                    bytes=0, validPackets=0, protocolErrors=0,
@@ -150,7 +152,6 @@ class Acquisition:
                     valid = False
                     if data:
                         received += len(data)
-                        last_bytes = time.monotonic()
                         if key == "eeg":
                             for fields, raw, errors in decoder.feed(data):
                                 valid |= stream.accept("usb", fields, raw, connection=connection,
@@ -167,13 +168,14 @@ class Acquisition:
                                 if value is not None:
                                     if key == "bloodOxygen":
                                         stream.sensor("spo2", value[0])
-                                        stream.sensor("pr", value[1])
+                                        if not self.config["watch"]["enabled"]:
+                                            stream.sensor("pr", value[1])
                                     else:
                                         stream.sensor("gsr", value)
                                     valid = True
                                 elif "probe error" in line.lower():
                                     stream.clear_sensor("spo2")
-                                    stream.clear_sensor("pr")
+                                    stream.clear_sensor("pr", source="bloodOxygen")
                                     stream.status(key, message="探头无有效信号")
                         stream.status(key, bytes=received, protocolErrors=decoder.errors,
                                            validPackets=decoder.valid_frames if key == "eeg" else None)
@@ -185,8 +187,8 @@ class Acquisition:
                         stream.status(key, state="open-waiting-data",
                                            reason="invalid-protocol" if received else "waiting-data",
                                            message="有字节但未收到有效协议包" if received else "设备未发送数据")
-                    if time.monotonic() - (last_valid if key == "eeg" else last_bytes) > 60:
-                        raise TimeoutError("60秒无数据，重新识别设备")
+                    if time.monotonic() - last_valid > 60:
+                        raise TimeoutError("60秒无有效协议数据，重新识别设备")
             except Exception as error:
                 reconnects += 1
                 message = str(error)
@@ -201,7 +203,7 @@ class Acquisition:
                     stream.end_connection("usb", connection)
                 if key == "bloodOxygen":
                     stream.clear_sensor("spo2")
-                    stream.clear_sensor("pr")
+                    stream.clear_sensor("pr", source="bloodOxygen")
                 elif key == "gsr":
                     stream.clear_sensor("gsr")
                 if handle:
@@ -219,8 +221,8 @@ class Acquisition:
         while not stop_event.is_set():
             connection = None
             try:
-                if (stream.last_usb is not None
-                        and time.time() - stream.last_usb < 3):
+                if (stream.last_usb_monotonic is not None
+                        and 0 <= time.monotonic() - stream.last_usb_monotonic < 3):
                     stream.status("ble", state="standby", message="USB正在采集")
                     await asyncio.sleep(1)
                     continue
@@ -266,8 +268,11 @@ class Acquisition:
                     for characteristic in targets:
                         await client.start_notify(characteristic, notification)
                     while client.is_connected and not stop_event.is_set():
-                        if stream.last_usb and time.time() - stream.last_usb < 3:
+                        if stream.last_usb_monotonic is not None and 0 <= time.monotonic() - stream.last_usb_monotonic < 3:
                             break
+                        if time.monotonic() - last_valid[0] > 3:
+                            stream.status("ble", state="connected-waiting-data", reason="waiting-data",
+                                          message="等待新的有效协议数据")
                         if time.monotonic() - last_valid[0] > 10:
                             raise TimeoutError("BLE没有有效协议数据，重新连接")
                         await asyncio.sleep(0.5)
@@ -280,6 +285,8 @@ class Acquisition:
             finally:
                 if connection is not None:
                     stream.end_connection("desktop_ble", connection)
+                    if stream.devices.get("ble", {}).get("state") in ("receiving", "connected-waiting-data"):
+                        stream.status("ble", state="waiting", reason="disconnected", message="蓝牙采集连接已结束")
 
     async def start(self):
         for key in ("eeg", "bloodOxygen", "gsr"):
@@ -291,12 +298,20 @@ class Acquisition:
                 self.stream.status(key, state="disabled", port="", message="未启用")
         if self.config["ble"]["enabled"]:
             self.ble_task = asyncio.create_task(self.ble_worker())
+        if self.config["watch"]["enabled"]:
+            self.watch_task = asyncio.create_task(watch_worker(self.config["watch"], self.stream))
+        else:
+            self.stream.status("watch", state="disabled", message="未启用")
 
     async def stop(self):
         self.stop_event.set()
         if self.ble_task:
             self.ble_task.cancel()
             await asyncio.gather(self.ble_task, return_exceptions=True)
+        if self.watch_task:
+            self.watch_task.cancel()
+            await asyncio.gather(self.watch_task, return_exceptions=True)
+            self.watch_task = None
         for thread in self.threads:
             await asyncio.to_thread(thread.join, 2)
 
@@ -315,7 +330,7 @@ def create_app(acquisition, config_path, upstream=None, instance=None):
     config_lock = asyncio.Lock()
 
     async def health(_request):
-        return web.json_response({"app": "neural-resonance-gateway", "version": "0.11.4",
+        return web.json_response({"app": "neural-resonance-gateway", "version": "0.11.6",
                                   "standalone": True, "upstream": bool(upstream),
                                   "platform": sys.platform, "build": BUILD,
                                   "instanceId": instance})
@@ -408,7 +423,7 @@ def create_app(acquisition, config_path, upstream=None, instance=None):
                     if stream.session_id != session:
                         session, cursor = stream.session_id, 0
                     packet = stream.snapshot(cursor)
-                    await asyncio.wait_for(socket.send_json(packet), 5)
+                    await asyncio.wait_for(socket.send_json(packet, dumps=lambda value: json.dumps(value, allow_nan=False)), 5)
                     cursor = packet["rawSequence"]
                     await asyncio.sleep(0.1)
         sender = asyncio.create_task(transmit())

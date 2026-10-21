@@ -49,7 +49,7 @@ input[type=checkbox]{accent-color:#bdd1cb}
 input:not([type=range]):not([type=checkbox]):not([type=file]),select,textarea{
   background:#15171a;color:var(--text);border:1px solid #44484c;border-radius:2px;min-height:40px;padding:9px 10px;max-width:100%
 }
-input[type=url],.setting-section input:not([type=file]){width:100%}
+input[type=url],.setting-section input:not([type=file]):not([type=checkbox]){width:100%}
 select{cursor:pointer}
 .readouts{display:flex;gap:28px;margin:26px 0 20px;padding-top:18px;border-top:1px solid var(--line)}
 .readouts>div{flex:1;min-width:0}

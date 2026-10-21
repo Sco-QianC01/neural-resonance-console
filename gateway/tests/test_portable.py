@@ -154,17 +154,21 @@ class NotificationStatusTests(unittest.IsolatedAsyncioTestCase):
         acquisition = Acquisition(validate_config({}))
         device = SimpleNamespace(address="UUID", name="BrainLink")
         char = SimpleNamespace(uuid="notify", properties=["notify"])
+        before_disconnect = []
         class Client:
             def __init__(self, *_args, **_kwargs):
                 self.services = [SimpleNamespace(uuid="service", characteristics=[char])]
                 self.is_connected = False
             async def __aenter__(self): return self
-            async def __aexit__(self, *_args): acquisition.stop_event.set()
+            async def __aexit__(self, *_args):
+                before_disconnect.append(acquisition.stream.devices["ble"]["state"])
+                acquisition.stop_event.set()
             async def start_notify(self, characteristic, callback):
                 callback(characteristic, b"\xaa\xaa\x04\x80\x02\x00\x01\x7c")
         found = {"one": (device, SimpleNamespace(local_name="BrainLink"))}
         with patch("device_gateway.BleakScanner.discover", return_value=found), \
                 patch("device_gateway.BleakClient", Client):
             await asyncio.wait_for(acquisition.ble_worker(), 2)
-        self.assertEqual(acquisition.stream.devices["ble"]["state"], "receiving")
+        self.assertEqual(before_disconnect, ["receiving"])
+        self.assertEqual(acquisition.stream.devices["ble"]["state"], "waiting")
         self.assertEqual(acquisition.stream.sequence, 1)

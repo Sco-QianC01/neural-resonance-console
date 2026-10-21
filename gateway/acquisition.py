@@ -1,6 +1,7 @@
 """Device identity and stream state independent of host-specific paths."""
 from collections import deque
 import copy
+import math
 import threading
 import time
 import uuid
@@ -70,7 +71,10 @@ class Stream:
         self.session_id = uuid.uuid4().hex
         self.source = None
         self.epoch = 0
-        self.fields, self.field_times = {}, {}
+        self.fields, self.field_times, self.field_monotonic = {}, {}, {}
+        self.last_eeg_monotonic = self.last_usb_monotonic = None
+        self.packet_sequence = self.pair_sequence = 0
+        self.index_pair = None
         self.raw = deque(maxlen=8192)
         self.sequence = 0
         self.protocol_errors = 0
@@ -78,7 +82,7 @@ class Stream:
         self.frames = 0
         self.last_eeg = None
         self.last_usb = None
-        self.sensors = {key: {"value": None, "at": None, "count": 0}
+        self.sensors = {key: {"value": None, "at": None, "count": 0, "source": None, "details": None, "monotonic": None}
                         for key in ("spo2", "pr", "gsr")}
         self.devices = {}
         self.priorities = {"desktop_ble": 1, "usb": 2}
@@ -104,13 +108,17 @@ class Stream:
         self.source = None
         self.fields.clear()
         self.field_times.clear()
+        self.field_monotonic.clear()
+        self.index_pair = None
         self.raw.clear()
         self.last_eeg = None
         self.last_usb = None
+        self.last_eeg_monotonic = self.last_usb_monotonic = None
         self.protocol_errors = 0
         self.raw_break_pending = False
 
-    def accept(self, source, fields, raw, now=None, connection=None, protocol_errors=None):
+    def accept(self, source, fields, raw, now=None, connection=None, protocol_errors=None, mono=None):
+        mono = time.monotonic() if mono is None and now is None else now if mono is None else mono
         now = time.time() if now is None else now
         if not fields and not raw:
             return False
@@ -120,7 +128,7 @@ class Stream:
             if connection is not None and self.connections.get(source) != connection:
                 return False
             if (self.source and source != self.source and self.last_eeg is not None
-                    and now - self.last_eeg < 3
+                    and 0 <= mono - self.last_eeg_monotonic < 3
                     and self.priorities[source] < self.priorities[self.source]):
                 return False
             if self.source != source:
@@ -128,6 +136,8 @@ class Stream:
                 self.epoch += 1
                 self.fields.clear()
                 self.field_times.clear()
+                self.field_monotonic.clear()
+                self.index_pair = None
                 self.raw.clear()
                 self.protocol_errors = 0
                 self.raw_break_pending = False
@@ -139,41 +149,72 @@ class Stream:
                 self.protocol_errors = protocol_errors
             self.frames += 1
             self.last_eeg = now
+            self.last_eeg_monotonic = mono
             if source == "usb":
                 self.last_usb = now
+                self.last_usb_monotonic = mono
             self.fields.update(fields)
             self.field_times.update({key: now for key in fields})
+            self.field_monotonic.update({key: mono for key in fields})
+            if any(key in fields and not (type(fields[key]) in (int, float)
+                   and math.isfinite(fields[key]) and 0 < fields[key] <= 100)
+                   for key in ("attention", "meditation")):
+                self.index_pair = None
+            if all(type(fields.get(key)) in (int, float) and math.isfinite(fields[key])
+                   and 0 < fields[key] <= 100 for key in ("attention", "meditation")):
+                self.pair_sequence += 1
+                self.index_pair = {"attention": fields["attention"], "meditation": fields["meditation"],
+                                   "at": now, "monotonic": mono, "sequence": self.pair_sequence}
             for value in raw:
                 self.sequence += 1
                 self.raw.append((self.sequence, value, self.raw_break_pending))
                 self.raw_break_pending = False
             if raw:
                 self.field_times["raw"] = now
+                self.field_monotonic["raw"] = mono
             return True
 
-    def sensor(self, key, value, now=None):
+    def sensor(self, key, value, now=None, source=None, details=None, mono=None):
+        if type(value) not in (int, float) or not math.isfinite(value):
+            return False
+        mono = time.monotonic() if mono is None and now is None else now if mono is None else mono
         now = time.time() if now is None else now
         with self.lock:
             state = self.sensors[key]
-            state.update(value=value, at=now, count=state["count"] + 1)
+            state.update(value=value, at=now, count=state["count"] + 1,
+                         source=source or ("bloodOxygen" if key in ("spo2", "pr") else "gsr"),
+                         details=copy.deepcopy(details), monotonic=mono)
+            return True
 
-    def clear_sensor(self, key):
+    def clear_sensor(self, key, source=None):
         with self.lock:
-            self.sensors[key].update(value=None, at=None)
+            if source is None or self.sensors[key]["source"] == source:
+                self.sensors[key].update(value=None, at=None, source=None, details=None, monotonic=None)
 
     def status(self, key, **updates):
         with self.lock:
             self.devices.setdefault(key, {}).update(updates)
 
-    def snapshot(self, cursor=0, now=None):
+    def snapshot(self, cursor=0, now=None, mono=None):
+        mono = time.monotonic() if mono is None and now is None else now if mono is None else mono
         now = time.time() if now is None else now
         with self.lock:
-            fresh = self.last_eeg is not None and 0 <= now - self.last_eeg <= 3
+            self.packet_sequence += 1
+            fresh = self.last_eeg_monotonic is not None and 0 <= mono - self.last_eeg_monotonic <= 3
             eeg = {key: value for key, value in self.fields.items()
-                   if 0 <= now - self.field_times[key] <= 3}
+                   if 0 <= mono - self.field_monotonic[key] <= 3}
             rows = [row for row in self.raw if row[0] > cursor] if fresh else []
             packet = {
                 "schemaVersion": "neural-resonance-live-v1", "source": "device",
+                "clock": {"schema": "neural-stream-clock-v1", "monotonicMs": mono * 1000},
+                "packetSequence": self.packet_sequence,
+                "fieldAgesMs": {key: max(0, (mono - at) * 1000) for key, at in self.field_monotonic.items()},
+                "sensorAgesMs": {key: max(0, (mono - state["monotonic"]) * 1000)
+                                 if state["monotonic"] is not None else None
+                                 for key, state in self.sensors.items()},
+                "indexPair": ({key: value for key, value in self.index_pair.items() if key != "monotonic"}
+                              | {"ageMs": (mono - self.index_pair["monotonic"]) * 1000}
+                              if self.index_pair and fresh and 0 <= mono - self.index_pair["monotonic"] <= 3 else None),
                 "ts": now, "transport": self.source if fresh else "none",
                 "connectionEpoch": self.epoch, "sampleRate": self.sample_rate,
                 "sessionId": self.session_id,
@@ -185,6 +226,8 @@ class Stream:
                 "lastSampleAt": self.last_eeg, "metricOrigin": "thinkgear-esense",
                 "fieldTimestamps": dict(self.field_times), "eeg": eeg,
                 "sensorTimestamps": {key: state["at"] for key, state in self.sensors.items()},
+                "sensorSources": {key: state["source"] for key, state in self.sensors.items()},
+                "sensorDetails": {key: copy.deepcopy(state["details"]) for key, state in self.sensors.items()},
                 "quality": {"eegPackets": self.frames,
                             "protocolErrors": self.protocol_errors,
                             "spo2Samples": self.sensors["spo2"]["count"],
@@ -193,7 +236,7 @@ class Stream:
             }
             for key, state in self.sensors.items():
                 packet[key] = (state["value"] if state["at"] is not None
-                               and 0 <= now - state["at"] <= 15 else None)
+                               and 0 <= mono - state["monotonic"] <= 15 else None)
             return packet
 
     def runtime(self):

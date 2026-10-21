@@ -1,7 +1,8 @@
+import {observationNow} from './stream-clock.mjs';
 /** ThinkGear framing only. ADC values are preserved; no undocumented µV conversion. */
 export class ThinkGearDecoder{
-  constructor(){this.bytes=[];this.count=0;this.latest={};this.lastAt={};this.errors=0;this.sequence=0;this.breakPending=false;}
-  push(chunk,now=Date.now()){
+  constructor(){this.bytes=[];this.count=0;this.latest={};this.lastAt={};this.errors=0;this.sequence=0;this.breakPending=false;this.indexPair=null;}
+  push(chunk,now=observationNow()){
     this.bytes.push(...chunk);if(this.bytes.length>65536){this.bytes=this.bytes.slice(-65536);this.errors++;this.breakPending=true;}
     const packets=[];
     while(this.bytes.length>=4){
@@ -39,11 +40,17 @@ export class ThinkGearDecoder{
       if(!changed)continue;
       // Commit a complete validated payload, never a partially parsed one.
       for(const [key,value] of Object.entries(updates)){this.latest[key]=value;this.lastAt[key]=now;}
+      const validIndex=value=>Number.isInteger(value)&&value>0&&value<=100;
+      if(['attention','meditation'].some(key=>Object.hasOwn(updates,key)&&!validIndex(updates[key])))this.indexPair=null;
+      if(validIndex(updates.attention)&&validIndex(updates.meditation))
+        this.indexPair={attention:updates.attention,meditation:updates.meditation,at:now/1000,sequence:this.count+1};
+      if(this.indexPair&&now-this.indexPair.at*1000>3000)this.indexPair=null;
       const rawBreaks=raw.length&&this.breakPending?[0]:[];
       if(raw.length){this.lastAt.raw=now;this.sequence+=raw.length;this.breakPending=false;}
       const eeg=Object.fromEntries(Object.entries(this.latest).filter(([key])=>now-this.lastAt[key]<=3000));
       packets.push({schemaVersion:'neural-resonance-live-v1',source:'device',ts:now/1000,
         metricOrigin:'thinkgear-esense',quality:{eegPackets:++this.count,protocolErrors:this.errors},eeg,
+        indexPair:this.indexPair?{...this.indexPair,ageMs:now-this.indexPair.at*1000}:null,
         fieldTimestamps:Object.fromEntries(Object.entries(this.lastAt).map(([key,at])=>[key,at/1000])),
         rawEegSamples:raw,rawBreaks,rawSequence:this.sequence,rawUnit:'ADC counts'});
     }
@@ -55,8 +62,7 @@ export class ThinkGearDecoder{
 export class BrowserDeviceInput{
   constructor({onPacket,onStatus}){Object.assign(this,{onPacket,onStatus});this.generation=0;this.port=null;this.device=null;this.reader=null;this.decoder=new ThinkGearDecoder();this.bytes=0;this.retryTimer=null;this.connectionEpoch=0;this.retry=0;}
   feed(bytes){
-    const now=globalThis.performance?.timeOrigin&&globalThis.performance?.now
-      ?performance.timeOrigin+performance.now():Date.now();
+    const now=observationNow();
     this.bytes+=bytes.length;const packets=this.decoder.push(bytes,now);
     this.onStatus(packets.length?`已解析 ${this.decoder.count} 個腦波封包 · ${this.bytes} bytes`:
       `已收到 ${this.bytes} bytes；等待相容腦波封包`);

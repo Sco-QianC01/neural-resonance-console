@@ -1,4 +1,5 @@
 import {acRms} from './amplitude-model.mjs';
+import {observationNow} from './stream-clock.mjs';
 /** Source samples, never synthetic interpolation. Sequence gaps break the line. */
 export class RawWaveform{
  constructor(){this.reset();}
@@ -57,7 +58,7 @@ export function waveformEnvelope(rows,start,end,pixels){
  }
  return bins;
 }
-export function drawRawWaveform(canvas,state,{seconds=2,extent=null,now=Date.now()}={}){
+export function drawRawWaveform(canvas,state,{seconds=2,extent=null,now=observationNow()}={}){
  const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
  const ratio=Math.min(2,globalThis.devicePixelRatio||1),ctx=canvas.getContext('2d');
  canvas.width=Math.round(w*ratio);canvas.height=Math.round(h*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,w,h);

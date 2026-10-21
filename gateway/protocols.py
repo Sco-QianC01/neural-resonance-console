@@ -1,4 +1,5 @@
 """Vendor byte formats only: missing measurements stay missing."""
+import math
 import re
 
 POWER_FIELDS = (
@@ -94,4 +95,5 @@ def oxygen(line):
 
 def gsr(line):
     match = re.fullmatch(r"\s*(?:GSR\s*[:=]\s*)?(\d+(?:\.\d+)?)\s*", line, re.I)
-    return float(match[1]) if match else None
+    value = float(match[1]) if match else None
+    return value if value is not None and math.isfinite(value) else None

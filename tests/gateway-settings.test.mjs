@@ -23,6 +23,12 @@ test('hardware diagnostics distinguish USB bytes from validated data and never t
   assert.equal(ready.length,1);assert.match(ready[0],/10 封包/);
   assert.match(deviceDiagnostic({ble:{state:'waiting',reason:'ambiguous-devices'}})[0],/選擇身份/);
 });
+test('watch diagnostics distinguish pairing and permissions from actual samples',()=>{
+  assert.match(deviceDiagnostic({watch:{state:'waiting',reason:'waiting-permission'}})[0],/權限/);
+  assert.match(deviceDiagnostic({watch:{state:'waiting',reason:'watch-unavailable'}})[0],/前台/);
+  assert.match(deviceDiagnostic({watch:{state:'receiving',validPackets:3}})[0],/3.*樣本/);
+  assert.doesNotMatch(deviceDiagnostic({watch:{state:'connecting',reason:'waiting-data'}})[0],/有效資料/);
+});
 test('cross-platform USB choices retain identity instead of an author COM number',()=>{
   const profile={vid:1155,pid:22336,enabled:true};
   const options=identityOptions([

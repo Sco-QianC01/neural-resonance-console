@@ -1,4 +1,5 @@
 import {TemporalScene} from '../src/temporal-scene.mjs';
+import {observationNow} from '../src/stream-clock.mjs';
 import {mountListening} from './listening-workbench.mjs';
 import {ELEMENTS,mapMusic} from '../src/music.mjs';
 import {formatAmplitude} from '../src/amplitude-model.mjs';
@@ -23,15 +24,14 @@ const sources={demo:'合成示範',replay:'記錄回放',device:'設備資料',c
 export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{},onReplay=()=>{}}={}){
   let latest=null,held=null,frozen=false,cursor=null,selectedElement=null,signature='',reference=100,exportContext=null;
   const spaces={neural:'plane',music:'plane'};
-  let stage='music',visualMode='music',space=viewSpace(spaces,'neural'),scale=50,scaleAnchor=null,cases=null,recordingData=null,musicModel=null,layer='notes';
+  let stage='music',visualMode='music',space=viewSpace(spaces,'music'),scale=50,scaleAnchor=null,cases=null,recordingData=null,musicModel=null,layer='worm';
   let paired=[],run=0,startedAt=Infinity,lastPairKey=null,sourceIdentity='',animation=0,lastPaint=0;
   const models=new Map();let versionPlots=[],versionWork=null,casesLoading=null;
   let curation=null;
   host.innerHTML=`
     <div class="research-toolbar">
       <h2>觀測研究</h2>
-      <div class="visual-modes" role="group" aria-label="研究步驟">${[['music','1 音樂參考'],['eeg','2 神經響應'],['experiment','3 版本實驗']].map(([key,label])=>`<button data-visual="${key}" aria-pressed="${key==='music'}">${label}</button>`).join('')}</div>
-      <div class="research-segment" aria-label="資料入口">${[['live','實時'],['replay','回放'],['demo','示範']].map(([mode,label])=>`<button data-mode="${mode}" aria-pressed="false">${label}</button>`).join('')}</div>
+      <div class="visual-modes" role="group" aria-label="觀測資料">${[['music','音樂'],['eeg','神經'],['overlay','對照']].map(([key,label])=>`<button data-visual="${key}" aria-pressed="${key==='music'}">${label}</button>`).join('')}</div>
       <span data-role="source" class="research-context">等待資料</span>
       <div class="research-actions"><button class="icon-button" data-action="export" aria-label="保存圖形" disabled>${icon('image')}</button><button class="icon-button" data-action="focus" aria-label="專注顯示" aria-pressed="false">${icon('focus')}</button></div>
     </div>
@@ -43,7 +43,6 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
       <span data-role="music-duration">00:00.0</span><audio data-role="audio" preload="metadata" hidden></audio>
       <span class="music-play-state" data-role="music-play-state" role="status"></span>
     </section>
-    <section class="listening-experiment" hidden></section>
     <div class="research-workspace">
       <section class="research-detail" aria-label="目前觀測">
         <h2>神經蠕蟲</h2>
@@ -55,8 +54,8 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
         <small class="scale-note" data-role="scale-note">坐標窗口，未改變原生指數</small><small class="acquisition-details" data-role="acquisition-details"></small>
         <section class="reference-readouts" hidden aria-label="音樂原始觀測">
           <h3 data-role="reference-title"></h3>
-          <dl><dt>原始逐拍速度</dt><dd data-role="tempo">—</dd><dt>相對振幅</dt><dd data-role="level">—</dd><dt>拍點間隔</dt><dd data-role="ioi">—</dd><dt>線性代理 R²</dt><dd data-role="linearity">—</dd><dt>變幅代理 |log₂比|</dt><dd data-role="discreteness">—</dd></dl>
-          <small>振幅沿用來源 0–100 標度；未提供譜面力度與響度校準。線性與變幅為探索性代理。</small>
+          <dl><dt>圖中顯示速度</dt><dd data-role="display-tempo">—</dd><dt>相對振幅</dt><dd data-role="level">—</dd></dl>
+          <details class="observation-audit"><summary>原始值與探索統計</summary><dl><dt>原始逐拍速度</dt><dd data-role="tempo">—</dd><dt>拍點間隔</dt><dd data-role="ioi">—</dd><dt>線性代理 R²</dt><dd data-role="linearity">—</dd><dt>變幅代理 |log₂比|</dt><dd data-role="discreteness">—</dd></dl><small>振幅為來源 0–100 標度，未作響度校準。線性與變幅為探索性代理。</small></details>
           <span data-role="beat-position"></span>
           <label class="music-smoothing"><input data-role="smoothing" type="checkbox" checked>速度高斯窗 · <span data-role="smoothing-width"></span></label>
           <label class="annotation-choice" hidden>標注聲部<select data-role="annotation" aria-label="選擇來源標注聲部"></select></label>
@@ -65,8 +64,10 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
         <div class="planar-replay" hidden><label class="replay-file-label">匯入記錄<input data-role="file" type="file" accept=".json"></label><button data-action="replay">播放記錄</button></div>
         <section class="planar-music" hidden aria-label="來源聲明的音樂觀測"><h3 data-role="music-title"></h3><strong data-role="music-value"></strong><small data-role="music-unit"></small><details><summary>來源</summary><p data-role="music-method"></p><span data-role="music-source"></span><p>來源聲明，未獨立驗證。</p></details></section>
       </section>
-      <section class="research-plot" aria-label="觀測坐標"><div class="music-layer-tabs" role="group" aria-label="音樂可視化" hidden>${[['notes','音高與旋律'],['profile','速度曲線'],['tempo','逐拍速度'],['dynamics','相對振幅'],['rhythm','拍點間隔'],['worm','演奏蠕蟲'],['structure','速度結構']].map(([key,label])=>`<button data-layer="${key}" aria-pressed="${key==='notes'}">${label}</button>`).join('')}<label class="bar-window" data-role="bar-window-label">觀察範圍<select data-role="bar-window" aria-label="可見小節範圍"><option value="8">8 小節</option><option value="16">16 小節</option><option value="0">全曲</option></select></label></div><p class="profile-caption" data-role="profile-caption" hidden></p><div class="score-evidence" hidden></div><div class="scene-host"></div><p class="comparison-key" hidden><span class="eeg-key">腦電 · 關注 × 放鬆</span><span class="music-key">音樂 · 速度 × 相對振幅 × 播放時間</span><span data-role="pair-status"></span></p></section>
+      <section class="research-plot" aria-label="觀測坐標"><div class="music-layer-tabs" role="group" aria-label="音樂主視圖" hidden>${[['plane','二維蠕蟲'],['time','三維時間'],['profile','全曲曲線'],['notes','逐音證據']].map(([key,label])=>`<button data-music-view="${key}" aria-pressed="${key==='plane'}">${label}</button>`).join('')}<label class="bar-window" data-role="bar-window-label">範圍<select data-role="bar-window" aria-label="可見小節範圍"><option value="8">8 小節</option><option value="16">16 小節</option><option value="0">全曲</option></select></label></div><p class="profile-caption" data-role="profile-caption" hidden></p><p class="score-scope" hidden>譜面範圍：Op.27 No.2 · 第1–8小節；範圍外不補造逐音資料。</p><div class="score-evidence" hidden></div><div class="scene-host"></div><p class="comparison-key" hidden><span class="music-key">音樂 · 速度 × 相對振幅</span><span data-role="pair-status"></span></p><section class="paired-panel" hidden aria-label="播放期神經對照"><h3>神經 · Attention × Meditation</h3><p data-role="comparison-state"></p><div class="paired-scene"></div></section></section>
     </div>
+    <details class="research-advanced"><summary>進階音樂視圖</summary><div class="music-secondary-tabs" role="group" aria-label="其他音樂觀測">${[['tempo','逐拍速度'],['dynamics','相對振幅'],['rhythm','拍點間隔'],['structure','速度結構']].map(([key,label])=>`<button data-layer="${key}" aria-pressed="false">${label}</button>`).join('')}</div></details>
+    <details class="experiment-disclosure"><summary>版本實驗</summary><section class="listening-experiment"></section></details>
     <details class="version-comparisons" hidden><summary>同作品版本對照<span data-role="version-count"></span></summary><p>共用小節軸與速度刻度；原始拍點、平滑曲線、相對振幅灰帶及平均速度線。每列可選取播放。</p><div data-role="version-plots"></div></details>
     <div class="element-tabs" role="tablist" aria-label="已提供的音樂觀測" hidden>${ELEMENTS.map(([key,name])=>`<button role="tab" data-element="${key}" aria-selected="false" hidden>${name}</button>`).join('')}</div>
     <div class="research-transport">
@@ -75,7 +76,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
       <button class="planar-follow" data-action="latest" disabled>跟隨</button>
     </div>
     <details class="research-method"><summary>資料與方法</summary>
-      <p>位置為同一有效樣本的Attention／Meditation原生指數，刻度0–100；ThinkGear的0表示指數未能可靠計算。網格是坐標參考。</p>
+      <p>新采集位置取同一協議報告的Attention／Meditation指數；舊記錄保留已保存的字段時間與配對方法。原生指數，刻度0–100；ThinkGear的0表示指數未能可靠計算。網格是坐標參考。</p>
       <p>振幅取最新最多256個原始樣本，最少32個，以去均值RMS計算，保留來源單位。有樣本序號才核查連續性。光點的明暗和光暈是顯示編碼；時間方盒的第三軸只表示樣本經過秒數。沒有原始波形時不顯示振幅。</p>
       <p>軌跡按來源時間排列，丟失、品質不良及來源更換處斷開。暫停觀察不停止設備采集。</p>
       <label class="planar-reference">光暈參照<input data-role="reference" type="number" min=".000001" step="any" value="100" aria-label="振幅光暈參照值"><span>與RMS相同單位</span></label>
@@ -92,6 +93,9 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
   const scene=new TemporalScene(host.querySelector('.scene-host'),{
     onPick:timestamp=>{if(visualMode==='eeg'){cursor=timestamp;render();}},
     onMusicPick:t=>{beginRun();$('audio').currentTime=t;render();},
+  });
+  const pairedScene=new TemporalScene(host.querySelector('.paired-scene'),{
+    onPick:timestamp=>{beginRun();$('audio').currentTime=timestamp/1000;render();},
   });
   const scoreView=mountScore(host.querySelector('.score-evidence'),{seek:t=>{
     beginRun();$('audio').currentTime=t;render();
@@ -115,7 +119,6 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     render();
   };
   $('bar-window').onchange=render;
-  host.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=>{frozen=false;held=null;cursor=null;signature='';onMode(button.dataset.mode);});
   $('window').onchange=()=>{cursor=null;onWindow(Number($('window').value));};
   $('file').onchange=()=>{const file=$('file').files[0];if(file){frozen=false;held=null;cursor=null;onImport(file);}};
   action('replay').onclick=()=>onReplay();
@@ -138,7 +141,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
   action('focus').onclick=()=>{const enabled=document.body.classList.toggle('research-focus');action('focus').setAttribute('aria-pressed',String(enabled));};
   const escape=e=>{if(e.key==='Escape'){document.body.classList.remove('research-focus');action('focus').setAttribute('aria-pressed','false');}};
   window.addEventListener('keydown',escape);
-  action('export').onclick=()=>{
+  action('export').onclick=async()=>{
     if(visualMode!=='eeg'){
       if(!recordingData||!musicModel)return;
       if(layer==='notes'){
@@ -153,12 +156,21 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
         layer==='profile'?'紅點為原始拍點；灰帶寬度編碼相對振幅，並非速度誤差或置信區間。':'來源標注界外不補資料。',
         cases.attribution,recordingData.reference];
       if(visualMode==='overlay'){
-        const q=paired.at(-1);lines.push(`腦電來源 ${sources[q?.source]??'等待資料'} · 配對 ${paired.length} 個樣本 · 第 ${run} 段`);
-        if(q)lines.push(`腦電原生坐標 ${q.attention}, ${q.relaxation} / 100 · 字段時間 UTC ${utc(q.indexTimestamp)}`);
+        const q=paired.at(-1);lines.push(`神經來源 ${sources[q?.source]??'等待資料'} · 配對 ${paired.length} 個樣本 · 第 ${run} 段`);
+        if(q)lines.push(`腦電原生坐標 ${q.attention}, ${q.relaxation} / 100 · 原始字段時間 UTC ${utc(q.originalTimestamp)} · 顯示時間 UTC ${utc(q.indexTimestamp)}`);
         if(q?.amplitude)lines.push(`腦電 RMS ${formatAmplitude(q.amplitude.rms)} ${q.amplitude.unit} · 振幅時間 UTC ${utc(q.amplitude.originalTimestamp)} · 光暈參照 ${reference}（顯示參數）`);
-        lines.push('圖層獨立縮放，視覺重合不表示相關或因果；音訊輸出及設備時鐘延遲未校準。');
+        lines.push('上下圖使用各自坐標，以播放位置對照；音訊輸出及設備時鐘延遲未校準，不表示相關或因果。');
       }
-      const link=document.createElement('a');link.href=scene.exportPNG(lines);link.download=`music-worm-${recordingData.id}-${Date.now()}.png`;link.click();return;
+      const link=document.createElement('a');link.href=scene.exportPNG(lines);
+      if(visualMode==='overlay'){
+        const images=await Promise.all([link.href,pairedScene.exportPNG([$('comparison-state').textContent])].map(src=>new Promise((resolve,reject)=>{
+          const image=new Image();image.onload=()=>resolve(image);image.onerror=reject;image.src=src;
+        })));
+        const out=document.createElement('canvas');out.width=Math.max(...images.map(image=>image.width));out.height=images.reduce((sum,image)=>sum+image.height,0);
+        const ctx=out.getContext('2d');ctx.fillStyle=getComputedStyle(host).getPropertyValue('--bg').trim()||'#121315';ctx.fillRect(0,0,out.width,out.height);
+        let y=0;for(const image of images){ctx.drawImage(image,0,y);y+=image.height;}link.href=out.toDataURL('image/png');
+      }
+      link.download=`music-worm-${recordingData.id}-${Date.now()}.png`;link.click();return;
     }
     if(!exportContext)return;
     const {point,amp}=exportContext;
@@ -178,7 +190,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
   };
   const audio=$('audio');
   audio.volume=.28;
-  const beginRun=()=>{run++;startedAt=Date.now();paired=[];lastPairKey=null;};
+  const beginRun=()=>{run++;startedAt=observationNow();paired=[];lastPairKey=null;};
   function tempoUnit(){
     return {'1/2':'二分音符/分','2/2':'二分音符/分','6/8':'八分音符/分','4/4.':'附點四分音符/分'}[recordingData?.annotation.meter]??'來源拍/分';
   }
@@ -328,7 +340,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     return casesLoading;
   }
   for(const button of host.querySelectorAll('[data-visual]'))button.onclick=()=>{
-    if(experiment.busy())return;stage=button.dataset.visual;visualMode=stage==='eeg'?'eeg':'music';
+    if(experiment.busy())return;stage=button.dataset.visual;visualMode=stage;
     if(visualMode==='eeg')space=viewSpace(spaces,'neural');
     else if(layer==='worm')space=viewSpace(spaces,'music');
     $('space').value=space;
@@ -340,6 +352,11 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     layer=button.dataset.layer;
     if(layer==='worm'){space=viewSpace(spaces,'music');$('space').value=space;}
     host.querySelectorAll('button[data-layer]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));render();
+  };
+  for(const button of host.querySelectorAll('button[data-music-view]'))button.onclick=()=>{
+    const view=button.dataset.musicView;layer=['plane','time'].includes(view)?'worm':view;
+    if(layer==='worm'){space=viewSpace(spaces,'music',view);$('space').value=space;}
+    render();
   };
   $('case').onchange=()=>prepareCase($('case').value);
   $('work').onchange=()=>populateWork($('work').value);
@@ -377,6 +394,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     const points=smooth&&musicModel.known?musicModel.points:musicModel.unsmoothed;
     const duration=Number.isFinite(audio.duration)?audio.duration:recordingData.duration??recordingData.annotation.t.at(-1);
     $('tempo').textContent=Number.isFinite(p?.rawTempo)?`${p.rawTempo.toFixed(1)} ${tempoUnit()}`:'—';
+    $('display-tempo').textContent=Number.isFinite(p?.tempo)?`${p.tempo.toFixed(1)} ${tempoUnit()}`:'—';
     $('level').textContent=Number.isFinite(p?.level)?`${p.level.toFixed(1)} · 來源 0–100`:'—';
     const structural=[...musicModel.structure].reverse().find(q=>q.t<=t);
     $('linearity').textContent=structural?.fit?.constant?'恆定段':Number.isFinite(structural?.linearityProxyR2)?`${structural.linearityProxyR2.toFixed(4)} · 代理`:'至少3拍';
@@ -392,13 +410,15 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     for(const b of host.querySelectorAll('button[data-layer]')){
       b.disabled=!musicModel.known&&!['rhythm','notes'].includes(b.dataset.layer);b.setAttribute('aria-pressed',String(b.dataset.layer===layer));
     }
+    for(const b of host.querySelectorAll('button[data-music-view]')){
+      b.disabled=!musicModel.known&&b.dataset.musicView!=='notes';
+      b.setAttribute('aria-pressed',String(b.dataset.musicView===(layer==='worm'?space:layer)));
+    }
     host.dataset.musicLayer=layer;
     const profile=layer==='profile';$('profile-caption').hidden=!profile;
     if(profile){const s=tempoSummary(musicModel.raw);
       $('profile-caption').textContent=`${recordingData.performer} · ${recordingData.year}　標注 ${s.seconds.toFixed(2)} s · 平均速度 ${s.mean.toFixed(1)} ${tempoUnit()} · ${smooth?'W '+recordingData.annotation.window+' s':'未平滑'}`;
     }
-    const eegKey=host.querySelector('.comparison-key .eeg-key');
-    eegKey.hidden=visualMode!=='overlay';eegKey.textContent=layer==='worm'?'腦電 · 上軸關注／右軸放鬆':'腦電 · 關注（實線）／放鬆（虛線）';
     host.querySelector('.comparison-key .music-key').textContent=layer==='structure'?'速度 · 線性代理 × 變幅代理 × 小節':layer==='worm'?(space==='time'?'音樂 · 速度 × 相對振幅 × 播放時間':'音樂 · 速度 × 相對振幅 · 小節標記'):profile?'音樂 · 原始拍點／高斯顯示／相對振幅灰帶':layer==='rhythm'?'音樂 · 拍點間隔':layer==='dynamics'?'音樂 · 相對振幅 · 來源 0–100':'音樂 · 速度';
     $('bar-window-label').hidden=!['worm','structure'].includes(layer);
     scoreView.update(recordingData,t);
@@ -407,12 +427,17 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
       drawVersions();return;
     }
     scene.update({points:[],active:false,reference,space,comparison:{id:recordingData.id,time:t,duration,points,barWindow:Number($('bar-window').value),
-      current:p,paired,overlay:visualMode==='overlay',layer,tempoRange:musicModel.tempoRange,
+      current:p,paired:[],overlay:false,layer,tempoRange:musicModel.tempoRange,
       ioiRange:musicModel.ioiRange,tempoUnit:tempoUnit(),recording:recordingData,model:musicModel,smooth}});
+    if(visualMode==='overlay'){
+      const observed=paired.filter(q=>q.t<=t),q=observed.at(-1),fresh=Boolean(q&&latest?.valid&&!audio.paused&&t-q.t<=3);
+      $('comparison-state').textContent=`播放位置 ${clock(t)} · ${observed.length} 個播放期配對樣本${q?` · ${sources[q.source]??'外部接口'} · 關注 ${format(q.attention)}／放鬆 ${format(q.relaxation)}${fresh?'':' · 歷史／已過期'}`:' · 尚無有效神經資料'}；聲卡與設備延遲未校準。`;
+      pairedScene.update({points:observed.map(q=>({...q,timestamp:q.t*1000})),selected:q?{...q,timestamp:q.t*1000}:null,
+        active:fresh,reference,ranges:{x:[0,100],y:[0,100]},space:'plane',windowSeconds:60});
+    }
     drawVersions();
   }
   function render(){
-    host.querySelector('.listening-experiment').hidden=stage!=='experiment';
     const data=frozen?held:latest,trace=data?.trace,points=trace?.points??[];
     const point=cursor===null?points.at(-1):points.reduce((best,p)=>!best||Math.abs(p.timestamp-cursor)<Math.abs(best.timestamp-cursor)?p:best,null);
     const historical=cursor!==null||frozen,active=Boolean(point&&(historical||data?.valid));
@@ -424,11 +449,10 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     const original=selectedSnapshot?.raw?.originalSource;
     const origin=source==='replay'&&original&&sources[original]?` · 原始為${sources[original]}`:'';
     $('source').textContent=(sources[source]??'等待資料')+origin;
-    $('state').textContent=frozen?'觀察暫停':cursor!==null?'歷史樣本':data?.valid?'有效資料':points.length?'資料中斷 · 保留軌跡':'等待有效資料';
+    $('state').textContent=frozen?'觀察暫停':cursor!==null?'歷史樣本':data?.valid?'有效資料':points.length?'資料中斷 · 保留軌跡':'等待有效配對';
     $('attention').textContent=active?format(point.attention):'—';$('relaxation').textContent=active?format(point.relaxation):'—';
     $('amplitude').textContent=active&&amp?formatAmplitude(amp.rms):'—';$('amplitude-unit').textContent=active&&amp?amp.unit:'';
     $('amplitude-method').textContent=active&&amp?`${amp.samples} 個樣本 · ${amp.continuityVerified?'序號連續':'連續性未回報'}${amp.sampleRate?` · 來源標示 ${amp.sampleRate} Hz`:' · 采樣率未標示'} · ${amp.timing==='source-field-time'?'來源欄位時間':'封包到達時間'}`:'原始波形未提供或已過期';
-    host.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===data?.mode)));
     host.querySelector('.planar-replay').hidden=data?.mode!=='replay';
     action('replay').disabled=!data?.replayLoaded;action('replay').textContent=data?.paused?'播放記錄':'暫停回放';
     const duration=points.length?(points.at(-1).timestamp-points[0].timestamp)/1000:0;
@@ -456,11 +480,15 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     const notes=musical&&layer==='notes';
     scoreView.setVisible(notes);
     host.querySelector('.scene-host').hidden=notes;
+    host.querySelector('.score-scope').hidden=!notes;
+    host.querySelector('.paired-panel').hidden=visualMode!=='overlay'||notes;
+    host.querySelector('.research-advanced').hidden=!musical;
+    host.querySelector('.experiment-disclosure').hidden=!musical;
     const labels=viewLabels(musical,layer);
     $('space').querySelector('[value="time"]').textContent=labels.time;
     $('space').querySelector('[value="plane"]').textContent=labels.plane;
     $('profile-caption').hidden=!musical||layer!=='profile';
-    host.querySelector('.music-player').hidden=!musical&&!recordingData;
+    host.querySelector('.music-player').hidden=!musical;
     $('space').disabled=musical&&!['worm','structure'].includes(layer);host.querySelector('.time-view-hint').hidden=space!=='time'||musical&&!['worm','structure'].includes(layer);
     host.querySelector('.reference-readouts').hidden=!musical;
     host.querySelector('.music-layer-tabs').hidden=!musical;
@@ -468,14 +496,16 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     host.querySelector('.research-transport').hidden=musical;
     host.querySelector('.version-comparisons').hidden=!musical;
     $('window').disabled=$('scale').disabled=musical;
-    $('acquisition-details').textContent=`${data?.snapshot?.raw?.sampleRate?'來源標示 '+data.snapshot.raw.sampleRate+' Hz':'采樣率未回報'} · 設備電壓增益未標定`;
+    const pairing=data?.snapshot?.pairMethod==='same-report'?(data?.snapshot?.valid?'同協議報告':'等待有效同報告雙指數'):
+      data?.snapshot?.pairMethod==='legacy-latest-fields'?`舊記錄字段時間配對 · 差 ${format(data.snapshot.pairDeltaMs)} ms`:'配對方法依來源記錄';
+    $('acquisition-details').textContent=`${pairing} · ${data?.snapshot?.raw?.sampleRate?'來源標示 '+data.snapshot.raw.sampleRate+' Hz':'采樣率未回報'} · 設備電壓增益未標定`;
     $('scale-note').textContent=scale===100?'坐標窗口，未改變原生指數':`坐標窗口 ${scale} 點 · 原始數值不變`;
     if(musical){renderMusic();return;}
     if(!scaleAnchor&&point)scaleAnchor={attention:point.attention,relaxation:point.relaxation};
     if(point&&scale<100&&scaleAnchor&&(Math.abs(point.attention-scaleAnchor.attention)>scale*.4||
       Math.abs(point.relaxation-scaleAnchor.relaxation)>scale*.4))scaleAnchor={attention:point.attention,relaxation:point.relaxation};
     const ranges={x:zoomRange(scaleAnchor?.attention,scale),y:zoomRange(scaleAnchor?.relaxation,scale)};
-    scene.update({points,selected:displayedPoint,active,reference,ranges,space,windowSeconds:Number($('window').value)});
+    scene.update({points,selected:displayedPoint,active:active&&!historical,reference,ranges,space,windowSeconds:Number($('window').value)});
   }
   for(const button of host.querySelectorAll('[data-element]')){
     button.onclick=()=>{selectedElement=button.dataset.element;render();
@@ -488,17 +518,17 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
       visible[next]?.click();visible[next]?.focus();
     };
   }
-  window.addEventListener('pagehide',()=>{cancelAnimationFrame(animation);audio.pause();scene.dispose();scoreView.dispose();experiment.dispose();versionResize.disconnect();window.removeEventListener('keydown',escape);},{once:true});
+  window.addEventListener('pagehide',()=>{cancelAnimationFrame(animation);audio.pause();scene.dispose();pairedScene.dispose();scoreView.dispose();experiment.dispose();versionResize.disconnect();window.removeEventListener('keydown',escape);},{once:true});
   render();loadCases();
   return {updateEEG(trace,valid,context={}){
-    // Both the shared sidebar and the chart entry must leave the old source.
+    // A change in the shared sidebar must leave the previous source.
     if(latest&&latest.mode!==context.mode){frozen=false;held=null;cursor=null;scaleAnchor=null;signature='';beginRun();}
     latest={trace,valid:Boolean(valid),...context};experiment.accept(latest);
     const identity=JSON.stringify([context.mode,context.snapshot?.source,context.snapshot?.sessionId,context.snapshot?.connectionEpoch]);
     if(identity!==sourceIdentity){sourceIdentity=identity;beginRun();}
     const point=trace?.points.at(-1),pairKey=point?JSON.stringify([identity,point.timestamp]):null;
     if(valid&&point&&pairKey!==lastPairKey&&!audio.paused){
-      const aligned=alignEEG(point,{wallNow:Date.now(),mediaTime:audio.currentTime,startedAt,run});
+      const aligned=alignEEG(point,{wallNow:observationNow(),mediaTime:audio.currentTime,startedAt,run});
       if(aligned){paired.push(aligned);paired=paired.filter(q=>q.t>=audio.currentTime-60).slice(-2048);}
       lastPairKey=pairKey;
     }

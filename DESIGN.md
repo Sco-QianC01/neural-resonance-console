@@ -1,5 +1,5 @@
 ---
-version: 0.15-chopin-profile
+version: 0.16-clarity-stream
 name: Neural Resonance Instrument
 description: A restrained signal acquisition and musical intent workstation
 colors:
@@ -73,7 +73,9 @@ components: left navigation, acquisition rail, waveforms, trace canvas, music pl
 
 ## Music Comparison
 
-「腦電／音樂／叠加」共用外殼。腦電預設精細50點坐標窗口，明示真實軸刻度，不放大原生讀數。音樂暖灰色與腦電青灰色區分；不作健康等級判斷。演奏蠕蟲用音樂速度與原站相對振幅；叠加在上軸／右軸標示腦電獨立刻度。速度視圖可共用播放時間叠加四條觀測線。小屏主圖排在完整案例來源與音樂讀數之前，播放控制保留在圖前；方法和來源收在可展開區，避免圖形被大量文字擠出首屏。
+「音樂／神經／對照」共用外殼，音樂預設二維演奏蠕蟲。主視圖為二維蠕蟲、三維時間、全曲曲線與逐音證據，其餘音樂層與版本實驗置於高級折疊區。神經指數明示真實軸刻度；音樂使用來源拍速與相對振幅，兩者不作等價換算或健康等級判斷。對照採上下獨立坐標圖，共用播放進度；沒有有效神經資料時不補造軌跡，延遲未校準須明示。小屏主圖排在完整案例來源與讀數之前；全局資料模式只在共同側欄。凍結歷史取消實時頭點環。
+
+新采集的XY點必須來自同一協議報告的有效雙指數；單項仍可獨立顯示。舊記錄保留原時間與異步配對方式。同報告不等同同一ADC采樣時刻。排序和失效使用會話序號與單調時間，原始牆鐘、字段時間、來源及缺口保留於導出。
 
 ## Chopin Performance Profiles
 

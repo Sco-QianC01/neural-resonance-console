@@ -9,17 +9,20 @@ FILES = ("README.md", "LICENSE", "package.json", "index.html",
          "Start-Windows.ps1", "Start-Windows.cmd", "Start-macOS.command",
          "gateway/acquisition.py", "gateway/device_gateway.py", "gateway/protocols.py",
          "gateway/runtime_support.py", "gateway/experiments.py", "gateway/config.example.json",
+         "gateway/watch.py", "gateway/music_prompt_workbench.py",
          "gateway/build-manifest.json",
          "gateway/package.spec", "gateway/pyproject.toml", "gateway/uv.lock",
          "tools/runtime-check.py", "tools/runtime-smoke.py", "tools/portable-smoke.py",
          "tools/package-portable-source.py", "tools/build.mjs", "tools/serve.mjs",
+         "tools/start-music-prompt.py", "tools/build-watch.py",
+         "watch/AndroidManifest.xml", "watch/src/org/neuralresonance/watch/MainActivity.java",
          "tools/browser-audit.py", ".github/workflows/desktop.yml",
          "tools/system-audit-static.py", "tools/system-full-browser.py",
          "tools/verify-missing-dependency.py",
          "tools/verify-teacher-workflow.py", "tools/verify-teacher-revision.py", "tools/build-chopin-score.py",
          "tools/verify-score-evidence.py", "tools/build-method-docs.py",
          ".github/workflows/compatibility.yml")
-TREES = ("src", "public", "docs", "neural-worm", "tests", "gateway/tests")
+TREES = ("src", "public", "docs", "neural-worm", "music-prompt", "tests", "gateway/tests")
 
 
 def package(output):

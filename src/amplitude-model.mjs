@@ -1,4 +1,5 @@
 import {STALE_MS} from './eeg.mjs';
+import {observationNow} from './stream-clock.mjs';
 
 /** AC amplitude in the input unit, not band power or a calibrated voltage. */
 export function acRms(values){
@@ -82,7 +83,7 @@ export class RawAmplitude{
       :Number.isFinite(snapshot.originalTimestamp)?snapshot.originalTimestamp+rawTime-snapshot.timestamp:rawTime;
     return this.value(snapshot.timestamp);
   }
-  value(now=Date.now()){
+  value(now=observationNow()){
     if(this.at===null||now-this.at>STALE_MS||now<this.at-5000||this.values.length<32)return null;
     const a=acRms(this.values);
     if(!a)return null;

@@ -15,6 +15,9 @@
     "enabled": false, "vid": null, "pid": null,
     "serialNumber": "", "location": "", "baud": 9600
   },
+  "watch": {
+    "enabled": false, "serial": "", "adbPath": ""
+  },
   "ble": {
     "enabled": true,
     "address": "",

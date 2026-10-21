@@ -15,6 +15,7 @@ import {buildWormTrace,WORM_VERSION} from '../src/worm-model.mjs';
 import {mountResearch} from './planar-workbench.mjs';
 import {RawAmplitude} from '../src/amplitude-model.mjs';
 import {RawWaveform,drawRawWaveform} from '../src/raw-waveform.mjs';
+import {observationNow} from '../src/stream-clock.mjs';
 const $=id=>document.getElementById(id),stream=new StreamState();
 const sensors=new SensorState();
 const rawAmplitude=new RawAmplitude();
@@ -73,10 +74,10 @@ function showLiveStatus(current=stream.current()){
   $('status').textContent=status.text;$('status').dataset.state=status.state;
 }
 function notice(text){$('notice').textContent=text;$('notice').hidden=false;setTimeout(()=>$('notice').hidden=true,5000);}
-function ingest(packet,{capture=true,now=Date.now()}={}){
+function ingest(packet,{capture=true,now=observationNow()}={}){
   try{
-    if(!stream.accept(packet,now))return;
-    sensors.accept(packet,now);
+    const sensorAccepted=sensors.accept(packet,now);
+    if(!stream.accept(packet,now)){if(sensorAccepted)update();return;}
     const snapshot=stream.current(now);
     const transport=snapshot.transport==='none'&&liveIdentity?JSON.parse(liveIdentity)[2]:snapshot.transport;
     const identity=JSON.stringify([snapshot.source,snapshot.sessionId,transport,snapshot.connectionEpoch]);
@@ -84,7 +85,7 @@ function ingest(packet,{capture=true,now=Date.now()}={}){
     snapshot.amplitude=rawAmplitude.push(snapshot);
     const nextStates=networkStates(snapshot);
     if(nextStates)states=nextStates;
-    history.push(snapshot);history=history.filter(p=>p.timestamp>=Date.now()-60000).slice(-2048);
+    history.push(snapshot);history=history.filter(p=>p.timestamp>=observationNow()-60000).slice(-2048);
     rawWaveform.push(snapshot);
     if(recording&&capture){
       const entry=captureSnapshot(packet,snapshot,states);
@@ -102,7 +103,7 @@ function emit(){
   ingest(demoSnapshot(values.attention,values.relaxation,tick++));
 }
 function startDemo(){
-  stop();mode='demo';paused=false;history=[];const now=Date.now();
+  stop();mode='demo';paused=false;history=[];const now=observationNow();
   for(let i=0;i<120;i++){
     const ts=now-(120-i)*500,v=demoValues(Number($('attention').value),Number($('relaxation').value),tick,$('auto').checked);
     ingest(demoSnapshot(v.attention,v.relaxation,tick++,ts),{capture:false,now:ts});
@@ -111,7 +112,7 @@ function startDemo(){
 }
 function setMode(value){
   lastPrompt=null;$('music-prompt').value='';$('prompt-status').textContent='等待產生';
-  nextPromptAt=$('prompt-auto').checked?Date.now()+60000:0;
+  nextPromptAt=$('prompt-auto').checked?observationNow()+60000:0;
   stop();mode=value;states=null;wormTrace=null;wormCursor=null;time=0;history=[];rawWaveform.reset();$('raw-status').textContent='等待原始樣本';
   for(const id of ['demo','live','replay']){$(`${id}-input`).hidden=id!==mode;$(id).setAttribute('aria-pressed',String(id===mode));}
   $('source').textContent=mode.toUpperCase();
@@ -132,13 +133,15 @@ function update(){
     $(`sensor-${key}`).textContent=sensorValues[key].valid?String(sensorValues[key].value):'—';
     $(`sensor-${key}`).parentElement.hidden=!sensorValues[key].valid;
   }
-  $('read-attention').textContent=valid?Math.round(current.attention):'—';
-  $('read-relaxation').textContent=valid?Math.round(current.relaxation):'—';
-  $('gauge-attention').style.setProperty('--progress',`${valid?current.attention*3.6:0}deg`);
-  $('gauge-relaxation').style.setProperty('--progress',`${valid?current.relaxation*3.6:0}deg`);
+  $('sensor-pr-label').textContent=sensorValues.pr.source==='watch'?'手表心率':'脈率';
+  for(const [key,value] of Object.entries(current?.latestIndices??{attention:null,relaxation:null})){
+    const available=current?.signalValid&&Number.isFinite(value)&&(current.metricOrigin!=='thinkgear-esense'||value>0);
+    $(`read-${key}`).textContent=available?Math.round(value):'—';
+    $(`gauge-${key}`).style.setProperty('--progress',`${available?value*3.6:0}deg`);
+  }
   $('packets').textContent=current?.packets??'—';
   $('freshness').textContent=valid?'有效資料':current?.transportFresh&&!current.signalValid?(current.signalQuality==='unknown'?'接觸品質未確認':'接觸不良'):
-    current?.signalValid?'缺少設備指數':'等待 / 暫停';
+    current?.signalValid?'等待同報告雙指數':'等待 / 暫停';
   $('count').textContent=`${records.length} 個樣本`;$('record').textContent=recording?'停止記錄':'開始記錄';
   $('planar-count').textContent=$('count').textContent;$('planar-record').textContent=$('record').textContent;
   $('planar-export').disabled=$('planar-csv').disabled=!records.length;
@@ -225,7 +228,7 @@ function update(){
   }
   if(mode==='live'&&current){
     $('signal-transport').textContent=current.raw.transport==='none'?'等待有效包':current.raw.transport||'外部接口';
-    $('signal-age').textContent=Number.isFinite(current.raw.lastSampleAt)?`${Math.max(0,Date.now()/1000-current.raw.lastSampleAt).toFixed(1)} s`:'—';
+    $('signal-age').textContent=Number.isFinite(current.raw.lastSampleAt)?`${Math.max(0,observationNow()/1000-current.raw.lastSampleAt).toFixed(1)} s`:'—';
     $('signal-raw-count').textContent=current.raw.rawSequence??'—';
     $('signal-contact').textContent=!current.transportFresh?'未回報':
       current.signalQuality==='good'?'良好':
@@ -233,8 +236,8 @@ function update(){
   }else{
     for(const id of ['signal-transport','signal-age','signal-raw-count','signal-contact'])$(id).textContent=mode==='demo'?'示範':'—';
   }
-  if($('prompt-auto').checked&&nextPromptAt&&Date.now()>=nextPromptAt){
-    nextPromptAt=Date.now()+60000;
+  if($('prompt-auto').checked&&nextPromptAt&&observationNow()>=nextPromptAt){
+    nextPromptAt=observationNow()+60000;
     lastPrompt=createMusicPrompt(history,{current,windowSeconds:60,target:$('prompt-model').value,
       musicPlan:resolvePlan(current,{manualId:$('music-plan').value,rules:planRules})});
     if(lastPrompt){
@@ -245,7 +248,7 @@ function update(){
     }
   }
   $('prompt-next').textContent=$('prompt-auto').checked
-    ?`${Math.max(0,Math.ceil((nextPromptAt-Date.now())/1000))} s 後整理`:'手動產生';
+    ?`${Math.max(0,Math.ceil((nextPromptAt-observationNow())/1000))} s 後整理`:'手動產生';
   for(const id of ['make-prompt','copy-prompt','download-prompt']){
     $(id).disabled=!valid || (id!=='make-prompt'&&!lastPrompt);
   }
@@ -289,7 +292,7 @@ function invalidatePrompt(){lastPrompt=null;$('music-prompt').value='';$('prompt
 $('prompt-model').onchange=invalidatePrompt;
 $('prompt-window').onchange=invalidatePrompt;
 $('prompt-auto').onchange=()=>{
-  nextPromptAt=$('prompt-auto').checked?Date.now()+60000:0;
+  nextPromptAt=$('prompt-auto').checked?observationNow()+60000:0;
   if($('prompt-auto').checked)$('prompt-window').value='60';
   $('prompt-window').disabled=$('prompt-auto').checked;invalidatePrompt();
 };
@@ -328,7 +331,7 @@ $('replay-file').onchange=()=>loadRecording($('replay-file').files[0]);
 function replayNext(){
   if(!replay||replayIndex>=replay.snapshots.length){stream.reset();rawAmplitude.reset();paused=true;$('status').textContent='回放完成';update();return;}
   const packet=replay.snapshots[replayIndex++];
-  ingest(replayPacket(packet,Date.now(),replayRun));
+  ingest(replayPacket(packet,observationNow(),replayRun));
   const next=replay.snapshots[replayIndex];timer=setTimeout(replayNext,next?Math.max(1,(next.ts-packet.ts)*1000):300);
 }
 $('replay-start').onclick=()=>{if(!replay)return;stop();if(replayIndex>=replay.snapshots.length)replayIndex=0;replayRun=`replay:${crypto.randomUUID()}`;paused=false;$('status').textContent='記錄回放';replayNext();};
@@ -386,13 +389,14 @@ for(const [id,mask] of [['wave-snapshot',false],['mask-snapshot',true]])$(id).on
   const canvas=document.createElement('canvas');canvas.width=1920;canvas.height=1080;
   const ctx=canvas.getContext('2d');ctx.clearRect(0,0,1920,1080);if(!mask){ctx.fillStyle='#0c1117';ctx.fillRect(0,0,1920,1080);}
   const keys=waveKeys.filter(key=>!$(`wave-${key}`).parentElement.hidden);
-  for(let i=0;i<keys.length;i++)drawWaveforms(canvas,history,keys[i],Date.now(),{mask:true,row:i,rows:keys.length,baseline:$('band-display').value==='baseline'});
+  for(let i=0;i<keys.length;i++)drawWaveforms(canvas,history,keys[i],observationNow(),{mask:true,row:i,rows:keys.length,baseline:$('band-display').value==='baseline'});
   const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download=`neural-${mask?'mask':'waveforms'}-${Date.now()}.png`;a.click();
 };
 const devices=new BrowserDeviceInput({onPacket:ingest,onStatus:text=>{$('device-status').textContent=text;}});
 let gatewayConfig=null,gatewayApiAvailable=false,gatewaySelectionDirty=false;
-for(const id of ['gateway-eeg-select','gateway-oxygen-select','gateway-ble-select'])
-  $(id).addEventListener('change',()=>{gatewaySelectionDirty=true;});
+for(const id of ['gateway-eeg-select','gateway-oxygen-select','gateway-ble-select',
+  'gateway-watch-enabled','gateway-watch-serial','gateway-watch-adb'])
+  $(id).addEventListener('input',()=>{gatewaySelectionDirty=true;});
 async function refreshGateway(){
   if(!gatewayApiAvailable)return;
   try{
@@ -426,6 +430,12 @@ async function refreshGateway(){
     if(data.config.ble.address&&!known.some(device=>device.address===data.config.ble.address))
       bluetooth.add(new Option(data.config.ble.address,data.config.ble.address));
     bluetooth.value=data.config.ble.address??'';
+    $('gateway-watch-fields').hidden=!data.config.watch;
+    if(data.config.watch){
+      $('gateway-watch-enabled').checked=data.config.watch.enabled;
+      $('gateway-watch-serial').value=data.config.watch.serial;
+      $('gateway-watch-adb').value=data.config.watch.adbPath;
+    }
     $('gateway-save').disabled=Boolean(data.upstream);
     $('gateway-message').textContent=data.upstream
       ?'目前復用既有音療核心，其设备身份由核心配置管理；獨立模式可在此保存。'
@@ -439,7 +449,9 @@ $('gateway-save').onclick=async()=>{
     const next={...gatewayConfig,
       eeg:selectedProfile(gatewayConfig.eeg,$('gateway-eeg-select').value),
       bloodOxygen:selectedProfile(gatewayConfig.bloodOxygen,$('gateway-oxygen-select').value),
-      ble:{...gatewayConfig.ble,address:$('gateway-ble-select').value}};
+      ble:{...gatewayConfig.ble,address:$('gateway-ble-select').value},
+      ...(gatewayConfig.watch?{watch:{enabled:$('gateway-watch-enabled').checked,
+        serial:$('gateway-watch-serial').value.trim(),adbPath:$('gateway-watch-adb').value.trim()}}:{})};
     const response=await fetch('/api/gateway/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(next)});
     if(!response.ok)throw new Error(`HTTP ${response.status}`);
     gatewaySelectionDirty=false;
@@ -524,7 +536,7 @@ function animate(now){
   if(view==='waveforms'){
     drawIndices($('indices-wave'),history);
     if(analysisLayer==='whitebox'){
-      for(const key of waveKeys)if(!$(`wave-${key}`).parentElement.hidden)drawWaveforms($(`wave-${key}`),history,key,Date.now(),{baseline:$('band-display').value==='baseline'});
+      for(const key of waveKeys)if(!$(`wave-${key}`).parentElement.hidden)drawWaveforms($(`wave-${key}`),history,key,observationNow(),{baseline:$('band-display').value==='baseline'});
       drawRaw();
     }
   }

@@ -1,5 +1,6 @@
 import {mapMusic} from './music.mjs';
 import {STALE_MS} from './eeg.mjs';
+import {observationNow} from './stream-clock.mjs';
 
 export const WORM_VERSION='evidence-trace-v3';
 const clamp=value=>Math.max(0,Math.min(1,value));
@@ -10,7 +11,7 @@ const usable=p=>p?.valid&&finite(p.timestamp)&&finite(p.attention)&&finite(p.rel
 export const control127=value=>Math.round(clamp(value/100)*127);
 
 /** Raw positions are never moved by the animation clock. Causal smoothing is display only. */
-export function buildWormTrace(history,{now=Date.now(),windowSeconds=60,space='control',
+export function buildWormTrace(history,{now=observationNow(),windowSeconds=60,space='control',
   smoothingSeconds=0}={}){
   if(!['control','eeg'].includes(space)||!finite(windowSeconds)||windowSeconds<1||windowSeconds>600
     ||!finite(smoothingSeconds)||smoothingSeconds<0||smoothingSeconds>5)
@@ -40,6 +41,7 @@ export function buildWormTrace(history,{now=Date.now(),windowSeconds=60,space='c
       attention:p.attention,relaxation:p.relaxation,
       controls127:{attention:control127(p.attention),relaxation:control127(p.relaxation)},
       source:p.source,sessionId:p.sessionId,connectionEpoch:p.connectionEpoch,
+      pairMethod:p.pairMethod??'source-unspecified',pairDeltaMs:p.pairDeltaMs??null,
       amplitude:p.amplitude??null,originalTimestamp:p.originalIndexTimestamp??p.originalTimestamp??p.timestamp,
       musicalParameters:music.parameters};
     buffer.push(point);

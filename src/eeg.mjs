@@ -1,3 +1,4 @@
+import {PacketClock,hasStreamClock,observationNow} from './stream-clock.mjs';
 export const SCHEMA = 'neural-resonance-live-v1';
 const supportedSchemas = [SCHEMA, 'frontal-live-v1'];
 export const STALE_MS = 3000;
@@ -6,14 +7,18 @@ const index = value => finite(value) && value >= 0 && value <= 100 ? value : nul
 const positive = value => finite(value) && value >= 0 ? value : null;
 
 /** Read native fields without turning USB spectral ratios into device scores. */
-export function normalizeSnapshot(input, now = Date.now()) {
+export function normalizeSnapshot(input, now = observationNow()) {
   if (!input || typeof input !== 'object' || !supportedSchemas.includes(input.schemaVersion))
     throw new Error('不支援的資料格式；請使用 neural-resonance-live-v1。');
   if (!finite(input.ts)) throw new Error('缺少有效的時間戳。');
   const timestamp = input.ts * 1000;
   const age = now - timestamp;
+  const clocked=hasStreamClock(input);
   const eeg = input.eeg && typeof input.eeg === 'object' ? input.eeg : {};
-  const fieldFresh = key => !input.fieldTimestamps || !Object.hasOwn(input.fieldTimestamps,key)
+  const fieldFresh = key => clocked
+    ?finite(input.fieldAgesMs?.[key])&&input.fieldAgesMs[key]>=0
+      &&input.fieldAgesMs[key]+Math.max(0,age)<=STALE_MS
+    :!input.fieldTimestamps || !Object.hasOwn(input.fieldTimestamps,key)
     || (finite(input.fieldTimestamps[key]) && now-input.fieldTimestamps[key]*1000>=-5000
         && now-input.fieldTimestamps[key]*1000<=STALE_MS);
   const has = key => Object.hasOwn(eeg, key);
@@ -21,10 +26,18 @@ export function normalizeSnapshot(input, now = Date.now()) {
   // The core's top-level fields can alias focus_index/relaxation_index. They
   // are ratios, not a calibrated 0–100 score; preserve them separately.
   const readIndex=value=>metricOrigin==='thinkgear-esense'&&!Number.isInteger(value)?null:index(value);
-  const attention = fieldFresh('attention') ? readIndex(has('attention') ? eeg.attention
+  const latestAttention = fieldFresh('attention') ? readIndex(has('attention') ? eeg.attention
     : has('focus_index') ? null : input.attention) : null;
-  const relaxation = fieldFresh('meditation') ? readIndex(has('meditation') ? eeg.meditation
+  const latestRelaxation = fieldFresh('meditation') ? readIndex(has('meditation') ? eeg.meditation
     : has('relaxation_index') ? null : input.meditation) : null;
+  const pairProvided=clocked||Object.hasOwn(input,'indexPair'),pair=input.indexPair;
+  const pairAt=clocked&&finite(pair?.ageMs)?timestamp-pair.ageMs:pair?.at*1000;
+  const pairValid=pairProvided&&pair&&readIndex(pair.attention)>0&&readIndex(pair.meditation)>0
+    &&latestAttention>0&&latestRelaxation>0
+    &&Number.isSafeInteger(pair.sequence)&&pair.sequence>0&&finite(pairAt)
+    &&now-pairAt>=-5000&&now-pairAt<=STALE_MS;
+  const attention=pairValid?pair.attention:latestAttention;
+  const relaxation=pairValid?pair.meditation:latestRelaxation;
   // ThinkGear reserves zero for an unavailable eSense computation. Other
   // adapters and the explicit demo can still define valid zero-valued indices.
   const indicesAvailable = metricOrigin!=='thinkgear-esense' || (attention>0 && relaxation>0);
@@ -33,9 +46,12 @@ export function normalizeSnapshot(input, now = Date.now()) {
   const originalTimes=statedOriginal&&[statedOriginal.attention,statedOriginal.meditation].every(finite)?
     statedOriginal:times;
   const fieldClock=times&&[times.attention,times.meditation].every(finite);
-  const indexTimestamp=fieldClock?Math.max(times.attention,times.meditation)*1000:null;
-  const indexSampleKey=fieldClock?JSON.stringify([originalTimes.attention,originalTimes.meditation]):null;
-  const originalIndexTimestamp=fieldClock&&[originalTimes.attention,originalTimes.meditation].every(finite)?
+  const indexTimestamp=pairValid?pairAt:fieldClock?Math.max(times.attention,times.meditation)*1000:null;
+  const indexSampleKey=pairProvided?(pairValid?`report:${pair.sequence}`:null)
+    :fieldClock?JSON.stringify([originalTimes.attention,originalTimes.meditation]):null;
+  const originalPair=input.originalIndexPair??pair;
+  const originalIndexTimestamp=pairValid&&finite(originalPair?.at)?originalPair.at*1000:
+    fieldClock&&[originalTimes.attention,originalTimes.meditation].every(finite)?
     Math.max(originalTimes.attention,originalTimes.meditation)*1000:input.originalTimestamp??timestamp;
   const packets = positive(input.quality?.eegPackets) ?? 0;
   const qualityKey=has('poor_signal')?'poor_signal':'poorSignal',qualityValue=eeg[qualityKey];
@@ -44,7 +60,7 @@ export function normalizeSnapshot(input, now = Date.now()) {
   const transportFresh = input.transport!=='none' && age >= -5000 && age <= STALE_MS && packets > 0;
   const signalValid = transportFresh && (metricOrigin==='thinkgear-esense'?poorSignal===0:poorSignal===null||poorSignal===0);
   const bands = Object.fromEntries(['delta', 'theta', 'alpha', 'beta'].map(key => {
-    const read=name=>fieldFresh(name)&&fieldFresh(key)?positive(eeg[name]):null;
+    const read=name=>fieldFresh(name)&&(clocked||fieldFresh(key))?positive(eeg[name]):null;
     const direct = read(`${key}_mean`) ?? read(key);
     const low = read(`low${key[0].toUpperCase()}${key.slice(1)}`);
     const high = read(`high${key[0].toUpperCase()}${key.slice(1)}`);
@@ -62,7 +78,11 @@ export function normalizeSnapshot(input, now = Date.now()) {
     bandUnits: typeof input.bandUnits==='string'&&input.bandUnits.length<=80?input.bandUnits
       :input.source==='demo'?'合成示範相對值':'來源頻段值 · 單位未回報',
     metricOrigin,indexTimestamp,indexSampleKey,originalIndexTimestamp,
-    poorSignal,signalQuality,transportFresh, signalValid, valid: signalValid && attention !== null && relaxation !== null && indicesAvailable,
+    latestIndices:{attention:latestAttention,relaxation:latestRelaxation},
+    pairMethod:pairProvided?'same-report':fieldClock?'legacy-latest-fields':'source-unspecified',
+    pairDeltaMs:pairProvided?(pairValid?0:null):fieldClock?Math.abs(times.attention-times.meditation)*1000:null,
+    poorSignal,signalQuality,transportFresh,signalValid,
+    valid:signalValid&&attention!==null&&relaxation!==null&&indicesAvailable&&(!pairProvided||Boolean(pairValid)),
     raw: input,
   };
 }
@@ -70,12 +90,17 @@ export function normalizeSnapshot(input, now = Date.now()) {
 /** The heartbeat is not proof of incoming hardware samples. */
 export class StreamState {
   constructor() { this.reset(); }
-  reset() { this.latest = null; this.lastAdvance = 0; this.lastPackets = null; this.lastTimestamp = -Infinity; this.identity=null; }
-  accept(input, now = Date.now()) {
+  reset() { this.latest = null; this.lastAdvance = 0; this.lastPackets = null; this.lastTimestamp = -Infinity; this.identity=null;this.clock=new PacketClock();this.checkedAt=-Infinity; }
+  accept(input, now = observationNow()) {
+    input=this.clock.map(input,now);
+    if(!input)return false;
     const snapshot = normalizeSnapshot(input, now);
     if(snapshot.timestamp>now+5000)return false;
     const identity=JSON.stringify([snapshot.source,snapshot.sessionId,snapshot.transport,snapshot.connectionEpoch]);
-    if(this.identity!==identity){this.reset();this.identity=identity;}
+    if(this.identity!==identity){
+      this.latest=null;this.lastAdvance=0;this.lastPackets=null;this.lastTimestamp=-Infinity;
+      this.identity=identity;this.checkedAt=-Infinity;
+    }
     if (snapshot.timestamp <= this.lastTimestamp) return false;
     if (snapshot.packets !== this.lastPackets) this.lastAdvance = now;
     this.lastPackets = snapshot.packets;
@@ -83,8 +108,9 @@ export class StreamState {
     this.latest = snapshot;
     return true;
   }
-  current(now = Date.now()) {
+  current(now = observationNow()) {
     if (!this.latest) return null;
+    now=this.checkedAt=Math.max(this.checkedAt,now);
     const latest=normalizeSnapshot(this.latest.raw,now);
     const fresh = now - this.latest.timestamp <= STALE_MS
       && now - this.lastAdvance <= STALE_MS;
@@ -97,7 +123,7 @@ export class StreamState {
 export class LiveConnection {
   constructor({ onState, onSnapshot, socketFactory = url => new WebSocket(url),
     schedule = (callback, delay) => setTimeout(callback, delay),
-    cancel = handle => clearTimeout(handle),clock=()=>Date.now(),idleMs=10000 }) {
+    cancel = handle => clearTimeout(handle),clock=observationNow,idleMs=10000 }) {
     Object.assign(this, { onState, onSnapshot, socketFactory, schedule, cancel,clock,idleMs });
     this.generation = 0; this.retry = 0; this.socket = null; this.timer = null;this.idleTimer=null;this.socketEpoch=0;
   }
@@ -157,7 +183,7 @@ export class LiveConnection {
   }
 }
 
-export function demoSnapshot(attention, relaxation, tick, timestamp = Date.now()) {
+export function demoSnapshot(attention, relaxation, tick, timestamp = observationNow()) {
   return { schemaVersion: SCHEMA, source: 'demo', ts: timestamp / 1000,
     quality: { eegPackets: tick + 1 }, attention, meditation: relaxation,
     eeg: { attention, meditation: relaxation, delta: 22 + 7 * Math.sin(tick / 8),

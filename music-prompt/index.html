@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>音乐提示词工作台 · 神经共振</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <header>
+    <div class="identity"><span class="mark" aria-hidden="true">N / R</span><span>神经共振<span class="sub">独立创作工具</span></span></div>
+    <div class="runtime"><span id="runtime-dot" class="dot"></span><span id="runtime-status" role="status">正在检查本地模型</span><button id="check-runtime" class="quiet" type="button">检查</button></div>
+  </header>
+  <main>
+    <div class="page-title"><div><p class="eyebrow">OBSERVATION → MUSIC LANGUAGE</p><h1>音乐提示词工作台</h1><p class="intro">从观测到创作语言。数据、创作目标与生成结果分别保留。</p></div><span class="version">LOCAL / 01</span></div>
+    <div class="workspace">
+      <section class="panel input-panel" aria-labelledby="input-title">
+        <div class="panel-title"><span class="step">01</span><h2 id="input-title">观测输入</h2><span id="input-state" class="badge">未导入</span></div>
+        <label for="observation-json">JSON</label>
+        <textarea id="observation-json" spellcheck="false" placeholder="粘贴控制台观测摘要，或导入音乐观测 JSON。"></textarea>
+        <div class="actions"><button id="choose-file" type="button" class="secondary">导入文件</button><input id="input-file" type="file" accept=".json,application/json" hidden><button id="load-reference" class="secondary" type="button">已有速度标注</button></div>
+        <p class="hint">支持控制台观测摘要和独立音乐 JSON，文件最大 1 MiB。未导入时可仅按创作目标生成。</p>
+        <div class="observation-heading"><h3>观测记录</h3><span id="observation-origin">—</span></div>
+        <dl class="observations" id="observation-metrics">
+          <div><dt>来源</dt><dd id="metric-source">未提供</dd></div>
+          <div><dt>有效样本</dt><dd id="metric-count">—</dd></div>
+          <div><dt>原始记录时间</dt><dd id="metric-time">—</dd></div>
+          <div><dt>有效覆盖 / 窗口</dt><dd id="metric-coverage">—</dd></div>
+          <div><dt>关注 / 放松</dt><dd id="metric-neural">—</dd></div>
+          <div><dt>速度均值</dt><dd id="metric-mean">—</dd></div>
+          <div><dt>速度标准差</dt><dd id="metric-sd">—</dd></div>
+          <div><dt>速度 CV</dt><dd id="metric-cv">—</dd></div>
+          <div><dt>相邻变幅代理</dt><dd id="metric-change">—</dd></div>
+        </dl>
+        <p class="hint" id="observation-note">缺失值保持为空；不从关注、放松或心率推断音乐参数。</p>
+      </section>
+
+      <section class="panel intent-panel" aria-labelledby="intent-title">
+        <div class="panel-title"><span class="step">02</span><h2 id="intent-title">创作目标</h2><span class="badge">人工设定</span></div>
+        <div class="field-row"><label for="style">编制</label><select id="style"><option value="solo-piano">钢琴独奏</option><option value="chamber">钢琴、小提琴与大提琴</option><option value="ambient">钢琴与持续弦乐</option></select></div>
+        <div class="two-fields">
+          <div><label for="duration">时长 / 秒</label><input id="duration" type="number" min="5" max="120" step="1" value="30"></div>
+          <div><label for="tempo-bpm">目标速度 / BPM</label><input id="tempo-bpm" type="number" min="20" max="300" step="0.1" placeholder="未指定"></div>
+        </div>
+        <div class="preset-row"><button id="gentle-preset" class="quiet" type="button">填入舒缓器乐目标</button><button id="clear-levels" class="quiet" type="button">清空档位</button></div>
+        <div id="music-levels" class="levels"></div>
+        <p class="hint">1–5 为本项目创作档位，不是生理测量或音乐离散度的标准量表。力度词描述演奏目标，不由数字电平换算。</p>
+      </section>
+
+      <section class="panel output-panel" aria-labelledby="output-title">
+        <div class="panel-title"><span class="step">03</span><h2 id="output-title">提示词与交接</h2><span id="output-engine" class="badge">等待生成</span></div>
+        <div class="generation-actions"><button id="preview" class="secondary" type="button">规则预览</button><button id="arrange" type="button">Ollama 编排</button></div>
+        <p id="operation-status" class="operation-status" role="status" aria-live="polite">模型只接收所选音乐标签，原始生理数据留在本机。</p>
+        <div id="selected-tags" class="tags" aria-label="已选择的音乐标签"></div>
+        <label for="prompt-en">音乐描述 / English</label>
+        <textarea id="prompt-en" readonly placeholder="选择创作目标后生成。"></textarea>
+        <div class="actions"><button id="copy-prompt" class="quiet" type="button" disabled>复制提示词</button><button id="download-json" class="quiet" type="button" disabled>下载完整 JSON</button></div>
+        <details>
+          <summary>ACE 请求 JSON</summary>
+          <p class="hint">依据夜莺本地接口源代码。可复制交接，本页不自动提交校内生成任务。</p>
+          <pre id="ace-json">等待生成</pre>
+          <button id="copy-ace" class="secondary" type="button" disabled>复制 ACE JSON</button>
+        </details>
+        <details><summary>Suno 字段</summary><pre id="suno-json">等待生成</pre></details>
+        <p class="hint footer-note">标签表达创作意图。生成音频的节拍、噪声与音乐品质仍需检查。</p>
+      </section>
+    </div>
+    <footer><span>本地处理 · 无云端推理</span><a href="/docs/MUSIC-PROMPT.md" target="_blank" rel="noopener">数据合同与方法</a><span>蠕虫与采集服务独立运行</span></footer>
+  </main>
+</body>
+</html>

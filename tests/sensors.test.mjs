@@ -22,3 +22,12 @@ test('non-EEG invalid values, transport gaps and frozen hardware counts clear re
   assert.equal(state.current(now+15003).pr.value,null);
   state.reset();assert.equal(state.current(now).spo2.value,null);
 });
+test('watch heart rate retains its source and never creates EEG or oxygen values',()=>{
+  const state=new SensorState();
+  state.accept(packet({source:'device',spo2:null,pr:72,sensorSources:{pr:'watch'},
+    sensorTimestamps:{pr:now/1000}}),now);
+  assert.equal(state.current(now).pr.source,'watch');
+  assert.equal(state.current(now).pr.value,72);
+  assert.equal(state.current(now).spo2.value,null);
+  assert.equal(state.current(now+3001).pr.source,null);
+});

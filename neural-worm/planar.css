@@ -236,3 +236,85 @@ body.research-focus:has(#view-worm:not([hidden])) .worm-legacy{display:none}
  .score-current dd{font-size:12px}.score-heading button{margin-left:0}
  .score-scene{height:350px}.score-evidence th,.score-evidence td{padding:8px 5px}
 }
+
+/* The plot is primary; source evidence and optional research stay reachable below it. */
+#research-worm .research-toolbar{margin-bottom:8px;gap:14px}
+#research-worm .research-toolbar h2{font-size:15px}
+#research-worm .music-player{margin:0 0 10px;padding:8px 0;gap:6px 12px}
+#research-worm .music-selection{gap:12px}
+#research-worm .music-selection label{margin:0;font-size:10px}
+#research-worm .music-selection select{margin-top:3px}
+#research-worm .music-player input[type=range]{min-height:30px}
+#research-worm .music-play-state{min-height:17px;line-height:17px}
+#research-worm .research-detail{padding:12px 0;max-height:calc(100dvh - 300px)}
+#research-worm .reference-readouts{margin:0;padding:0;border:0}
+#research-worm[data-visual-mode=overlay] .planar-values,
+#research-worm[data-visual-mode=overlay] .planar-unit,
+#research-worm[data-visual-mode=overlay] .planar-state,
+#research-worm[data-visual-mode=overlay] .acquisition-details{display:none}
+#research-worm .reference-readouts h3{font-size:12px;margin-bottom:12px}
+#research-worm .reference-readouts dl{display:grid;grid-template-columns:minmax(0,1fr);gap:5px}
+#research-worm .reference-readouts dt,#research-worm .reference-readouts dd{grid-row:auto}
+#research-worm .reference-readouts dd{font-size:16px;margin-bottom:9px}
+#research-worm .music-layer-tabs{justify-content:flex-start;min-height:40px;margin-bottom:4px;gap:0}
+#research-worm .music-layer-tabs button{padding:8px 12px}
+#research-worm .bar-window{margin:0 0 0 auto}
+#research-worm[data-music-layer=worm][data-visual-mode=music] .planar-window:has([data-role=space]),
+#research-worm[data-music-layer=worm][data-visual-mode=overlay] .planar-window:has([data-role=space]){display:none!important}
+#research-worm[data-music-layer=structure][data-visual-mode] .planar-window:has([data-role=space]){display:flex}
+#research-worm .scene-host{height:clamp(310px,calc(100dvh - 385px),780px);min-height:310px}
+#research-worm[data-visual-mode=eeg] .scene-host{height:clamp(340px,calc(100dvh - 225px),850px)}
+#research-worm[data-music-layer=profile] .scene-host{height:clamp(280px,calc(100dvh - 425px),650px);min-height:280px}
+#research-worm .research-advanced,
+#research-worm .experiment-disclosure{border-top:1px solid var(--line);padding:8px 0;color:var(--muted);font-size:12px}
+#research-worm .research-advanced>summary,
+#research-worm .experiment-disclosure>summary{cursor:pointer;min-height:40px;line-height:40px;color:var(--text);width:fit-content}
+#research-worm .music-secondary-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:6px 0 12px}
+#research-worm .music-secondary-tabs button{min-height:40px;padding:8px 12px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:3px}
+#research-worm .music-secondary-tabs button[aria-pressed=true]{border-color:var(--accent);color:var(--text)}
+#research-worm .listening-experiment{margin-bottom:12px}
+#research-worm .version-comparisons{margin-top:0;padding:8px 0}
+#research-worm .paired-panel{border-top:1px solid var(--line);padding-top:14px;margin-top:16px}
+#research-worm .paired-panel h3{font-size:13px;margin-bottom:8px}
+#research-worm .paired-panel p,.score-scope{color:var(--muted);font-size:11px;line-height:1.8;margin:4px 0}
+#research-worm .paired-scene{height:320px;position:relative}
+#research-worm .paired-panel:has(canvas[data-samples="0"]) .paired-scene{height:260px}
+#research-worm .score-scene{height:clamp(310px,calc(100dvh - 500px),700px)}
+@media(min-width:761px) and (max-height:850px){
+  #research-worm .research-toolbar{min-height:40px;margin-bottom:6px}
+  #research-worm .music-player{padding:6px 0;margin-bottom:6px}
+  #research-worm .music-play-state{display:none}
+  #research-worm .scene-host{height:calc(100dvh - 350px);min-height:300px}
+  #research-worm[data-visual-mode=eeg] .scene-host{height:calc(100dvh - 225px);min-height:340px}
+  #research-worm[data-music-layer=profile] .scene-host{height:calc(100dvh - 390px);min-height:260px}
+}
+@media(max-width:1100px){
+  #research-worm .research-workspace{display:flex;flex-direction:column;gap:8px}
+  #research-worm[data-visual-mode] .research-plot{order:0;width:100%}
+  #research-worm[data-visual-mode] .research-detail{display:block!important;order:1;width:100%;max-height:none;overflow:visible}
+  #research-worm .reference-readouts>dl{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  #research-worm .reference-readouts>dl dt{grid-row:1}
+  #research-worm .reference-readouts>dl dd{grid-row:2}
+}
+@media(max-width:760px){
+  #research-worm .research-toolbar h2{display:none}
+  #research-worm .visual-modes{order:0;flex-basis:auto}
+  #research-worm .visual-modes button{font-size:12px;padding:8px 11px}
+  #research-worm .research-context{order:2;flex-basis:100%;max-width:none;text-align:left}
+  #research-worm .research-actions{margin-left:auto}
+  #research-worm .music-selection{grid-template-columns:minmax(0,1fr);gap:6px}
+  #research-worm .music-selection label{display:flex;gap:9px;align-items:center}
+  #research-worm .music-selection select{margin:0;flex:1;min-width:0;width:0}
+  #research-worm .music-selection label:first-child{font-size:0}
+  #research-worm .music-selection label:first-child select{font-size:12px}
+  #research-worm .music-layer-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0}
+  #research-worm .music-layer-tabs button{padding:7px 5px;font-size:11px}
+  #research-worm .bar-window{grid-column:1/-1;justify-self:end;margin:3px 0}
+  #research-worm .bar-window select{min-height:34px;padding:4px 7px}
+  #research-worm[data-visual-mode] .scene-host{height:340px;min-height:310px}
+  #research-worm[data-music-layer=profile] .scene-host{height:280px;min-height:260px}
+  #research-worm .score-scene{height:340px}
+  #research-worm .research-detail{padding-top:12px}
+  #research-worm .research-method{font-size:11px}
+  #research-worm .reference-readouts details{margin-top:6px}
+}

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.neuralresonance.watch">
+  <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="34" />
+  <uses-permission android:name="android.permission.BODY_SENSORS" />
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-feature android:name="android.hardware.type.watch" android:required="true" />
+  <uses-feature android:name="android.hardware.sensor.heartrate" android:required="false" />
+  <application android:label="神经共振采集" android:theme="@android:style/Theme.Material.NoActionBar"
+               android:debuggable="true" android:allowBackup="false" android:supportsRtl="true">
+    <activity android:name=".MainActivity" android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>

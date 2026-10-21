@@ -1,4 +1,5 @@
 import {STALE_MS} from './eeg.mjs';
+import {observationNow} from './stream-clock.mjs';
 import {ELEMENTS,mapMusic} from './music.mjs';
 import {networkStates,NETWORK_VERSION} from './neural-networks.mjs';
 import {buildWormTrace,WORM_VERSION} from './worm-model.mjs';
@@ -9,7 +10,7 @@ const usable=s=>s?.valid && Number.isFinite(s.attention) && s.attention>=0 && s.
   && Number.isFinite(s.relaxation) && s.relaxation>=0 && s.relaxation<=100;
 
 /** Observation hand-off. Never prescribe ten musical values from two EEG indices. */
-export function createMusicPrompt(history,{current,now=Date.now(),windowSeconds=60,target='generic',musicPlan=null}={}) {
+export function createMusicPrompt(history,{current,now=observationNow(),windowSeconds=60,target='generic',musicPlan=null}={}) {
   if(!targets.includes(target))throw new Error('不支援的音樂模型。');
   if(!Number.isFinite(windowSeconds)||windowSeconds<1||windowSeconds>600)
     throw new Error('觀察窗口需為 1–600 秒。');

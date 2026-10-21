@@ -105,11 +105,13 @@ async def verify(args):
                 await page.locator(".worm-legacy > summary").click()
                 await page.click("#make-prompt")
                 assert "創作方案" in await page.input_value("#music-prompt")
+                await page.click('#research-worm [data-visual="eeg"]')
                 state["freeze"]=True
                 await page.wait_for_function("document.querySelector('#make-prompt').disabled",timeout=6000)
-                before=await page.locator(".planar-canvas").get_attribute("data-timestamp")
+                before=await page.locator("#research-worm .scene-host canvas").get_attribute("data-timestamp")
+                assert before not in (None,""), "Neural trace must have a sample before checking that it freezes"
                 await asyncio.sleep(.6)
-                after=await page.locator(".planar-canvas").get_attribute("data-timestamp")
+                after=await page.locator("#research-worm .scene-host canvas").get_attribute("data-timestamp")
                 assert before==after,{"before":before,"after":after,
                     "status":await page.locator("#worm-change").inner_text(),
                     "samples":await page.locator("#hero").get_attribute("data-samples"),"frames":frames}

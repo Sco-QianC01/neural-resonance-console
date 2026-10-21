@@ -51,7 +51,7 @@ export function liveAcquisitionStatus(snapshot,connectionState){
 
 /** A running HTTP interface is not proof that a sensor is producing data. */
 export function deviceDiagnostic(devices){
-  const labels={eeg:'腦電 USB',bloodOxygen:'血氧 USB',gsr:'GSR',ble:'腦電 BLE'};
+  const labels={eeg:'腦電 USB',bloodOxygen:'血氧 USB',gsr:'GSR',ble:'腦電 BLE',watch:'手表心率'};
   const reasons={
     'profile-unconfigured':'尚未配置設備型號',
     'device-not-found':'尚未識別相容設備；檢查電源、資料線及廠商驅動',
@@ -62,9 +62,19 @@ export function deviceDiagnostic(devices){
     'access-or-port-busy':'端口被占用或權限不足；關閉其他采集程式並檢查權限',
     'disconnected-or-read-error':'已斷線，采集器會重新識別',
     'bluetooth-unavailable-or-denied':'藍牙不可用、權限或連接異常；檢查系統藍牙設定',
+    'adb-missing':'未找到ADB入口；請選擇本機ADB程式',
+    'watch-unavailable':'等待已配對手表及前台采集端',
+    'waiting-permission':'請在手表確認身體傳感器權限',
+    'permission-denied':'手表尚未授予身體傳感器權限',
+    'waiting-measurement':'請佩戴手表，等待新的心率測量',
+    'unreliable':'手表接觸品質待確認',
+    'stopped':'手表采集已停止',
+    'paused':'手表前台采集已暫停',
+    'sensor-unavailable':'手表心率傳感器不可用',
   };
   return Object.entries(devices??{}).filter(([key,row])=>labels[key]&&row.state!=='disabled')
     .map(([key,row])=>`${labels[key]}：${row.state==='receiving'
-      ?`有效資料 · ${row.bytes??0} bytes${Number.isInteger(row.validPackets)?` · ${row.validPackets} 封包`:''}`
+      ?key==='watch'?`有效資料 · ${row.validPackets??0} 樣本`
+        :`有效資料 · ${row.bytes??0} bytes${Number.isInteger(row.validPackets)?` · ${row.validPackets} 封包`:''}`
       :reasons[row.reason]||row.message||row.state||'等待'}`);
 }

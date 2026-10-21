@@ -1,6 +1,6 @@
 {
-  "build": "portable-20261016-v1",
-  "version": "0.11.4",
+  "build": "clarity-stream-20261021-v1",
+  "version": "0.11.6",
   "defaultMode": "standalone",
   "singleInstance": true
 }

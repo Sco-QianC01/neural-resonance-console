@@ -3,6 +3,19 @@ import assert from 'node:assert/strict';
 import {normalizeSnapshot,StreamState,LiveConnection,demoSnapshot} from '../src/eeg.mjs';
 import {ThinkGearDecoder,BrowserDeviceInput} from '../src/device-input.mjs';
 import {captureSnapshot,replayPacket,recordingCsv} from '../src/recording.mjs';
+test('watch measurement provenance and original device time survive capture and replay',()=>{
+  const packet={schemaVersion:'neural-resonance-live-v1',ts:10,source:'device',transport:'none',
+    sessionId:'gateway',eeg:{},pr:72,quality:{prSamples:1,eegPackets:0},
+    sensorTimestamps:{pr:9},sensorSources:{pr:'watch'},
+    sensorDetails:{pr:{sessionId:'watch',sequence:1,eventElapsedNs:9e9,accuracy:3}}};
+  const saved=captureSnapshot(packet,normalizeSnapshot(packet,10000));
+  assert.deepEqual(saved.sensorSources,packet.sensorSources);
+  assert.deepEqual(saved.sensorDetails,packet.sensorDetails);
+  const replay=replayPacket(saved,20000);
+  assert.deepEqual(replay.sensorDetails,packet.sensorDetails);
+  assert.equal(replay.originalSensorTimestamps.pr,9);
+  assert.match(recordingCsv([saved]).split('\r\n')[0],/sensor_details_json/);
+});
 import {SensorState} from '../src/sensors.mjs';
 import {buildWormTrace} from '../src/worm-model.mjs';
 const frame=payload=>Uint8Array.from([170,170,payload.length,...payload,

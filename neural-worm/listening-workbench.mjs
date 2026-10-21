@@ -1,4 +1,5 @@
 import {ListeningTrial} from '../src/listening-experiment.mjs';
+import {observationNow} from '../src/stream-clock.mjs';
 const number=x=>Number.isFinite(x)?x.toFixed(3):'—';
 /** Three explicit listening trials; this module never fabricates device data. */
 export function mountListening(host,{getContext,getRecording,selectRecording,getMusic,getImage}){
@@ -32,7 +33,7 @@ export function mountListening(host,{getContext,getRecording,selectRecording,get
  }
  async function finish(){
   if(!active)return;const current=active;active=null;clearInterval(timer);timer=null;
-  try{trials.push(current.finish(Date.now()));status.textContent=`版本 ${trials.length} 已記錄 · ${trials.at(-1).rows.length} 個有效點`;}
+  try{trials.push(current.finish(observationNow()));status.textContent=`版本 ${trials.length} 已記錄 · ${trials.at(-1).rows.length} 個有效點`;}
   catch(error){status.textContent=error.message;}
   render();
  }
@@ -45,10 +46,10 @@ export function mountListening(host,{getContext,getRecording,selectRecording,get
   try{
    await selectRecording(id);
    if(!validDevice())throw new Error('設備資料已失效，未開始試次。');
-   const {audio}=getMusic();active=new ListeningTrial(getRecording(),audio.currentTime,Date.now());
+   const {audio}=getMusic();active=new ListeningTrial(getRecording(),audio.currentTime,observationNow());
    status.textContent=`版本 ${trials.length+1} 記錄中`;saved=false;render();
    timer=setInterval(()=>{if(!active)return;
-    const seconds=(Date.now()-active.startedAt)/1000;$('[data-trial-progress]').textContent=`${seconds.toFixed(1)} / ${$('[data-trial-length]').value} s · ${active.rows.length} 點`;
+    const seconds=(observationNow()-active.startedAt)/1000;$('[data-trial-progress]').textContent=`${seconds.toFixed(1)} / ${$('[data-trial-length]').value} s · ${active.rows.length} 點`;
     if(audio.paused||audio.ended||seconds>=Number($('[data-trial-length]').value)){finish();audio.pause();}
    },250);
   }catch(error){status.textContent='未開始 · '+error.message;render();}
@@ -74,7 +75,7 @@ export function mountListening(host,{getContext,getRecording,selectRecording,get
   accept(context){
    if(active){
     const {audio,point,pointAt}=getMusic();
-    if(!audio.paused&&getRecording()?.id===active.recording.id)active.accept(context.snapshot?.raw,pointAt??point,Date.now(),audio.currentTime);
+    if(!audio.paused&&getRecording()?.id===active.recording.id)active.accept(context.snapshot?.raw,pointAt??point,observationNow(),audio.currentTime);
     else finish();
    }
    render();

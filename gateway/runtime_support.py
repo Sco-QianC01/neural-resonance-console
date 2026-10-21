@@ -7,7 +7,7 @@ import sys
 import time
 
 
-BUILD = "portable-20261016-v1"
+BUILD = "clarity-stream-20261021-v1"
 
 
 def instance_id(directory):

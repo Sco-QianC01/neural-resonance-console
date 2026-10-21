@@ -1,6 +1,7 @@
 import {buildWormTrace} from './worm-model.mjs';
+import {observationNow} from './stream-clock.mjs';
 const colours={delta:'#f098a2',theta:'#d4df8c',alpha:'#d6a5eb',beta:'#89d6bd'};
-export function drawWaveforms(canvas,history,key,now=Date.now(),{mask=false,row=0,rows=1,baseline=false}={}){
+export function drawWaveforms(canvas,history,key,now=observationNow(),{mask=false,row=0,rows=1,baseline=false}={}){
   const ratio=Math.min(2,globalThis.devicePixelRatio||1);
   const width=canvas.clientWidth||1920,height=canvas.clientHeight||1080;
   if(!mask){
@@ -37,7 +38,7 @@ export function drawWaveforms(canvas,history,key,now=Date.now(),{mask=false,row=
   ctx.stroke();canvas.dataset.samples=String(values.length);canvas.dataset.baseline=String(base);canvas.dataset.scale=String(max);canvas.dataset.representation=baseline?'baseline-deviation':'relative-power';
 }
 
-export function drawIndices(canvas,history,now=Date.now()){
+export function drawIndices(canvas,history,now=observationNow()){
   const ratio=Math.min(2,globalThis.devicePixelRatio||1),w=canvas.clientWidth,h=canvas.clientHeight;
   if(canvas.width!==Math.round(w*ratio)||canvas.height!==Math.round(h*ratio)){canvas.width=Math.round(w*ratio);canvas.height=Math.round(h*ratio);}
   const ctx=canvas.getContext('2d');ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,w,h);
