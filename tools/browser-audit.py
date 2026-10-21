@@ -64,7 +64,8 @@ async def verify(args):
                 await page.goto(str(server.make_url("/")))
                 await page.wait_for_function("document.querySelector('#read-attention').textContent === '60' || Number(document.querySelector('#read-attention').textContent)>60")
                 await page.click("#record")
-                await asyncio.sleep(1.1)
+                await page.wait_for_function(
+                    "parseInt(document.querySelector('#count').textContent,10)>=2",timeout=6000)
                 for view in ("worm","settings","waveforms"):
                     await page.click(f'[data-view="{view}"]')
                     await page.wait_for_function(f"!document.querySelector('#view-{view}').hidden")
