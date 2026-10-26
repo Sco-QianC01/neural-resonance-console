@@ -55,7 +55,7 @@ class PortableTests(unittest.TestCase):
             self.assertEqual(subprocess.run(command, env=env, capture_output=True).returncode, 0)
 
     def test_access_denied_is_actionable_and_never_fakes_packets(self):
-        acquisition = Acquisition(validate_config({}))
+        acquisition = Acquisition(validate_config({"acquisition": {"running": True}}))
         def denied(*_args, **_kwargs):
             acquisition.stop_event.set()
             raise PermissionError("Access is denied")
@@ -111,7 +111,8 @@ class NotificationStatusTests(unittest.IsolatedAsyncioTestCase):
                         encoded+=b"\xaa\xaa"+bytes([len(tail)])+tail+bytes([(~sum(tail))&255])
                     return encoded
                 return b""
-        config = validate_config({"bloodOxygen": {"enabled": False}, "ble": {"enabled": False}})
+        config = validate_config({"bloodOxygen": {"enabled": False}, "ble": {"enabled": False},
+                                 "acquisition": {"running": True}})
         acquisition = Acquisition(config)
         with tempfile.TemporaryDirectory() as directory, \
                 patch("device_gateway.list_ports.comports", side_effect=ports), \
@@ -150,8 +151,54 @@ class NotificationStatusTests(unittest.IsolatedAsyncioTestCase):
                 await socket.close()
         self.assertTrue(handles and all(handle.closed for handle in handles))
 
+    async def test_packet_count_clears_when_acquisition_stops(self):
+        # 有效封包 describes the running acquisition. Stop closed the port but
+        # the count stayed at the finished session's total, so the panel kept
+        # showing a number for data that was no longer arriving.
+        def ports():
+            return [port("COM77")]
+        class Serial:
+            dtr = rts = False
+            in_waiting = 1024
+            def __init__(self, **_kwargs):
+                self.port = None
+                self.closed = False
+            def open(self): pass
+            def close(self): self.closed = True
+            def read(self, _count):
+                import time
+                time.sleep(.03)
+                payload = b"\x02\x00\x04\x3e\x05\x4a\x80\x02\x00\x01"
+                return b"\xaa\xaa" + bytes([len(payload)]) + payload + bytes([(~sum(payload)) & 255])
+        config = validate_config({"bloodOxygen": {"enabled": False}, "ble": {"enabled": False},
+                                  "acquisition": {"running": True}})
+        acquisition = Acquisition(config)
+        with tempfile.TemporaryDirectory() as directory, \
+                patch("device_gateway.list_ports.comports", side_effect=ports), \
+                patch("device_gateway.serial.Serial", Serial):
+            app = create_app(acquisition, Path(directory) / "config.json")
+            async with TestClient(TestServer(app)) as client:
+                socket = await client.ws_connect("/ws/live")
+                async with asyncio.timeout(6):
+                    while True:
+                        packet = await socket.receive_json()
+                        if packet["quality"]["eegPackets"] >= 2:
+                            break
+                self.assertEqual(packet["transport"], "usb")
+                response = await client.post("/api/gateway/config",
+                                             json={"acquisition": {"running": False}})
+                self.assertEqual(response.status, 200)
+                async with asyncio.timeout(6):
+                    while True:
+                        packet = await socket.receive_json()
+                        if packet["transport"] == "none":
+                            break
+                self.assertEqual(packet["quality"]["eegPackets"], 0)
+                self.assertEqual(packet["rawEegSamples"], [])
+                await socket.close()
+
     async def test_notification_during_start_notify_cannot_be_replaced_by_waiting_state(self):
-        acquisition = Acquisition(validate_config({}))
+        acquisition = Acquisition(validate_config({"acquisition": {"running": True}}))
         device = SimpleNamespace(address="UUID", name="BrainLink")
         char = SimpleNamespace(uuid="notify", properties=["notify"])
         before_disconnect = []
@@ -166,7 +213,16 @@ class NotificationStatusTests(unittest.IsolatedAsyncioTestCase):
             async def start_notify(self, characteristic, callback):
                 callback(characteristic, b"\xaa\xaa\x04\x80\x02\x00\x01\x7c")
         found = {"one": (device, SimpleNamespace(local_name="BrainLink"))}
-        with patch("device_gateway.BleakScanner.discover", return_value=found), \
+        def scanner(callback):
+            class Listening:
+                async def start(self):
+                    for row in found.values():
+                        callback(*row)
+                async def stop(self):
+                    return None
+            return Listening()
+        with patch("device_gateway.bluetooth_permitted", return_value=True), \
+                patch("device_gateway.listening_scanner", new=scanner), \
                 patch("device_gateway.BleakClient", Client):
             await asyncio.wait_for(acquisition.ble_worker(), 2)
         self.assertEqual(before_disconnect, ["receiving"])

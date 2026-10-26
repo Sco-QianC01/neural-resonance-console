@@ -7,7 +7,7 @@ import sys
 import time
 
 
-BUILD = "clarity-stream-20261021-v1"
+BUILD = "waveform-20261027-v1"
 
 
 def instance_id(directory):

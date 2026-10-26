@@ -8,6 +8,7 @@ import {beatIntervals,onsetIntervals,gaussianTempo,musicPoint,musicExtent,rawMus
 import {drawTempoProfile} from '../src/tempo-profile.mjs';
 import {structurePoints,scoreMusicPoint} from '../src/music-structure.mjs';
 import {mountScore} from './score-workbench.mjs';
+import {getLanguage,t as translate} from '../src/i18n.mjs';
 const format=value=>Number.isFinite(value)?value.toFixed(1):'—';
 const clock=value=>`${Math.floor(value/60).toString().padStart(2,'0')}:${(value%60).toFixed(1).padStart(4,'0')}`;
 const utc=value=>{
@@ -21,6 +22,8 @@ const glyph={
 };
 const icon=name=>`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">${glyph[name]}</svg>`;
 const sources={demo:'合成示範',replay:'記錄回放',device:'設備資料',core:'橋接資料',mock:'外部模擬',unknown:'外部接口'};
+const performerName=performer=>performer==='巴倫博伊姆'?'Daniel Barenboim':performer==='郎朗'?'Lang Lang':performer;
+const recordingLabel=recording=>`${performerName(recording.performer)} (${recording.year??'年份未註明'})`;
 export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{},onReplay=()=>{}}={}){
   let latest=null,held=null,frozen=false,cursor=null,selectedElement=null,signature='',reference=100,exportContext=null;
   const spaces={neural:'plane',music:'plane'};
@@ -31,7 +34,8 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
   host.innerHTML=`
     <div class="research-toolbar">
       <h2>觀測研究</h2>
-      <div class="visual-modes" role="group" aria-label="觀測資料">${[['music','音樂'],['eeg','神經'],['overlay','對照']].map(([key,label])=>`<button data-visual="${key}" aria-pressed="${key==='music'}">${label}</button>`).join('')}</div>
+      <div class="visual-modes" role="group" aria-label="研究步驟">${[['music','1 音樂參考'],['eeg','2 神經響應'],['experiment','3 版本實驗']].map(([key,label])=>`<button data-visual="${key}" aria-pressed="${key==='music'}">${label}</button>`).join('')}</div>
+      <div class="research-segment" aria-label="資料入口">${[['live','實時'],['replay','回放']].map(([mode,label])=>`<button data-mode="${mode}" aria-pressed="false">${label}</button>`).join('')}</div>
       <span data-role="source" class="research-context">等待資料</span>
       <div class="research-actions"><button class="icon-button" data-action="export" aria-label="保存圖形" disabled>${icon('image')}</button><button class="icon-button" data-action="focus" aria-label="專注顯示" aria-pressed="false">${icon('focus')}</button></div>
     </div>
@@ -61,7 +65,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
           <label class="annotation-choice" hidden>標注聲部<select data-role="annotation" aria-label="選擇來源標注聲部"></select></label>
           <details><summary>案例來源</summary><p data-role="reference-credit"></p><p data-role="reference-policy"></p><a data-role="reference-link" target="_blank" rel="noopener">Vmus 原案例 ↗</a></details>
         </section>
-        <div class="planar-replay" hidden><label class="replay-file-label">匯入記錄<input data-role="file" type="file" accept=".json"></label><button data-action="replay">播放記錄</button></div>
+        <div class="planar-replay" hidden><label class="replay-file-label">匯入記錄<input data-role="file" type="file" accept=".json,.jsonl,.tgam"></label><button data-action="replay">播放記錄</button></div>
         <section class="planar-music" hidden aria-label="來源聲明的音樂觀測"><h3 data-role="music-title"></h3><strong data-role="music-value"></strong><small data-role="music-unit"></small><details><summary>來源</summary><p data-role="music-method"></p><span data-role="music-source"></span><p>來源聲明，未獨立驗證。</p></details></section>
       </section>
       <section class="research-plot" aria-label="觀測坐標"><div class="music-layer-tabs" role="group" aria-label="音樂主視圖" hidden>${[['plane','二維蠕蟲'],['time','三維時間'],['profile','全曲曲線'],['notes','逐音證據']].map(([key,label])=>`<button data-music-view="${key}" aria-pressed="${key==='plane'}">${label}</button>`).join('')}<label class="bar-window" data-role="bar-window-label">範圍<select data-role="bar-window" aria-label="可見小節範圍"><option value="8">8 小節</option><option value="16">16 小節</option><option value="0">全曲</option></select></label></div><p class="profile-caption" data-role="profile-caption" hidden></p><p class="score-scope" hidden>譜面範圍：Op.27 No.2 · 第1–8小節；範圍外不補造逐音資料。</p><div class="score-evidence" hidden></div><div class="scene-host"></div><p class="comparison-key" hidden><span class="music-key">音樂 · 速度 × 相對振幅</span><span data-role="pair-status"></span></p><section class="paired-panel" hidden aria-label="播放期神經對照"><h3>神經 · Attention × Meditation</h3><p data-role="comparison-state"></p><div class="paired-scene"></div></section></section>
@@ -109,7 +113,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
       return p?{...p,linearFitR2:s?.fit?.r2??null,linearityProxyR2:s?.linearityProxyR2??s?.fit?.r2??null,
         linearFitConstant:s?.fit?.constant??null,tempoJump:s?.jump??null,changeProxyLog2:s?.changeProxyLog2??s?.jump??null}:null;
     }}),
-    getImage:()=>scene.exportPNG(['版本實驗 · 當前觀測圖形',recordingData?.title??'',recordingData?.performer??'']),
+    getImage:()=>scene.exportPNG(['版本實驗 · 當前觀測圖形',recordingData?.title??'',recordingData?recordingLabel(recordingData):'']),
   });
   host.dataset.ready='true';host.dataset.presentation='research-time-study';host.dataset.visualMode='music';host.dataset.stage='music';
   $('space').onchange=()=>{
@@ -149,7 +153,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
         link.download=`score-layers-${recordingData.id}-${Date.now()}.png`;link.click();return;
       }
       const t=$('audio').currentTime,p=musicPoint(recordingData,musicModel.raw,musicModel.curve,t,$('smoothing').checked);
-      const lines=[`${recordingData.title} · ${recordingData.performer} / ${recordingData.year??'年份未註明'}`,
+      const lines=[`${recordingData.title} · ${recordingLabel(recordingData)}`,
         `音樂位置 ${clock(t)} · 小節 ${scoreMusicPoint(recordingData,musicModel.raw,[],t,false)?.bar??'—'} · 視圖 ${layer}`,
         `原始速度 ${p?.rawTempo?.toFixed(2)??'—'} ${tempoUnit()} · 顯示速度 ${p?.tempo?.toFixed(2)??'—'} · 相對振幅 ${p?.level?.toFixed(1)??'—'}（來源 0–100）`,
         `原始拍點間隔 ${p?.ioi?.toFixed(1)??'—'} ms · 高斯窗 ${$('smoothing').checked?recordingData.annotation.window:0} s（W=2σ，顯示）`,
@@ -192,7 +196,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
   audio.volume=.28;
   const beginRun=()=>{run++;startedAt=observationNow();paired=[];lastPairKey=null;};
   function tempoUnit(){
-    return {'1/2':'二分音符/分','2/2':'二分音符/分','6/8':'八分音符/分','4/4.':'附點四分音符/分'}[recordingData?.annotation.meter]??'來源拍/分';
+    return translate({'1/2':'二分音符/分','2/2':'二分音符/分','6/8':'八分音符/分','4/4.':'附點四分音符/分'}[recordingData?.annotation.meter]??'來源拍/分');
   }
   function getModel(rec){
     const known=rec.annotation.kind==='beats';
@@ -223,12 +227,12 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     for(const rec of selectableRows){
       if(!groups.has(rec.performanceId)){
         const group=document.createElement('optgroup');
-        group.label=`${rec.performer} · ${rec.year??'年份未註明'}${rec.performer==='演奏者未註明'?' · '+rec.performanceId:''}`;
+        group.label=`${recordingLabel(rec)}${rec.performer==='演奏者未註明'?' · '+rec.performanceId:''}`;
         groups.set(rec.performanceId,group);
       }
       const option=document.createElement('option');option.value=rec.id;
       const audit=curation?.recordings.find(r=>r.id===rec.id);
-      option.textContent=`${rec.performer} · ${rec.year??'年份未註明'} · ${audit?.curated?'完整資料已核查':rec.id==='c27_pachmann1925'?'歷史底噪版本':rec.clipLabel??(rec.completeStudy?'主錄音':rec.excerpt)} · ${rec.mediaId}`;
+      option.textContent=recordingLabel(rec);
       groups.get(rec.performanceId).append(option);
     }
     $('case').replaceChildren(...groups.values());$('case').disabled=false;
@@ -246,13 +250,13 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
       const article=document.createElement('article');article.className='version-plot';article.dataset.version=rec.id;
       const header=document.createElement('div');header.className='version-plot-head';
       const button=document.createElement('button');button.className='icon-button';button.innerHTML=icon('play');
-      button.setAttribute('aria-label',`播放 ${rec.performer} ${rec.year}`);
-      const name=document.createElement('strong');name.textContent=`${rec.performer} · ${rec.year}`;
+      button.setAttribute('aria-label',`${translate('播放')} ${recordingLabel(rec)}`);
+      const name=document.createElement('strong');name.textContent=recordingLabel(rec);
       const caption=document.createElement('span'),summary=tempoSummary(getModel(rec).raw);
       caption.textContent=`標注 ${summary.seconds.toFixed(2)} s · 平均速度 ${summary.mean.toFixed(1)} · W ${rec.annotation.window} s`;
       header.append(button,name,caption);
       const canvas=document.createElement('canvas');canvas.className='version-canvas';canvas.tabIndex=0;
-      canvas.setAttribute('aria-label',`${rec.performer} ${rec.year} 演奏曲線；點選或回車播放`);
+      canvas.setAttribute('aria-label',`${recordingLabel(rec)} ${translate('演奏曲線；點選或回車播放')}`);
       article.append(header,canvas);container.append(article);
       const item={rec,canvas,article,button,range,hits:[]};versionPlots.push(item);
       const play=async(t=rec.annotation.t[0])=>{
@@ -297,7 +301,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     }
     $('music-seek').max=String(recordingData.duration??recordingData.annotation.t.at(-1));$('music-seek').disabled=false;
     action('music-play').disabled=false;
-    $('reference-title').textContent=`${recordingData.performer} · ${recordingData.year??'年份未註明'}`;
+    $('reference-title').textContent=recordingLabel(recordingData);
     $('reference-credit').textContent=`${recordingData.title}；${recordingData.excerpt}。${recordingData.credits.map(c=>c.zh||c.name).join(' / ')}。${recordingData.disc}。媒體 ${recordingData.mediaId}；標注者 ${recordingData.annotationUser}，v${recordingData.annotation.version}。${recordingData.provenance==='legacy'?'歷史上傳：曲目／演奏者資料依原站，未獨立核實。':''}`;
     $('reference-policy').textContent=cases.attribution+' '+cases.mediaPolicy;
     if(audit)$('reference-policy').textContent+=` 解码 ${audit.decoded_seconds.toFixed(3)} s；${audit.beat_boundaries} 個拍點；${audit.amplitude_points} 個振幅值；原站 ${Math.round(audit.bitrate/1000)} kbps。播放增益 ${(20*Math.log10(audio.volume)).toFixed(2)} dB，保留原始分析尺度。`;
@@ -395,16 +399,19 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     const duration=Number.isFinite(audio.duration)?audio.duration:recordingData.duration??recordingData.annotation.t.at(-1);
     $('tempo').textContent=Number.isFinite(p?.rawTempo)?`${p.rawTempo.toFixed(1)} ${tempoUnit()}`:'—';
     $('display-tempo').textContent=Number.isFinite(p?.tempo)?`${p.tempo.toFixed(1)} ${tempoUnit()}`:'—';
-    $('level').textContent=Number.isFinite(p?.level)?`${p.level.toFixed(1)} · 來源 0–100`:'—';
+    $('level').textContent=Number.isFinite(p?.level)?`${p.level.toFixed(1)} · ${translate('來源 0–100')}`:'—';
     const structural=[...musicModel.structure].reverse().find(q=>q.t<=t);
-    $('linearity').textContent=structural?.fit?.constant?'恆定段':Number.isFinite(structural?.linearityProxyR2)?`${structural.linearityProxyR2.toFixed(4)} · 代理`:'至少3拍';
+    $('linearity').textContent=structural?.fit?.constant?translate('恆定段'):Number.isFinite(structural?.linearityProxyR2)
+      ?`${structural.linearityProxyR2.toFixed(4)} · ${translate('代理')}`:translate('至少3拍');
     $('discreteness').textContent=Number.isFinite(structural?.changeProxyLog2)?`${structural.changeProxyLog2.toFixed(4)} · 代理`:'—';
     $('ioi').textContent=p?`${p.ioi.toFixed(0)} ms`:'—';
-    $('beat-position').textContent=p?(musicModel.known?`第 ${p.bar} 小節 · 第 ${(p.beatInBar??0)+1} 個來源拍點 · 顯示速度 ${p.tempo.toFixed(1)}`:'來源發音間隔 · 未換算速度／振幅'):'此位置沒有逐時標注';
+    $('beat-position').textContent=p?(musicModel.known
+      ?`${getLanguage()==='en'?`Measure ${p.bar}`:`第 ${p.bar} 小節`} · ${getLanguage()==='en'?`Source beat ${(p.beatInBar??0)+1}`:`第 ${(p.beatInBar??0)+1} ${translate('個來源拍點')}`} · ${translate('顯示速度')} ${p.tempo.toFixed(1)}`
+      :translate('來源發音間隔 · 未換算速度／振幅')):translate('此位置沒有逐時標注');
     if(musicModel.outOfBounds)$('beat-position').textContent+=' · 原站部分標注超出音訊，越界區間不繪製';
     $('music-time').textContent=clock(t);$('music-duration').textContent=clock(duration);
     $('music-seek').value=String(t);
-    action('music-play').innerHTML=icon(audio.paused?'play':'pause');action('music-play').setAttribute('aria-label',audio.paused?'播放音樂':'暫停音樂');
+    action('music-play').innerHTML=icon(audio.paused?'play':'pause');action('music-play').setAttribute('aria-label',translate(audio.paused?'播放音樂':'暫停音樂'));
     action('export').disabled=false;
     $('pair-status').textContent=visualMode==='overlay'?`${paired.length} 個播放期配對樣本 · 獨立刻度`:musicModel.known?'人工拍點 · 原站相對振幅':'公開事件標注 · 缺失值不補算';
     for(const b of host.querySelectorAll('button[data-layer]')){
@@ -417,7 +424,7 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     host.dataset.musicLayer=layer;
     const profile=layer==='profile';$('profile-caption').hidden=!profile;
     if(profile){const s=tempoSummary(musicModel.raw);
-      $('profile-caption').textContent=`${recordingData.performer} · ${recordingData.year}　標注 ${s.seconds.toFixed(2)} s · 平均速度 ${s.mean.toFixed(1)} ${tempoUnit()} · ${smooth?'W '+recordingData.annotation.window+' s':'未平滑'}`;
+      $('profile-caption').textContent=`${recordingLabel(recordingData)}　${translate('標注')} ${s.seconds.toFixed(2)} s · ${translate('平均速度')} ${s.mean.toFixed(1)} ${tempoUnit()} · ${smooth?'W '+recordingData.annotation.window+' s':translate('未平滑')}`;
     }
     host.querySelector('.comparison-key .music-key').textContent=layer==='structure'?'速度 · 線性代理 × 變幅代理 × 小節':layer==='worm'?(space==='time'?'音樂 · 速度 × 相對振幅 × 播放時間':'音樂 · 速度 × 相對振幅 · 小節標記'):profile?'音樂 · 原始拍點／高斯顯示／相對振幅灰帶':layer==='rhythm'?'音樂 · 拍點間隔':layer==='dynamics'?'音樂 · 相對振幅 · 來源 0–100':'音樂 · 速度';
     $('bar-window-label').hidden=!['worm','structure'].includes(layer);
@@ -448,18 +455,18 @@ export function mountResearch(host,{onMode=()=>{},onWindow=()=>{},onImport=()=>{
     const source=point?.source??data?.snapshot?.source;
     const original=selectedSnapshot?.raw?.originalSource;
     const origin=source==='replay'&&original&&sources[original]?` · 原始為${sources[original]}`:'';
-    $('source').textContent=(sources[source]??'等待資料')+origin;
-    $('state').textContent=frozen?'觀察暫停':cursor!==null?'歷史樣本':data?.valid?'有效資料':points.length?'資料中斷 · 保留軌跡':'等待有效配對';
+    $('source').textContent=(translate(sources[source])??translate('等待資料'))+(origin ? ` · ${translate('原始為')}${translate(sources[original])}` : '');
+    $('state').textContent=translate(frozen?'觀察暫停':cursor!==null?'歷史樣本':data?.valid?'有效資料':points.length?'資料中斷 · 保留軌跡':'等待有效資料');
     $('attention').textContent=active?format(point.attention):'—';$('relaxation').textContent=active?format(point.relaxation):'—';
     $('amplitude').textContent=active&&amp?formatAmplitude(amp.rms):'—';$('amplitude-unit').textContent=active&&amp?amp.unit:'';
     $('amplitude-method').textContent=active&&amp?`${amp.samples} 個樣本 · ${amp.continuityVerified?'序號連續':'連續性未回報'}${amp.sampleRate?` · 來源標示 ${amp.sampleRate} Hz`:' · 采樣率未標示'} · ${amp.timing==='source-field-time'?'來源欄位時間':'封包到達時間'}`:'原始波形未提供或已過期';
     host.querySelector('.planar-replay').hidden=data?.mode!=='replay';
-    action('replay').disabled=!data?.replayLoaded;action('replay').textContent=data?.paused?'播放記錄':'暫停回放';
+    action('replay').disabled=!data?.replayLoaded;action('replay').textContent=translate(data?.paused?'播放記錄':'暫停回放');
     const duration=points.length?(points.at(-1).timestamp-points[0].timestamp)/1000:0;
     $('cursor').max=String(Math.max(.01,duration));$('cursor').value=String(point?(point.timestamp-points[0].timestamp)/1000:0);
     $('cursor').disabled=!points.length;$('cursor-time').textContent=clock(point?(point.timestamp-points[0].timestamp)/1000:0);$('duration').textContent=clock(duration);
     action('follow').disabled=action('latest').disabled=action('export').disabled=!points.length;
-    action('follow').innerHTML=icon(frozen?'play':'pause');action('follow').setAttribute('aria-label',frozen?'繼續觀察':'暫停觀察');
+    action('follow').innerHTML=icon(frozen?'play':'pause');action('follow').setAttribute('aria-label',translate(frozen?'繼續觀察':'暫停觀察'));
     const music=active?mapMusic(selectedSnapshot):null,available=ELEMENTS.filter(([key])=>music?.evidence[key].status==='reported');
     if(!available.some(([key])=>key===selectedElement))selectedElement=available[0]?.[0]??null;
     const tabs=host.querySelector('.element-tabs');tabs.hidden=!available.length;

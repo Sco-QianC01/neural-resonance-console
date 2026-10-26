@@ -9,7 +9,9 @@ from types import SimpleNamespace
 
 class LifecycleTests(unittest.TestCase):
     def exercise(self, key, first, second):
-        acquisition = Acquisition(validate_config({}))
+        # Acquisition now waits for an explicit start, so a test that exercises
+        # streaming must opt in the same way the operator does.
+        acquisition = Acquisition(validate_config({"acquisition": {"running": True}}))
         profile = acquisition.config[key]
         state = {"port": first, "now": 0, "reads": 0}
         devices = []
@@ -59,6 +61,10 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual([device.port for device in devices], [first, second])
         self.assertEqual(state["reads"], 1)
         self.assertTrue(all(device.closed for device in devices))
+        if key == "eeg":
+            # Stop is the end of the count, not a pause on it: after the worker
+            # closes the port the panel has to read 0, not the session's total.
+            self.assertEqual(acquisition.stream.snapshot()["quality"]["eegPackets"], 0)
 
     def test_windows_reassigned_com_port_closes_old_handle(self):
         self.exercise("eeg", "COM3", "COM25")

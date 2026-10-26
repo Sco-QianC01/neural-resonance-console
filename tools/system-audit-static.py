@@ -81,6 +81,10 @@ def main():
                            capture_output=True, text=True)
     if shell.returncode:
         issues.append({"file": "Start-macOS.command", "error": shell.stderr})
+    shell = subprocess.run(["sh", "-n", str(ROOT / "tools/start-macos.sh")],
+                           capture_output=True, text=True)
+    if shell.returncode:
+        issues.append({"file": "tools/start-macos.sh", "error": shell.stderr})
     result = {"checks": dict(checked), "issues": issues, "pass": not issues}
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "static-audit.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")

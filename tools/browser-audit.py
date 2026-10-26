@@ -63,15 +63,20 @@ async def verify(args):
                 page.on("websocket",lambda socket:socket.on("framereceived",packet_received))
                 await page.goto(str(server.make_url("/")))
                 await page.wait_for_function("document.querySelector('#read-attention').textContent === '60' || Number(document.querySelector('#read-attention').textContent)>60")
-                await page.click("#record")
+                # Sidebar source and capture controls are hidden as part of the
+                # device-status readout; a scripted click still reaches them, and
+                # waiting on the sample count beats sleeping for a fixed time.
+                await page.evaluate("()=>document.getElementById('record').click()")
                 await page.wait_for_function(
                     "parseInt(document.querySelector('#count').textContent,10)>=2",timeout=6000)
                 for view in ("worm","settings","waveforms"):
                     await page.click(f'[data-view="{view}"]')
                     await page.wait_for_function(f"!document.querySelector('#view-{view}').hidden")
-                await page.click("#record")
+                # Sidebar source and capture controls are hidden as part of the
+                # device-status readout; scripted clicks still reach them.
+                await page.evaluate("()=>document.getElementById('record').click()")
                 async with page.expect_download() as download:
-                    await page.click("#export")
+                    await page.evaluate("()=>document.getElementById('export').click()")
                 exported=await download.value
                 saved=root/"recording.json";await exported.save_as(saved)
                 recording=json.loads(saved.read_text(encoding="utf-8"))
@@ -83,7 +88,7 @@ async def verify(args):
                 assert all(packet["source"]=="device" for packet in recording["snapshots"]), results["recording"]
                 results["checks"].append("shared views and sensor recording")
                 async with page.expect_download() as download:
-                    await page.click("#csv-export")
+                    await page.evaluate("()=>document.getElementById('planar-csv').click()")
                 exported=await download.value
                 saved_csv=root/"recording.csv";await exported.save_as(saved_csv)
                 assert saved_csv.read_bytes().startswith(b"\xef\xbb\xbf"), "Spreadsheet CSV needs a UTF-8 BOM"
@@ -98,8 +103,13 @@ async def verify(args):
                     body:JSON.stringify({eeg:{serialNumber:'audit-absent-device',enabled:false}})});
                   if(!response.ok)throw new Error('Config test failed');
                 }""")
+                # The recovery button is a plain page reload — the same action as
+                # Cmd+R — so the panel has to be reopened before it can be read.
                 await page.click("#gateway-refresh")
-                await page.wait_for_function("document.querySelector('#gateway-eeg-select').value.includes('audit-absent-device')",timeout=3000)
+                await page.wait_for_load_state("load")
+                await page.wait_for_selector("#gateway-panel", state="attached")
+                await page.click('[data-view="settings"]')
+                await page.wait_for_function("document.querySelector('#gateway-eeg-select').value.includes('audit-absent-device')",timeout=5000)
                 results["checks"].append("absent saved USB identity remains selected")
                 new_session=acquisition.stream.session_id
                 for _ in range(30):
@@ -129,15 +139,15 @@ async def verify(args):
                 await context.set_offline(False)
                 await page.wait_for_function("!document.querySelector('#make-prompt').disabled",timeout=20000)
                 results["checks"].append("network interruption recovery")
-                await page.click("#replay")
+                await page.evaluate("()=>document.getElementById('replay').click()")
                 await page.set_input_files("#replay-file",{"name":"recording.json","mimeType":"application/json",
                     "buffer":json.dumps(recording).encode()})
-                await page.click("#replay-start")
+                await page.evaluate("()=>document.getElementById('replay-play').click()")
                 await page.wait_for_function("document.querySelector('#sensor-spo2').textContent==='98'")
                 assert "記錄方案" in await page.locator("#element-sample").inner_text()
-                await page.click("#replay-stop")
+                await page.evaluate("()=>document.getElementById('replay-stop').click()")
                 results["checks"].append("recording replay keeps sensor data and music plan")
-                await page.click("#demo")
+                await page.evaluate("()=>document.getElementById('demo').click()")
                 for width,height in ((320,740),(390,844),(768,1024),(1920,1080)):
                     await page.set_viewport_size({"width":width,"height":height})
                     for view in ("waveforms","worm","settings"):

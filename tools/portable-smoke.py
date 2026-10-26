@@ -79,6 +79,7 @@ def run(args):
                     shutil.copy2(source, target)
             (moved / "tools").mkdir()
             shutil.copy2(ROOT / "tools/runtime-check.py", moved / "tools/runtime-check.py")
+            shutil.copy2(ROOT / "tools/start-macos.sh", moved / "tools/start-macos.sh")
             for name in ("Start-Windows.ps1", "Start-macOS.command"):
                 shutil.copy2(ROOT / name, moved / name)
             if os.name == "nt":

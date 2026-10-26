@@ -60,12 +60,25 @@ export class ThinkGearDecoder{
 
 /** Browser ownership lasts until disconnect/page close; view switches do not close it. */
 export class BrowserDeviceInput{
-  constructor({onPacket,onStatus}){Object.assign(this,{onPacket,onStatus});this.generation=0;this.port=null;this.device=null;this.reader=null;this.decoder=new ThinkGearDecoder();this.bytes=0;this.retryTimer=null;this.connectionEpoch=0;this.retry=0;}
+  constructor({onPacket,onStatus,onRawBytes=()=>{},onConnectionState=()=>{}}){Object.assign(this,{onPacket,onStatus,onRawBytes,onConnectionState});this.generation=0;this.port=null;this.device=null;this.reader=null;this.decoder=new ThinkGearDecoder();this.bytes=0;this.retryTimer=null;this.connectionEpoch=0;this.retry=0;this.transport=null;this.connectionState='disconnected';this.lastStatusAt=0;}
+  setConnectionState(state,transport=this.transport){
+    if(this.connectionState===state&&this.reportedTransport===transport)return;
+    this.connectionState=state;this.reportedTransport=transport;
+    this.onConnectionState(state,transport);
+  }
   feed(bytes){
     const now=observationNow();
+    this.onRawBytes(new Uint8Array(bytes),{transport:this.transport==='usb'?'browser_usb':'browser_ble',
+      connectionEpoch:this.connectionEpoch,sampleRate:512,baudRate:this.transport==='usb'?this.baudRate:null,
+      receivedAt:now});
     this.bytes+=bytes.length;const packets=this.decoder.push(bytes,now);
-    this.onStatus(packets.length?`已解析 ${this.decoder.count} 個腦波封包 · ${this.bytes} bytes`:
-      `已收到 ${this.bytes} bytes；等待相容腦波封包`);
+    if(packets.length)this.setConnectionState('streaming');
+    else if(this.connectionState!=='streaming')this.setConnectionState('waiting');
+    if(now-this.lastStatusAt>=500){
+      this.lastStatusAt=now;
+      this.onStatus(packets.length?`已解析 ${this.decoder.count} 個腦波封包 · ${this.bytes} bytes`:
+        `已收到 ${this.bytes} bytes；等待相容腦波封包`);
+    }
     if(packets.length){
       const rawEegSamples=[],rawBreaks=[];
       for(const packet of packets){
@@ -73,24 +86,26 @@ export class BrowserDeviceInput{
         rawEegSamples.push(...packet.rawEegSamples);
       }
       this.onPacket({...packets.at(-1),rawEegSamples,rawBreaks,
-        transport:this.port?'browser_usb':'browser_ble',connectionEpoch:this.connectionEpoch});
+        transport:this.transport==='usb'?'browser_usb':'browser_ble',connectionEpoch:this.connectionEpoch});
     }
   }
   async serial(baudRate){
     if(!navigator.serial)throw new Error('此瀏覽器不支援 Web Serial；可使用桌面橋接器的 WebSocket。');
+    this.transport='usb';this.baudRate=baudRate;this.setConnectionState('requesting',this.transport);
     const requested=this.generation,port=await navigator.serial.requestPort();
     if(requested!==this.generation)return;
-    await this.stop();this.port=port;const generation=this.generation;
+    await this.stop();this.transport='usb';this.baudRate=baudRate;this.setConnectionState('connecting',this.transport);this.port=port;const generation=this.generation;
     let retry=0;
     while(generation===this.generation){
       try{
         await port.open({baudRate});
         if(generation!==this.generation){await port.close();return;}
         this.decoder=new ThinkGearDecoder();this.bytes=0;this.connectionEpoch++;
+        this.setConnectionState('waiting',this.transport);
         this.onStatus('USB 串口已打開；等待資料');const reader=port.readable.getReader();this.reader=reader;
         try{while(generation===this.generation){const {value,done}=await reader.read();if(done)break;if(value){this.feed(value);retry=0;}}}
         finally{try{reader.releaseLock();}catch{}if(this.reader===reader)this.reader=null;try{await port.close();}catch{}}
-      }catch(error){if(generation===this.generation)this.onStatus(`USB 暫不可用：${error.message}；等待已授權設備恢復。`);}
+      }catch(error){if(generation===this.generation){this.setConnectionState('reconnecting',this.transport);this.onStatus(`USB 暫不可用：${error.message}；等待已授權設備恢復。`);}}
       if(generation!==this.generation)return;
       await new Promise(resolve=>{this.retryResolve=resolve;this.retryTimer=setTimeout(resolve,Math.min(8000,1000*2**retry++));});
       this.retryResolve=null;this.retryTimer=null;
@@ -99,16 +114,18 @@ export class BrowserDeviceInput{
   async bluetooth({service,characteristic,namePrefix}){
     if(!navigator.bluetooth)throw new Error('此瀏覽器不支援 Web Bluetooth；可使用桌面橋接器。');
     if(!service||!characteristic)throw new Error('請填入設備文件中的服務 UUID 和通知特徵 UUID。');
+    this.transport='ble';this.baudRate=null;this.setConnectionState('requesting',this.transport);
     const options={optionalServices:[service],...(namePrefix?{filters:[{namePrefix}]}:{acceptAllDevices:true})};
     const requested=this.generation,device=await navigator.bluetooth.requestDevice(options);
     if(requested!==this.generation)return;
-    await this.stop();this.device=device;this.bleOptions={service,characteristic};const generation=this.generation;
+    await this.stop();this.transport='ble';this.baudRate=null;this.setConnectionState('connecting',this.transport);this.device=device;this.bleOptions={service,characteristic};const generation=this.generation;
     this.disconnected=()=>{
       if(generation!==this.generation||this.device!==device)return;
+      this.setConnectionState('reconnecting',this.transport);
       this.onStatus('藍牙已斷開；正在重連已授權設備。');this.queueBluetooth(generation);
     };
     device.addEventListener('gattserverdisconnected',this.disconnected);
-    try{await this.openBluetooth(generation);}catch(error){this.onStatus(`BLE 暫不可用：${error.message}；正在重連。`);this.queueBluetooth(generation);}
+    try{await this.openBluetooth(generation);}catch(error){this.setConnectionState('reconnecting',this.transport);this.onStatus(`BLE 暫不可用：${error.message}；正在重連。`);this.queueBluetooth(generation);}
   }
   queueBluetooth(generation){
     if(generation!==this.generation||!this.device)return;
@@ -116,7 +133,7 @@ export class BrowserDeviceInput{
     this.retryTimer=setTimeout(async()=>{
       if(generation!==this.generation)return;
       try{await this.openBluetooth(generation);}catch(error){
-        if(generation===this.generation){this.onStatus(`BLE 暫不可用：${error.message}；正在重連。`);this.queueBluetooth(generation);}
+        if(generation===this.generation){this.setConnectionState('reconnecting',this.transport);this.onStatus(`BLE 暫不可用：${error.message}；正在重連。`);this.queueBluetooth(generation);}
       }
     },Math.min(8000,1000*2**this.retry++));
   }
@@ -133,9 +150,11 @@ export class BrowserDeviceInput{
       const value=event.target.value;this.feed(new Uint8Array(value.buffer,value.byteOffset,value.byteLength));
     };
     this.decoder=new ThinkGearDecoder();this.bytes=0;this.connectionEpoch++;
+    this.setConnectionState('waiting',this.transport);
     c.addEventListener('characteristicvaluechanged',this.notification);await c.startNotifications();
     if(!current()){c.removeEventListener('characteristicvaluechanged',this.notification);return;}
     this.retry=0;
+    this.setConnectionState('waiting',this.transport);
     this.onStatus('藍牙 GATT 已連接；等待通知資料');
   }
   async stop(){
@@ -145,5 +164,7 @@ export class BrowserDeviceInput{
     if(this.port){try{await this.port.close();}catch{}this.port=null;}
     if(this.characteristic){this.characteristic.removeEventListener('characteristicvaluechanged',this.notification);try{await this.characteristic.stopNotifications();}catch{}this.characteristic=null;}
     if(this.device){this.device.removeEventListener('gattserverdisconnected',this.disconnected);if(this.device.gatt?.connected)this.device.gatt.disconnect();}this.device=null;
+    this.transport=null;this.setConnectionState('disconnected',null);
+    this.baudRate=null;
   }
 }

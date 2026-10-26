@@ -17,3 +17,8 @@ id_ed25519*
 __pycache__/
 *.pyc
 gateway/build/
+
+# 本機採集資料與工作區檔案，不進版控
+EEG Data/
+TGAM*.pdf
+.workbuddy/

@@ -64,6 +64,37 @@ def ble_candidates(found, profile):
     return rows
 
 
+def ble_nearby(found):
+    """Every advertising device in range, matched or not.
+
+    A saved identity intentionally never falls back to a same-named device, so
+    "no match" is the normal state for a device that moved. Reporting the whole
+    neighbourhood keeps that strictness diagnosable: zero rows means the radio
+    or the permission is the problem, rows mean the identity or the name filter
+    is, and the operator can pick the right row instead of guessing.
+    """
+    rows = []
+    for device, advert in found.values():
+        name = (advert.local_name or device.name or "").strip()
+        if name:
+            rows.append({"name": name, "address": device.address})
+    return sorted(rows, key=lambda row: (row["name"].casefold(), row["address"]))
+
+
+# A page that opens mid-acquisition used to draw a curve that only ever had as
+# many seconds as the tab had been open: the browser starts accumulating on the
+# first socket frame and keeps everything in memory. Buffering one minute of
+# aggregated points here lets a new client fill the window it advertises, with
+# the collector's own clock instead of the page's.
+HISTORY_SECONDS = 60
+HISTORY_LIMIT = 600
+HISTORY_TRIGGERS = ("attention", "meditation", "poor_signal", "poorSignal",
+                    "delta", "theta", "lowAlpha", "highAlpha",
+                    "lowBeta", "highBeta", "lowGamma", "midGamma")
+HISTORY_BANDS = ("delta", "theta", "lowAlpha", "highAlpha",
+                 "lowBeta", "highBeta", "lowGamma", "midGamma")
+
+
 class Stream:
     def __init__(self, sample_rate=512):
         self.lock = threading.RLock()
@@ -76,6 +107,7 @@ class Stream:
         self.packet_sequence = self.pair_sequence = 0
         self.index_pair = None
         self.raw = deque(maxlen=8192)
+        self.history = deque(maxlen=HISTORY_LIMIT)
         self.sequence = 0
         self.protocol_errors = 0
         self.raw_break_pending = False
@@ -111,11 +143,17 @@ class Stream:
         self.field_monotonic.clear()
         self.index_pair = None
         self.raw.clear()
+        self.history.clear()
         self.last_eeg = None
         self.last_usb = None
         self.last_eeg_monotonic = self.last_usb_monotonic = None
         self.protocol_errors = 0
         self.raw_break_pending = False
+        # The counter describes one acquisition, not the life of the collector:
+        # leaving it running after Stop showed the previous session's total on
+        # screen while nothing was being received. The raw sequence is separate
+        # and must stay monotonic — clients use it as a cursor.
+        self.frames = 0
 
     def accept(self, source, fields, raw, now=None, connection=None, protocol_errors=None, mono=None):
         mono = time.monotonic() if mono is None and now is None else now if mono is None else mono
@@ -139,8 +177,14 @@ class Stream:
                 self.field_monotonic.clear()
                 self.index_pair = None
                 self.raw.clear()
+                self.history.clear()
                 self.protocol_errors = 0
                 self.raw_break_pending = False
+                # An epoch is one connection's worth of data, so the packet count
+                # starts over with it. Otherwise switching transports (or coming
+                # back after Stop) continued the old total and the number never
+                # matched what this session had actually received.
+                self.frames = 0
             if protocol_errors is not None:
                 if protocol_errors < self.protocol_errors:
                     return False
@@ -165,6 +209,7 @@ class Stream:
                 self.pair_sequence += 1
                 self.index_pair = {"attention": fields["attention"], "meditation": fields["meditation"],
                                    "at": now, "monotonic": mono, "sequence": self.pair_sequence}
+            self._record_history(now, fields)
             for value in raw:
                 self.sequence += 1
                 self.raw.append((self.sequence, value, self.raw_break_pending))
@@ -173,6 +218,54 @@ class Stream:
                 self.field_times["raw"] = now
                 self.field_monotonic["raw"] = mono
             return True
+
+    def _record_history(self, now, fields):
+        """Keep one aggregated point per tick, merged across packet types.
+
+        eSense (0x04/0x05) and band power (0x83) can arrive in separate frames.
+        Storing each frame separately would give the page two interleaved series,
+        each missing the other's values, so a point carries the current merged
+        state and is rewritten while the same tick is still arriving.
+        """
+        if not any(key in fields for key in HISTORY_TRIGGERS):
+            return
+        point = {"ts": now, "packets": self.frames, "bands": {}}
+        for key in ("attention", "meditation"):
+            value = self.fields.get(key)
+            if isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 100:
+                point[key] = value
+        for key in HISTORY_BANDS:
+            value = self.fields.get(key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0:
+                point["bands"][key] = float(value)
+        poor = self.fields.get("poor_signal", self.fields.get("poorSignal"))
+        if isinstance(poor, int) and not isinstance(poor, bool) and 0 <= poor <= 200:
+            point["poorSignal"] = poor
+        if not point["bands"] and "attention" not in point and "meditation" not in point:
+            return
+        if self.history and now - self.history[-1]["ts"] < 0.25:
+            self.history[-1] = point
+        else:
+            self.history.append(point)
+
+    def history_payload(self, now):
+        """The buffered minute plus the identity it belongs to.
+
+        The client must not infer the session from the packet it arrived in: a
+        heartbeat reports transport "none" while these points still belong to
+        the live link, and a page that guessed wrong would clear them again on
+        the next frame.
+        """
+        rows = []
+        for point in self.history:
+            if not 0 <= now - point["ts"] <= HISTORY_SECONDS:
+                continue
+            row = dict(point)
+            row["bands"] = dict(point["bands"])
+            rows.append(row)
+        return {"source": "device", "sessionId": self.session_id,
+                "transport": self.source or "none", "connectionEpoch": self.epoch,
+                "seconds": HISTORY_SECONDS, "points": rows}
 
     def sensor(self, key, value, now=None, source=None, details=None, mono=None):
         if type(value) not in (int, float) or not math.isfinite(value):
@@ -195,7 +288,7 @@ class Stream:
         with self.lock:
             self.devices.setdefault(key, {}).update(updates)
 
-    def snapshot(self, cursor=0, now=None, mono=None):
+    def snapshot(self, cursor=0, now=None, mono=None, backfill=False):
         mono = time.monotonic() if mono is None and now is None else now if mono is None else mono
         now = time.time() if now is None else now
         with self.lock:
@@ -237,6 +330,8 @@ class Stream:
             for key, state in self.sensors.items():
                 packet[key] = (state["value"] if state["at"] is not None
                                and 0 <= mono - state["monotonic"] <= 15 else None)
+            if backfill:
+                packet["history"] = self.history_payload(now)
             return packet
 
     def runtime(self):

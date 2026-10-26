@@ -76,6 +76,51 @@ test('a rejected checksum leaves an explicit break inside a browser read batch',
   assert.equal(packets[0].rawSequence,2);
   assert.equal(packets[0].quality.protocolErrors,1);
 });
+test('browser device input reports a streaming state only when an EEG packet is decoded',()=>{
+  const states=[],packets=[];
+  const input=new BrowserDeviceInput({
+    onPacket:packet=>packets.push(packet),onStatus(){},
+    onConnectionState:(state,transport)=>states.push([state,transport]),
+  });
+  input.transport='usb';
+  input.feed(frame([2,0,2,0,4,60,5,70,128,2,0,42]));
+  assert.deepEqual(states.at(-1),['streaming','usb']);
+  assert.equal(packets.length,1);
+  assert.equal(packets[0].transport,'browser_usb');
+  assert.equal(packets[0].rawEegSamples[0],42);
+});
+test('frequent serial chunks do not spam status or connection-state UI callbacks',()=>{
+  const states=[],statuses=[],packets=[];
+  const input=new BrowserDeviceInput({
+    onPacket:packet=>packets.push(packet),onStatus:text=>statuses.push(text),
+    onConnectionState:(state,transport)=>states.push([state,transport]),
+  });
+  input.transport='usb';
+  for(let i=0;i<32;i++)input.feed(frame([128,2,(i>>8)&255,i&255]));
+  assert.equal(packets.length,32);
+  assert.equal(states.filter(([state])=>state==='streaming').length,1);
+  assert.ok(statuses.length<=2,'status text is rate-limited independently from packet delivery');
+});
+test('TGAM aggregate payload decodes signal quality, eight power bands and indices',()=>{
+  const payload=[
+    0x02,0xc8,0x83,0x18,
+    0x18,0xd4,0x8b,0x13,0xd1,0x69,0x02,0x58,0xc1,0x17,0x3b,0xdc,
+    0x02,0x50,0x00,0x03,0xcb,0x9d,0x03,0x6d,0x3b,0x03,0x7e,0x89,
+    0x04,0x00,0x05,0x00,
+  ];
+  const [packet]=new ThinkGearDecoder().push(frame(payload),now);
+  assert.equal(packet.eeg.poor_signal,200);
+  assert.equal(packet.eeg.delta,0x18d48b);
+  assert.equal(packet.eeg.theta,0x13d169);
+  assert.equal(packet.eeg.lowAlpha,0x0258c1);
+  assert.equal(packet.eeg.highAlpha,0x173bdc);
+  assert.equal(packet.eeg.lowBeta,0x025000);
+  assert.equal(packet.eeg.highBeta,0x03cb9d);
+  assert.equal(packet.eeg.lowGamma,0x036d3b);
+  assert.equal(packet.eeg.midGamma,0x037e89);
+  assert.equal(packet.eeg.attention,0);
+  assert.equal(packet.eeg.meditation,0);
+});
 test('known RAW and power row lengths reject the complete payload atomically',()=>{
   const decoder=new ThinkGearDecoder();
   decoder.push(frame([2,0,4,40,5,60]),now);

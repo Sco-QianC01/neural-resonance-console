@@ -1,14 +1,14 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="source-sha256" content="269b73b4e05214b38b587932b7a9411c97ed106d61613f08776eda8d503572f8">
+<meta name="source-sha256" content="7900848d410dc4211bdcc650a85103fb1c47d4094d2e2eef732aa3c4339731ee">
 <title>圖形、數據與來源核對 · 神經共振</title>
 <link rel="stylesheet" href="../neural-worm/style.css">
 <link rel="stylesheet" href="./method-documents.css"></head>
 <body class="method-document"><header class="document-header">
 <a href="../#worm">← 神經共振</a><a href="./EVIDENCE.md" download>下載原文 Markdown</a>
 </header><main><article><h1>圖形、數據與來源核對</h1>
-<p>更新：2026-10-09，版本0.11.3。</p>
+<p>更新：2026-10-19，版本0.11.4。</p>
 <h2>修正範圍</h2>
 <p>撤下十種預置造型及EEG至BPM、音高、張力、明亮度、複雜度等公式。沒有校準依據時，標為「實驗」仍不能把它們展示為分析結果。</p>
 <p>十項名稱是本專案的音樂標注分組，不宣稱是研究界唯一的十大分類。它們是資料入口，只有帶來源的同時刻觀測才顯示值。</p>
@@ -75,9 +75,9 @@
 </tbody>
 </table>
 <h2>可復算的統計</h2>
-<h3>黑盒與白盒觀察層</h3>
-<p>波形頁的黑盒層集中顯示設備原生指數與時間趨勢，白盒層提供原始有符號樣本、單位、采樣率、缺失斷點、頻段值及導出證據。兩層共用同一采集資料，來源、樣本新鮮度與接觸狀態在兩層都保留；切換只改變顯示，不重新連接或清空記錄。</p>
-<p>這裡的白盒指本系統可檢查的采集與顯示處理，不表示取得了設備內部的專有指數算法。原生關注／放鬆指數仍按設備輸出處理，不能據此宣稱已解釋神經機制。</p>
+<h3>頻段、代理指標與設備指數</h3>
+<p>波形頁並存三層數值，產生者不同：八條頻段與專注／放鬆（Meditation）指數由設備算法產生，參與度β/(α+θ)與相對Alpha α/(δ+θ+α+β)由本系統按公開公式計算，屬<strong>代理指標</strong>。八條頻段各佔一條曲線；代理指標與設備指數則以左右雙縱軸並置於同一時間軸（左軸代理值、右軸 eSense 0–100），供判讀走向是否一致，兩軸不共軸、不換算、不互相替代；來源、樣本新鮮度與接觸狀態持續保留。</p>
+<p>代理指標可復算，但不表示取得了設備內部的專有算法。原生專注／放鬆指數仍按設備輸出處理，不能據此宣稱已解釋神經機制；單通道前額採集也不能計算左右半球不對稱（FAA）。公式、係數與邊界見波形頁內「方法與邊界」模組，完整推導見<a href="BAND-INDICES.html">腦波頻段與指數</a>。</p>
 <h3>軌跡統計</h3>
 <p>只連接同一來源、session、transport、epoch的有效相鄰點。超過3秒、接觸不良或來源切換時斷開。3秒是工程超時，不是生理閾值。</p>
 <p>設一個有效直線段端點為<code>(x0,y0)</code>、<code>(x1,y1)</code>，時長<code>Δt</code>：</p>

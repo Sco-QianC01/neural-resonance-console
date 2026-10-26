@@ -73,8 +73,9 @@ async def browser_check(base, out, native_sha256=None, live=False):
             await page.goto(base + "/#settings")
             await page.wait_for_selector("#gateway-panel")
             await page.wait_for_function("document.querySelector('#runtime-summary').textContent.includes('獨立采集器')")
-            assert await page.locator("#gateway-open").get_attribute("href") == base + "/"
-            assert not await page.locator("#gateway-save").is_disabled()
+            # Device identity is always visible; no expansion needed.
+            assert await page.locator("#gateway-state").inner_text()
+            assert not await page.locator("#gateway-refresh").is_disabled()
             assert await page.locator("#gateway-inventory").inner_text()
             overflow = await page.evaluate("document.documentElement.scrollWidth>innerWidth")
             assert not overflow, width
@@ -83,17 +84,16 @@ async def browser_check(base, out, native_sha256=None, live=False):
                 picture = out / f"settings-{width}.png"
                 await page.screenshot(path=str(picture), full_page=True)
             await page.evaluate("location.hash='waveforms'")
-            await page.wait_for_selector("#raw-wave")
-            assert await page.locator("#analysis-whitebox").get_attribute("aria-pressed") == "true"
-            for layer in ("blackbox", "whitebox"):
-                await page.locator("#analysis-" + layer).click()
-                assert await page.locator("#view-waveforms").get_attribute("data-analysis-layer") == layer
-                assert await page.locator("#raw-wave").is_visible() == (layer == "whitebox")
-                assert await page.locator(".stream-strip").is_visible()
-                assert await page.locator("#indices-wave").is_visible()
-                assert not await page.evaluate("document.documentElement.scrollWidth>innerWidth"), (width, layer)
-                if width in (390, 1920):
-                    await page.screenshot(path=str(out / f"waveforms-{layer}-{width}.png"), full_page=True)
+            await page.wait_for_selector("#derived-wave")
+            await page.wait_for_function(
+                "()=>[...document.querySelectorAll('.wave-chart')].filter(e=>!e.hidden).length===8")
+            assert await page.locator(".stream-strip").is_visible()
+            assert await page.locator("#indices-wave").is_visible()
+            assert await page.locator("#derived-wave").is_visible()
+            assert await page.locator(".wave-chart:visible").count() == 8
+            assert not await page.evaluate("document.documentElement.scrollWidth>innerWidth"), width
+            if width in (390, 1920):
+                await page.screenshot(path=str(out / f"waveforms-{width}.png"), full_page=True)
             await page.close()
         page = await browser.new_page(viewport={"width": 1920, "height": 1080})
         await page.context.grant_permissions(["local-network-access"], origin=base)
@@ -135,7 +135,7 @@ async def browser_check(base, out, native_sha256=None, live=False):
         assert media_count == 40
         matches = {}
         for name in ("index.html", "neural-worm/app.mjs", "neural-worm/style.css", "src/gateway-settings.mjs",
-                     "src/raw-waveform.mjs", "src/music-structure.mjs", "src/listening-experiment.mjs",
+                     "src/derived-indices.mjs", "src/music-structure.mjs", "src/listening-experiment.mjs",
                      "src/temporal-scene.mjs", "neural-worm/planar-workbench.mjs", "neural-worm/planar.css",
                      "src/score-evidence.mjs", "neural-worm/score-workbench.mjs",
                      "public/research/chopin-score/op27-2-bars1-8.json", "docs/SCORE-EVIDENCE.html",

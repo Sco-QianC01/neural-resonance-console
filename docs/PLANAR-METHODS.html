@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="source-sha256" content="5bddefe24e5a4b038781fe7b9cb53b351eeab4c1799944ea93954e780897acde">
+<meta name="source-sha256" content="d03dd2659a6103888291dbe5d8d55f1cfff7e6969a610378413e95d89e3ce304">
 <title>二維神經蠕蟲：資料定義、公式與證據邊界 · 神經共振</title>
 <link rel="stylesheet" href="../neural-worm/style.css">
 <link rel="stylesheet" href="./method-documents.css"></head>
@@ -33,8 +33,8 @@ AC RMS = sqrt[(1/N) Σ (uᵢ − μ)²]
 <p>振幅使用獨立時間：來源已有<code>fieldTimestamps.raw</code>或<code>fieldTimestamps.rawEegSamples</code>時按秒轉換並檢查新鮮度；未提供時使用封包到達時間，不能稱為硬體采樣時刻。原始字段過期、倒退或超出現有接口未來容差時停用該窗口。只更新其他欄位的封包不推進振幅時間。回放保留原始振幅時間，與重播時鐘分開。</p>
 <p>讀數使用小數或緊湊科學記號，避免小的非零振幅四捨五入顯示為0.0；例如0.005顯示為<code>5.00e-3</code>。這只改變文字格式，原始樣本、RMS數值、單位及光點映射不變。</p>
 <p>原生ThinkGear來源只有新鮮、整數且等於0的<code>poor_signal</code>才通過接觸品質門檻；缺失、過期或格式無效顯示未確認，不當作接觸良好。指數亦須為來源規定範圍內的整數。即使供應商的poor_signal為0，也未證明消除了眨眼、肌電、心電、動作等偽跡。[1] 本頁没有ICA、獨立偽跡判別或臨床級信號验证，RMS应理解為<strong>接收原始資料的幅度統計</strong>。</p>
-<p>原始波形橫軸按已接收樣本與來源聲明的采樣率折算名義秒數，兩相鄰樣本間距為1/fs；不是實測ADC時鐘。協議錯誤處的未知丟失時長不補造。頻段與雙指數圖優先使用各欄位來源時間，重複心跳不增加觀測點；接收封包時間仍保留，不能冒充硬體采樣時刻。</p>
-<p>波形面板保留可見窗口全部原始點及斷段；其RMS與峰峰統計只取窗口中最後一個連續片段，並顯示實際片段樣本數。這與光點使用的最多256點窗口分開，不能把兩個不同樣本窗口的統計當成同一讀數。</p>
+<p>頻段與指數圖優先使用各欄位來源時間，重複心跳不增加觀測點；接收封包時間仍保留，不能冒充硬體采樣時刻。</p>
+<p>頻段與代理指標面板以60秒滾動窗口顯示；代理指標（參與度β/(α+θ)、相對Alpha α/(δ+θ+α+β)）由八條原生頻段按公開公式計算，缺失值斷線不補、分母為零不回傳無限大，詳見<a href="BAND-INDICES.html">腦波頻段與指數</a>。</p>
 <h2>4. 光點的顯示規則</h2>
 <p>令R為RMS，C&gt;0為同來源單位的顯示參照，預設C=100：</p>
 <pre><code>I = R / (R + C)

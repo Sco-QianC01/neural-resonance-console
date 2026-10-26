@@ -11,9 +11,9 @@
 <body>
 <button id="nav-toggle" class="nav-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="開啟左側導航">☰</button>
 <aside id="app-sidebar" class="sidebar">
-  <header class="header"><a href="./" class="wordmark"><span class="mark" aria-hidden="true"><svg viewBox="0 0 40 40" width="36" height="36"><path d="M4 22h6l4-12 7 22 5-16 4 6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="10" r="2.6" fill="currentColor"/><circle cx="21" cy="32" r="2.6" fill="currentColor"/></svg></span><span>神經共振<small>NEURAL RESONANCE</small></span></a><nav class="view-nav" aria-label="研究流程"><button data-view="settings" aria-pressed="true"><span class="nav-number">01</span><span>設備設定</span></button><button data-view="worm" aria-pressed="false"><span class="nav-number">02</span><span>音樂與神經響應</span></button><button data-view="waveforms" aria-pressed="false"><span class="nav-number">03</span><span>波形捕獲</span></button></nav></header>
+  <header class="header"><a href="./" class="wordmark"><span class="mark" aria-hidden="true"><svg viewBox="0 0 40 40" width="36" height="36"><path d="M4 22h6l4-12 7 22 5-16 4 6h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="10" r="2.6" fill="currentColor"/><circle cx="21" cy="32" r="2.6" fill="currentColor"/></svg></span><span>神經共振<small>NEURAL RESONANCE</small></span></a><div class="lang-switch-wrap"><div id="lang-switcher" class="lang-switch" role="group" aria-label="Language / 语言 / 語言"></div></div><nav class="view-nav" aria-label="研究流程"><button data-view="settings" aria-pressed="true"><span class="nav-number">01</span><span>設備設定</span></button><button data-view="waveforms" aria-pressed="false"><span class="nav-number">02</span><span>波形捕獲</span></button><button data-view="worm" aria-pressed="false"><span class="nav-number">03</span><span>音樂與神經響應</span></button></nav></header>
       <aside class="input">
-        <div class="section-line"><span>01 / SIGNAL</span><small id="source">DEMO</small></div>
+        <div class="section-line"><span id="source-label">資料來源</span><small id="source">DEMO</small></div>
         <h2>腦波輸入</h2>
         <div class="tabs"><button id="demo" aria-pressed="true">示範</button><button id="live" aria-pressed="false">實時</button><button id="replay" aria-pressed="false">回放</button></div>
         <div id="demo-input">
@@ -27,7 +27,7 @@
           <input id="endpoint" type="url" autocomplete="off" placeholder="wss://your-gateway/eeg">
           <button id="connect" class="outline">連接</button><button id="disconnect" class="text-button">停止連接</button>
         </div>
-        <div id="replay-input" hidden><label for="replay-file">匯入 EEG JSON<input id="replay-file" type="file" accept=".json"></label><button id="replay-start" class="outline" disabled>播放記錄</button><button id="replay-stop" class="text-button">暫停</button><p id="replay-info"></p></div>
+        <div id="replay-input" hidden><p id="replay-hint">回放控制在 01 的「導入歷史數據」：選擇記錄後可播放、暫停或拖動進度。</p><button id="replay-jump" class="outline">前往導入記錄</button></div>
 <div class="readouts"><div><span>專注度</span><div class="native-gauge" id="gauge-attention"><strong id="read-attention">—</strong><small>/ 100</small></div></div><div><span>放鬆度</span><div class="native-gauge" id="gauge-relaxation"><strong id="read-relaxation">—</strong><small>/ 100</small></div></div></div>
         <div class="signal-meta"><span>有效封包</span><b id="packets">—</b><span>資料狀態</span><b id="freshness">等待</b></div>
         <p id="source-note">示範由本頁生成，並非實際測量。</p>
@@ -41,21 +41,82 @@
 
       <div class="field">
 <section id="view-waveforms" class="view-panel">
-  <div class="wave-head"><div><p class="eyebrow">01 / WAVEFORM CAPTURE</p><h2 id="wave-title">原始腦電與頻段功率</h2></div><div class="wave-head-tools"><span id="wave-units" class="whitebox-detail">來源頻段值</span><div class="analysis-layer-switch" role="group" aria-label="分析層級"><span>分析層級</span><button id="analysis-blackbox" class="text-button" aria-pressed="false" aria-controls="view-waveforms">黑盒 · 觀察結果</button><button id="analysis-whitebox" class="text-button" aria-pressed="true" aria-controls="view-waveforms">白盒 · 采集證據</button></div></div></div>
-  <p id="analysis-layer-note" class="analysis-layer-note">原始樣本、單位、采樣率與缺失斷點；設備內部指數算法仍未公開。</p>
-  <div class="stream-strip" aria-label="即時采集狀態"><div><span>采集來源</span><b id="signal-transport">—</b></div><div><span>最後樣本</span><b id="signal-age">—</b></div><div><span>原始樣本累計</span><b id="signal-raw-count">—</b></div><div><span>接觸狀態</span><b id="signal-contact">—</b></div></div>
-  <section class="indices-section"><div class="section-line"><span>NATIVE INDICES / 設備原生指數</span><small><i class="attention-key"></i> 專注度　<i class="relaxation-key"></i> 放鬆度</small></div><canvas id="indices-wave" aria-label="專注度與放鬆度的零至一百時間曲線"></canvas><p>僅繪製接觸良好且有效的設備指數；下方頻段和原始波形保留采集數值，接觸不良時不做音樂映射。</p></section>
-  <section class="raw-section whitebox-detail"><div class="section-line"><span>RAW EEG / 有符號原始腦電</span><small id="raw-status">等待原始樣本</small></div><div class="wave-actions"><label>窗口 <select id="raw-window"><option value="2">2 秒</option><option value="8">8 秒</option></select></label><label>縱軸 ± <select id="raw-scale"><option value="0">自動保持</option><option value=".001">0.001</option><option value=".01">0.01</option><option value=".1">0.1</option><option value="1">1</option><option value="100">100</option><option value="500">500</option><option value="2000">2000</option><option value="32768">32768</option></select></label><span id="raw-detail"></span></div><canvas id="raw-wave" aria-label="原始腦電：零線、正負振幅與缺失斷點"></canvas><p>零線上下保留正負方向；秒軸由來源采樣率與樣本序號推算。顯示倍率不代表設備電壓增益。</p></section>
-  <div class="wave-actions whitebox-detail"><label>頻段顯示 <select id="band-display"><option value="power">原始相對功率</option><option value="baseline">基線偏移</option></select></label><span>基線＝當前60秒窗口最早10個有效值的均值；負值表示低於基線。</span></div><div id="wave-grid" class="wave-grid whitebox-detail"></div>
-  <div class="wave-actions whitebox-detail"><button id="wave-snapshot" class="outline">保存波形 PNG</button><button id="mask-snapshot" class="outline">保存透明遮罩</button><button id="csv-export" class="text-button" disabled>匯出 CSV ↗</button><span>最近 60 秒 · 收到多少，顯示多少</span></div>
-  <p class="view-note whitebox-detail">完整 Spout 即時輸出由獨立桌面波形工具提供。瀏覽器可保存透明 PNG；不宣稱瀏覽器直接輸出 Spout。</p>
+  <div class="wave-head"><div><p class="eyebrow">02 / BRAINWAVE BANDS</p><h2 id="wave-title">腦波頻段與指數</h2></div><div class="wave-head-tools"><span id="wave-units">來源頻段值</span></div></div>
+  <p class="band-intro">八條頻段按設備回報值逐條說明並可視化；其後用公開公式組成兩個代理指標，再與設備原生的專注／放鬆指數對照。頻段值由設備計算，代理指標由本頁計算，兩者不可互相換算。</p>
+  <p id="wave-empty" class="boundary-note" hidden>尚未接入 EEG 裝置：八條頻段與兩個代理指標等待真實資料，連接請前往 01 設備設定。</p>
+  <div class="stream-strip" aria-label="即時採集狀態"><div><span>採集來源</span><b id="signal-transport">—</b></div><div><span>最後樣本</span><b id="signal-age">—</b></div><div><span>原始樣本累計</span><b id="signal-raw-count">—</b></div><div><span>接觸狀態</span><b id="signal-contact">—</b></div></div>
+  <section class="bands-section">
+    <div class="section-line"><span>EEG BANDS / 八條腦波頻段</span><small>定義 · 前額葉解讀 · 最近 60 秒</small></div>
+    <div class="wave-actions"><label>頻段顯示 <select id="band-display"><option value="power">原始相對功率</option><option value="baseline">基線偏移</option></select></label><span>基線＝當前60秒窗口最早10個有效值的均值；負值表示低於基線。</span></div>
+    <div id="wave-grid" class="wave-grid"></div>
+  </section>
+  <section class="indices-section">
+    <div class="section-line"><span>ATTENTION / 專注：代理與原生</span><small>左軸 E 比值　右軸 原生 0–100</small></div>
+    <canvas id="derived-wave" aria-label="專注代理與設備原生專注度的雙縱軸對照曲線"></canvas>
+    <div class="section-line"><span>MEDITATION / 放鬆：代理與原生</span><small>左軸 A 佔比　右軸 原生 0–100</small></div>
+    <canvas id="indices-wave" aria-label="放鬆代理與設備原生放鬆度的雙縱軸對照曲線"></canvas>
+    <p class="boundary-note">兩圖各為一組對照：實線為本頁按公開公式計算的代理指標（3 秒滑動平均），虛線為設備廠商未公開算法產生的 eSense 指數。左縱軸為代理值（E 為比值、A 為 0–1 佔比），右縱軸為原生指數（0–100）；兩軸各自量度、不作換算，線條是否同向起伏只表示一致程度，不代表數值相等。設備為單通道前額採集，不能計算左右半球不對稱（FAA），亦不構成臨床診斷。</p>
+  </section>
+  <section class="methods-section" id="band-methods" aria-labelledby="band-methods-title">
+    <div class="section-line"><span>METHODS AND BOUNDARIES / 方法與邊界</span><small>公式 · 可識別性 · 邊界條件</small></div>
+    <h3 id="band-methods-title">方法與邊界：腦波頻段與指數</h3>
+    <p class="methods-lead">本頁數值分三層：頻段值由廠商算法產生，代理指標由本頁按公開公式計算，專注與放鬆指數由廠商未公開算法產生。三層產生者不同，不可互相替代或換算。</p>
+    <h4>公式：由頻段到兩個代理指標</h4>
+    <div class="formula-grid">
+      <article class="formula-card">
+        <p class="formula-main">專注代理　E = β / (α + θ)</p>
+        <p class="formula-main">放鬆代理　A = α / (δ + θ + α + β)</p>
+        <p class="formula-terms">α = Low Alpha + High Alpha　β = Low Beta + High Beta　θ = Theta　δ = Delta；γ 不入式：額肌肌電污染。</p>
+        <p class="formula-terms">係數全取 1；E 值域 [0, ∞)，A 值域 [0, 1]（分母不大於零時輸出空值）；兩者均不與設備 eSense 換算。</p>
+        <p class="formula-meta">一般式：E = wβ·β / (wα·α + wθ·θ)，A = wα·α / (wδ·δ + wθ·θ + wα·α + wβ·β)；E 之形式依 Pope 等（1995）[1]；A 為本頁自建之 α 佔比，分母限 δ–β 四項，其解讀依 Klimesch（1999）[2] 之 α 去同步化論述；權重全取 1 為本頁宣告值，非廠商參數。</p>
+      </article>
+    </div>
+    <p class="methods-note">E 之效度建立於作業層面之判別，未與主觀專注評分建立效標關聯 [3]；A 只讀作 α 佔比，不是放鬆分數——α 升高亦可反映對非作業區域之主動抑制 [4]。</p>
+    <div class="methods-grid">
+    <div class="methods-block">
+    <h4>一、問題陳述：eSense 之可識別性</h4>
+    <p class="methods-note">eSense 之 Attention 與 Meditation 由 ThinkGear 晶片內部算法生成，其輸入包含八條頻段功率與時域特徵；映射函數、基線校正與平滑參數均未公開（廠商口徑為多頻段綜合，Attention 偏重 β、Meditation 偏重 α）。就主機端可觀測量而言，可得者僅為頻段功率與 0–100 之輸出值。在輸入維度不完整、映射函數未知之條件下，該映射不具可識別性，故不存在由頻段功率反推其算法之可行路徑；本頁不主張還原廠商算法。</p>
+    <p class="methods-note">不可識別並不等於無從操作化：以文獻既有之操作型定義重建構念，可獲得可復算且可證偽之代理指標；其與設備指數之共變程度屬經驗問題，不由定義決定。</p>
+    </div>
+    <div class="methods-block">
+    <h4>二、方法：同輸入、雙路徑對照</h4>
+    <p class="methods-note">本介面將同一批頻段功率並行輸入兩條路徑——廠商算法（輸出 Attention／Meditation）與本頁公式（輸出代理指標）。兩路徑輸入相同，其輸出之差異僅可歸因於算法本身；該差異構成可觀察之對象，用以檢驗代理指標與設備指數之共變關係。</p>
+    <p class="methods-note">頻段選擇之依據：θ 進入 E 之分母，因前額中線 theta 與工作記憶及認知控制相關 [5]。δ 作為低頻背景納入 A 之總量：delta 為慢波，深睡期主導，清醒時多為低幅背景 [6]；其於清醒時之升高另可能受疲勞、眼動或出汗影響，故 A 之解讀須一併考慮。γ 不納入：其與注意及記憶之關聯雖有文獻支持 [7]，惟消費級單通道之 gamma 幅度低，且與額肌肌電難以分離，納入分母將使指標隨肌電張力漂移。</p>
+    <p class="methods-note">時間尺度：eSense 由晶片內部平滑後輸出，本頁比值為逐秒瞬時值，兩者若以不同時間尺度並置，曲線形狀必不一致，差異不盡歸因於算法。本頁對代理指標施以 3 秒尾隨平均（因果，不使用未來資料），與設備輸出之時間尺度對齊。於三段實測記錄（各 52–91 個有效讀數）中，此處理使專注代理與 Attention 之秩相關由 0.68／0.44／0.45 升至 0.89／0.71／0.67，放鬆代理與 Meditation 由 0.18／0.50／0.39 升至 0.29／0.61／0.59；窗口延長至 5 秒以上或改用居中窗口，相關皆下降，故取 3 秒。平滑僅作用於顯示序列，逐秒原始值隨記錄一併保存。</p>
+    </div>
+    <div class="methods-block">
+    <h4>三、邊界條件</h4>
+    <ul class="methods-list">
+      <li>量綱與可比性：頻段值為廠商歸一化之相對功率，其歸一化與平滑方式未公開，絕對量級僅於同一設備、同一工作階段內具可比性；取比值可消去共模功率，頻帶比值之判別力在文獻中較佳 [8]，故本頁不採絕對功率；E 與 A 為無因次量，僅宜於同一序列內比較趨勢。</li>
+      <li>計算規則：任一輸入缺失或為非有限值時輸出空值並中止連線，不施行插值或以零替代；分母不大於零時輸出空值，不產生無限大或非數值；舊記錄或非 TGAM 來源僅提供聚合 α／β 時，回退採用聚合值，公式與語義不變。</li>
+      <li>判讀規則：兩路徑輸出之同向性可作為交叉參照；若出現系統性背離，應優先歸因於本頁未建模之成分（自適應基線、時域特徵、偽跡處理），而非逕行裁決其一為誤。兩者數值不具換算關係。</li>
+      <li>適用範圍：本介面為單通道前額採集，僅能描述前額中線與整體節律；不能計算左右半球不對稱（FAA）[9]，亦不能分離眼動、肌電與心電偽跡。所有讀數僅供研究觀測，不構成臨床診斷。</li>
+    </ul>
+    </div>
+    </div>
+  </section>
+  <section class="references-section">
+    <details><summary>參考文獻</summary>
+      <ol class="reference-list">
+        <li>Pope, A. T., Bogart, E. H., &amp; Bartolome, D. S. (1995). Biocybernetic system evaluates indices of operator engagement in automated task. <i>Biological Psychology</i>, 40(1–2), 187–195.</li>
+        <li>Klimesch, W. (1999). EEG alpha and theta oscillations reflect cognitive and memory performance: A review and analysis. <i>Brain Research Reviews</i>, 29(2–3), 169–195.</li>
+        <li>Berka, C., Levendowski, D. J., Lumicao, M. N., Yau, A., Davis, G., Zivkovic, V. T., Olmstead, R. E., Tremoulet, P. D., &amp; Craven, P. L. (2007). EEG correlates of task engagement and mental workload in vigilance, learning, and memory tasks. <i>Aviation, Space, and Environmental Medicine</i>, 78(5 Suppl.), B231–B244.</li>
+        <li>Jensen, O., &amp; Mazaheri, A. (2010). Shaping functional architecture by oscillatory alpha activity: Gating by inhibition. <i>Frontiers in Human Neuroscience</i>, 4, 186.</li>
+        <li>Cavanagh, J. F., &amp; Frank, M. J. (2014). Frontal theta as a mechanism for cognitive control. <i>Trends in Cognitive Sciences</i>, 18(8), 414–421.</li>
+        <li>Harmony, T. (2013). The functional significance of delta oscillations in cognitive processing. <i>Frontiers in Integrative Neuroscience</i>, 7, 83.</li>
+        <li>Jensen, O., Kaiser, J., &amp; Lachaux, J.-P. (2007). Human gamma-frequency oscillations associated with attention and memory. <i>Trends in Neurosciences</i>, 30(7), 317–324.</li>
+        <li>Prinzel, L. J., Freeman, F. G., Scerbo, M. W., Mikulka, P. J., &amp; Pope, A. T. (2003). Effects of a psychophysiological system for adaptive automation on performance, workload, and the event-related potential P300 component. <i>Human Factors</i>, 45(4), 601–613.</li>
+        <li>Coan, J. A., &amp; Allen, J. J. B. (2004). Frontal EEG asymmetry as a moderator and mediator of emotion. <i>Biological Psychology</i>, 67(1–2), 7–50.</li>
+      </ol>
+    </details>
+  </section>
 </section>
 <div id="view-worm" class="view-panel" hidden>
         <section id="research-worm" aria-label="音樂與神經響應研究"></section>
-        <details class="worm-legacy"><summary>采集記錄與創作方案</summary>
+        <details class="worm-legacy"><summary>採集記錄與創作方案</summary>
         <div class="wave-actions"><button id="planar-record" class="outline">開始記錄</button><button id="planar-export" class="text-button" disabled>記錄 JSON</button><button id="planar-csv" class="text-button" disabled>記錄 CSV</button><span id="planar-count">0 個樣本</span></div>
         <section class="hero" aria-labelledby="selected-name">
-          <div class="hero-header"><div><p class="eyebrow">02 / OBSERVED SIGNAL</p><h2 id="selected-name">專注 × 冥想／放鬆 <span>NATIVE INDEX TRACE</span></h2></div><div class="hero-value"><button id="worm-exhibit" class="text-button">展示</button><b id="selected-value">—</b><span id="selected-unit">資料狀態</span></div></div>
+          <div class="hero-header"><div><p class="eyebrow">03 / OBSERVED SIGNAL</p><h2 id="selected-name">專注 × 冥想／放鬆 <span>NATIVE INDEX TRACE</span></h2></div><div class="hero-value"><button id="worm-exhibit" class="text-button">展示</button><b id="selected-value">—</b><span id="selected-unit">資料狀態</span></div></div>
           <div class="worm-tools"><label>座標<select id="worm-space"><option value="eeg">原生指數 · 0–100</option><option value="control">坐標換算 · 0–127</option></select></label><label>觀察窗口<select id="worm-window"><option value="60">60 秒</option><option value="30">30 秒</option><option value="10">10 秒</option></select></label><label>顯示平滑<select id="worm-smoothing"><option value="0">原始位置 · 預設</option><option value="0.75">0.75 秒 · 僅顯示</option><option value="2">2 秒 · 僅顯示</option></select></label></div>
           <div class="worm-legend"><span><i class="trace-key"></i>採樣軌跡 · 舊 → 新</span><span>形狀由有效樣本決定</span><span id="worm-center">原生指數 · 中心 50, 50</span></div>
 <canvas id="hero" aria-label="神經蠕蟲XY軌跡，按所選座標呈現採樣節點；點選可查看歷史樣本"></canvas>
@@ -96,22 +157,80 @@
         </details>
       </div>
 <section id="view-settings" class="view-panel" hidden>
-  <div class="wave-head"><div><p class="eyebrow">03 / DEVICE &amp; INTERFACES</p><h2>設備與資料接口</h2></div><button id="check-capabilities" class="outline">重新檢查</button></div>
-  <section class="bridge-guide"><h3>本機自動采集</h3><p id="runtime-summary" role="status">啟動獨立采集器後，自動連接同源資料。預設獨立運行，復用既有核心需明確選擇。</p><a id="gateway-open" class="outline" href="http://127.0.0.1:8767/" target="_blank" rel="noopener">開啟本機采集入口 ↗</a><p>完整應用包自帶運行環境。首次藍牙授權及缺失的廠商USB驅動，按系統提示完成；唯一相容設備插入後自動識別。</p><div class="wave-actions"><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-Windows-x64.zip">公開 Windows x64 版本</a><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-macOS-arm64.zip">公開 Mac M系列版本</a><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-macOS-x64.zip">公開 Mac Intel版本</a></div><p>公開版本以發佈頁為準。本機新包及源碼見交付目錄。Safari通過本機采集器接入，不要求瀏覽器直接支援USB或BLE。</p></section>
-  <section id="gateway-panel" class="setting-section" hidden><div class="section-line"><span>本機設備</span><small id="gateway-platform">—</small></div><h3>已發現的設備</h3><div id="gateway-inventory" class="device-list"></div><div class="gateway-selects"><label>ThinkGear相容腦電USB<select id="gateway-eeg-select"></select></label><label>AFE4490文本血氧USB<select id="gateway-oxygen-select"></select></label><label>腦電藍牙身份<select id="gateway-ble-select"></select></label></div><div id="gateway-watch-fields" hidden><h3>手表心率</h3><label><input id="gateway-watch-enabled" type="checkbox"> 使用手表心率作為脈率來源</label><div class="gateway-selects"><label>已配對手表的無線調試地址<input id="gateway-watch-serial" type="text" autocomplete="off" placeholder="IP:連接埠"></label><label>本機ADB路徑（已在PATH時可留空）<input id="gateway-watch-adb" type="text" autocomplete="off"></label></div><p class="quiet">在手表開啟「神经共振采集」並允許身體傳感器；離開采集頁面即停止。腦電與血氧保持各自的來源。</p></div><button id="gateway-refresh" class="outline">重新掃描</button><button id="gateway-save" class="outline">保存设备身份</button><p id="gateway-message" role="status"></p></section>
-  <section class="sensor-overview" aria-label="其他傳感器狀態"><div><span>血氧 SpO₂</span><b id="sensor-spo2">—</b><small>%</small></div><div><span id="sensor-pr-label">脈率</span><b id="sensor-pr">—</b><small>bpm</small></div><div><span>HRV</span><b id="sensor-hrv">—</b><small>來源原始值</small></div><div><span>皮膚電 GSR</span><b id="sensor-gsr">—</b><small>來源原始值</small></div></section>
-  <div id="capabilities" class="capabilities"></div>
-  <div class="settings-grid">
-    <section class="setting-section"><h3>USB / 串口</h3><p>標準 ThinkGear 封包。專有協議設備可改接原廠驅動的 WebSocket。</p><label for="baud">波特率</label><select id="baud"><option>115200</option><option>57600</option><option>9600</option></select><button id="serial-connect" class="outline">選擇 USB 串口</button></section>
-    <section class="setting-section"><h3>藍牙 / BLE</h3><label>設備名稱前綴<input id="ble-name" placeholder="選填"></label><label>服務 UUID<input id="ble-service" placeholder="由設備文件提供"></label><label>通知特徵 UUID<input id="ble-characteristic" placeholder="由設備文件提供"></label><button id="ble-connect" class="outline">選擇藍牙設備</button><p>接收相容 ThinkGear 通知流；其他協議保持原始 bytes 狀態，不冒充已解析腦波。</p></section>
-    <section class="setting-section"><h3>連線與驅動檢查</h3><p>Web API 可用不等於硬體已連接。系統驅動由作業系統管理，網頁不會自行安裝驅動。</p><label>橋接器健康檢查地址<input id="health-url" type="url" placeholder="https://your-gateway/health"></label><button id="health-check" class="outline">檢查接口</button><button id="device-stop" class="text-button">停止設備連線</button><pre id="device-status" role="status">尚未選擇設備</pre><pre id="health-result">尚未檢查</pre></section>
-    <section class="setting-section"><h3>設定與上傳 / 下載</h3><button id="save-settings" class="outline">保存設定</button><button id="download-settings" class="text-button">下載設定 JSON ↗</button><label>匯入設定<input id="settings-file" type="file" accept=".json"></label><label>上傳接口<input id="upload-url" type="url" placeholder="https://your-gateway/recordings"></label><button id="upload-recording" class="outline" disabled>上傳已記錄資料</button><p id="upload-result">只有點擊上傳才發送；接口需支援 JSON POST 和 CORS。</p></section>
-  </div>
-  <p class="view-note">實時資料源共用左侧接口。切換這三個介面不會停止接收。設定僅保存在此瀏覽器，不含作者電腦路徑。</p>
+  <div class="wave-head"><div><p class="eyebrow">01 / EEG DEVICE</p><h2>EEG 設備</h2></div></div>
+  <section class="device-methods" aria-labelledby="device-methods-title">
+  <div class="section-line"><span>EEG DEVICE CONNECTION</span><small>USB / BLE</small></div>
+  <h3 id="device-methods-title">EEG 設備連接</h3>
+  <div class="collector-status"><span>本機採集器狀態</span><p id="runtime-summary" role="status">本機採集器隨桌面應用啟動；純網頁預覽不會啟動 EEG 硬體。</p><strong id="device-status" role="status">等待 EEG 設備資料</strong></div>
+  <section id="gateway-panel" class="setting-section gateway-panel" hidden>
+    <div class="section-line"><span>採集器設備識別</span><small><span id="gateway-state">自動 · 唯一型號匹配</span></small></div>
+    <div id="gateway-inventory" class="device-list"></div>
+    <div class="gateway-selects"><label>ThinkGear 相容腦電 USB<select id="gateway-eeg-select"></select></label><label>腦電藍牙身份<select id="gateway-ble-select"></select></label></div>
+    <p id="gateway-ble-state" class="gateway-hint" role="status"></p>
+    <div class="gateway-actions"><button id="gateway-run" class="outline">開始采集</button><button id="gateway-eeg-toggle" class="outline">停止 EEG USB</button><button id="gateway-ble-toggle" class="outline">停止 腦電 BLE</button><button id="gateway-refresh" class="outline" title="重新載入本頁，等同 Cmd+R">重新載入</button></div>
+    <p class="gateway-hint">設備會自動識別，但不會自動開始傳送。按「開始采集」才會開啟已識別的連線；再次按「停止采集」即停止。USB 正在傳送資料時，採集器會讓藍牙暫停掃描；要看藍牙請先停掉 USB。面板卡住或畫面與設備不同步時按「重新載入」，即重新載入本頁（等同 Cmd+R），採集不會中斷。設備一經選定即時寫入，不需要另按保存。</p>
+    <p id="gateway-message" role="status"></p>
+    <div class="eeg-profile">
+      <label for="storage-directory">記錄保存目錄<input id="storage-directory" autocomplete="off" maxlength="1024" placeholder="留空＝使用專案目錄下的 EEG Data"></label>
+      <button id="storage-apply" class="outline">套用保存目錄</button>
+      <span id="storage-state" role="status"></span>
+    </div>
+    <p class="gateway-hint">命名規範：僅保留英文字母、數字、點、底線與連字號；其餘連續字符合併為一個連字號，去除首尾的連字號、點與底線，最長 64 個字符，留空則使用 unknown-device。設備名稱取前十個字符，USB 與藍牙一致。「記錄用設備標識」在標識還是空的時候，預設填入該前十位並即時寫入；一旦有了標識就沿用它，換設備（例如藍牙中斷改用 USB）不會自動改名，要改名請改寫後按「應用設備名稱」。記錄文件名為「eeg-標識-開始時間.tgam」，例如 eeg-SOA-FA758-20261018-171500.tgam。</p>
+    <div class="eeg-profile">
+      <label for="eeg-device-id">記錄用設備標識<input id="eeg-device-id" autocomplete="off" maxlength="64" placeholder="例如 SOA-FA758"></label>
+      <button id="eeg-label-apply" class="outline" type="button" disabled>應用設備名稱</button>
+      <span id="eeg-detected" class="eeg-detected" role="status">設備 · 未連接</span>
+      <span id="eeg-profile-status" class="eeg-profile-status" role="status"></span>
+    </div>
+  </section>
+  </section>
+  <section class="device-monitor" aria-labelledby="monitor-title">
+    <div class="section-line"><span>ACQUISITION FACTS / EEG DATA</span><small id="monitor-state" role="status">等待設備連接</small></div>
+    <h3 id="monitor-title">采集事实数据监控</h3>
+    <p class="monitor-description">监控只显示通过协议校验的 EEG 数据；每行按 100 毫秒聚合。自动存档保留设备收到的原始字节，包括未通过校验的数据，不重复保存解析后的 JSON。桌面采集器自动保存至项目目录下的 EEG Data 文件夹，实际路径显示于下方状态列。</p>
+    <div class="monitor-metrics" aria-live="polite">
+      <div><span>接收封包</span><strong id="monitor-packets">0</strong></div>
+      <div><span>專注 / 放鬆 · 平滑顯示</span><strong id="monitor-indices">— / —</strong></div>
+      <div><span>接觸品質</span><strong id="monitor-quality">—</strong></div>
+    </div>
+    <div class="monitor-record">
+      <span id="monitor-record-count" role="status">等待 EEG 数据后自动创建会话记录</span>
+    </div>
+    <p class="monitor-schema">TGAM 約每秒輸出 512 個原始 EEG 樣本，並在較慢的彙總封包中提供指數、接觸品質與頻段功率。單個 .tgam 文件包含會話資訊與完整原始字節流。</p>
+    <p class="monitor-schema">畫面聚合與平滑只影響監看；原始存檔保留收到的位元組，資料映射在導入時依協議規則執行。</p>
+    <p class="monitor-schema">TGAM 原始流不含逐封包時間戳；導入回放時間按約 513 個封包／秒估算，不代表設備精確時間。</p>
+    <ol id="stream-feed" class="stream-feed" aria-label="顯示最近收到的 EEG 資料" aria-live="off"></ol>
+  </section>
+  <section class="history-import history-player" aria-labelledby="history-import-title">
+    <div class="history-player-head"><div><h3 id="history-import-title">导入历史数据</h3><p>选择此前保存的 JSON、JSONL 或自描述 TGAM 原始记录文件。</p></div><label for="replay-file" class="outline">选择历史记录<input id="replay-file" type="file" accept=".json,.jsonl,.tgam,application/json" multiple></label></div>
+    <div class="replay-deck">
+      <div class="replay-transport">
+        <button id="replay-play" class="outline" disabled>播放</button>
+        <button id="replay-stop" class="text-button" disabled>停止</button>
+        <input id="replay-seek" type="range" min="0" max="0" value="0" step="1" disabled aria-label="回放進度">
+        <output id="replay-clock" for="replay-seek">00:00 / 00:00</output>
+      </div>
+      <span id="history-info" role="status">尚未导入历史数据</span>
+    </div>
+  </section>
+  <section class="history-import" aria-labelledby="tgam-convert-title">
+    <div><h3 id="tgam-convert-title">转换 TGAM 原始文件</h3><p>选择一个 .tgam 文件，然后下载可阅读的 JSON 或表格 CSV；原始文件不会改动。</p></div>
+    <label for="convert-tgam-file" class="outline">选择 TGAM 文件<input id="convert-tgam-file" type="file" accept=".tgam" multiple></label>
+    <button id="convert-tgam-json" class="outline" disabled>下载 JSON</button>
+    <button id="convert-tgam-csv" class="outline" disabled>下载 CSV</button>
+    <span id="convert-tgam-status" role="status">尚未选择 TGAM 文件</span>
+  </section>
+  <details class="device-help">
+    <summary>採集器下載與安裝說明</summary>
+    <p>純網頁無法自行啟動本機採集服務。請先下載並啟動桌面應用；完整應用包自帶運行環境，首次藍牙授權及缺失的廠商 USB 驅動依系統提示完成。</p>
+    <div class="wave-actions"><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-Windows-x64.zip">Windows x64 版本</a><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-macOS-arm64.zip">Mac M 系列版本</a><a class="outline" href="https://github.com/Sco-QianC01/neural-resonance-console/releases/latest/download/NeuralResonance-macOS-x64.zip">Mac Intel 版本</a></div>
+    <p>Safari 可經桌面應用內的本機採集服務接入，不要求瀏覽器直接支援 USB 或 BLE。自動識別僅適用於採集器支援的相容型號。</p>
+  </details>
+  <p class="view-note">本地采集器负责自动保存原始采集事实；历史文件导入不覆盖当前 EEG Data 档案。</p>
 </section>
 </div>
     </div>
-    <footer><span>NEURAL RESONANCE / v0.11.6</span><p>軌跡保留來源與時間。斷流時停止更新，保留最後觀察。</p><a href="./docs/EVIDENCE.html" target="_blank" rel="noopener">方法與來源</a></footer>
+    <footer><span>NEURAL RESONANCE / v0.11.7</span><p>軌跡保留來源與時間。斷流時停止更新，保留最後觀察。</p></footer>
   </main>
   <div id="notice" role="status" hidden></div>
   <script type="module" src="./neural-worm/app.mjs"></script>

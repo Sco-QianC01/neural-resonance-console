@@ -87,6 +87,60 @@ export function normalizeSnapshot(input, now = observationNow()) {
   };
 }
 
+export const HISTORY_WINDOW_MS = 60000;
+const HISTORY_BANDS = ['delta','theta','lowAlpha','highAlpha','lowBeta','highBeta','lowGamma','midGamma'];
+
+/**
+ * Rebuild display snapshots from the collector's buffered minute.
+ *
+ * A page that opens mid-acquisition used to draw only the seconds since its own
+ * socket opened, because the browser keeps history in memory. These points are
+ * already past, so they carry their own timestamps and skip the freshness gate
+ * that would otherwise reject every one of them as stale. Nothing is
+ * interpolated: a gap in the buffer stays a gap.
+ */
+export function backfilledSnapshots(payload, now = Date.now()) {
+  const points = Array.isArray(payload?.points) ? payload.points : [];
+  const source = ['device','core','mock','demo','replay'].includes(payload?.source)
+    ? payload.source : 'device';
+  const transport = typeof payload?.transport === 'string' && payload.transport !== 'none'
+    ? payload.transport : null;
+  const sessionId = typeof payload?.sessionId === 'string' ? payload.sessionId : null;
+  const connectionEpoch = Number.isInteger(payload?.connectionEpoch) ? payload.connectionEpoch : null;
+  const rows = [];
+  for (const point of points) {
+    if (!finite(point?.ts) || point.ts <= 0) continue;
+    const timestamp = point.ts * 1000;
+    if (timestamp < now - HISTORY_WINDOW_MS || timestamp > now + 1000) continue;
+    const read = value => Number.isInteger(value) && value >= 0 && value <= 100 ? value : null;
+    const attention = read(point.attention), relaxation = read(point.meditation);
+    const spectralBands = Object.fromEntries(HISTORY_BANDS.map(key => [key, positive(point.bands?.[key])]));
+    const sum = (low, high) => spectralBands[low] !== null && spectralBands[high] !== null
+      ? spectralBands[low] + spectralBands[high] : null;
+    const bands = { delta: spectralBands.delta, theta: spectralBands.theta,
+      alpha: sum('lowAlpha','highAlpha'), beta: sum('lowBeta','highBeta') };
+    const fieldTimestamps = { attention: point.ts, meditation: point.ts };
+    for (const key of HISTORY_BANDS) fieldTimestamps[key] = point.ts;
+    fieldTimestamps.alpha = point.ts; fieldTimestamps.beta = point.ts;
+    // Same rule as live frames: ThinkGear reserves zero for "not computed".
+    const available = attention > 0 && relaxation > 0;
+    rows.push({
+      timestamp, originalTimestamp: timestamp, source, sessionId, transport, connectionEpoch,
+      attention, relaxation, bands, spectralBands,
+      packets: Number.isSafeInteger(point.packets) ? point.packets : 0,
+      ratios: { focus: null, relaxation: null }, bandUnits: 'ThinkGear relative power',
+      metricOrigin: 'thinkgear-esense', indexTimestamp: timestamp,
+      indexSampleKey: JSON.stringify([point.ts, point.ts]), originalIndexTimestamp: timestamp,
+      poorSignal: Number.isInteger(point.poorSignal) ? point.poorSignal : null,
+      signalQuality: available ? 'good' : 'unknown',
+      transportFresh: true, signalValid: available, valid: available, backfilled: true,
+      raw: { ts: point.ts, transport, fieldTimestamps },
+    });
+  }
+  rows.sort((a, b) => a.timestamp - b.timestamp);
+  return { identity: JSON.stringify([source, sessionId, transport, connectionEpoch]), points: rows };
+}
+
 /** The heartbeat is not proof of incoming hardware samples. */
 export class StreamState {
   constructor() { this.reset(); }
@@ -184,19 +238,20 @@ export class LiveConnection {
 }
 
 export function demoSnapshot(attention, relaxation, tick, timestamp = observationNow()) {
+  const alpha = 25 + relaxation * 0.22, beta = 14 + attention * 0.26;
   return { schemaVersion: SCHEMA, source: 'demo', ts: timestamp / 1000,
     quality: { eegPackets: tick + 1 }, attention, meditation: relaxation,
     eeg: { attention, meditation: relaxation, delta: 22 + 7 * Math.sin(tick / 8),
-      theta: 28 + 9 * Math.sin(tick / 11), alpha: 25 + relaxation * 0.22,
-      beta: 14 + attention * 0.26 } };
+      theta: 28 + 9 * Math.sin(tick / 11), alpha, beta,
+      lowAlpha: alpha * 0.55, highAlpha: alpha * 0.45,
+      lowBeta: beta * 0.7, highBeta: beta * 0.3,
+      lowGamma: 4 + 1.5 * Math.sin(tick / 4), midGamma: 2 + 0.8 * Math.cos(tick / 6) } };
 }
 
-export function parseRecording(text) {
-  if (text.length > 20 * 1024 * 1024) throw new Error('記錄大於 20 MB，請先分段。');
-  const parsed = parseUtf8Json(text);
+export function validateRecording(parsed,{maxSamples=200000}={}) {
   if (!parsed || parsed.schemaVersion !== 'neural-resonance-recording-v1' || !Array.isArray(parsed.snapshots)
-    || !parsed.snapshots.length || parsed.snapshots.length > 20000)
-    throw new Error('請匯入本控制台導出的記錄（1–20000 個樣本）。');
+    || !parsed.snapshots.length || parsed.snapshots.length > maxSamples)
+    throw new Error('請匯入有效的 EEG JSON 或 JSONL 記錄（1–200000 個樣本）。');
   let previous = -Infinity;
   for (const entry of parsed.snapshots) {
     normalizeSnapshot(entry, entry.ts * 1000);
@@ -205,4 +260,12 @@ export function parseRecording(text) {
   }
   return parsed;
 }
+export function parseRecording(text,{maxBytes=20*1024*1024}={}) {
+  if (new TextEncoder().encode(text).byteLength > maxBytes)
+    throw new Error('記錄大於 20 MB，請先分段。');
+  let parsed;
+  try{parsed=parseUtf8Json(text);}catch{parsed=parseEEGSessionJsonl(text);}
+  return validateRecording(parsed);
+}
 import {parseUtf8Json} from './json-io.mjs';
+import {parseEEGSessionJsonl} from './eeg-session.mjs';

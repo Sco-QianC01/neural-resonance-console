@@ -55,5 +55,10 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
       ? `Port ${port} is occupied. Run npm start -- --port <another-port>.` : error.message);
     process.exitCode=1;
   });
-  server.listen(port,host,()=>console.log(`Neural Resonance: http://${host}:${port}/`));
+  server.listen(port,host,()=>{
+    console.log(`Neural Resonance preview: http://${host}:${port}/`);
+    // Without the collector there is no device service, so this host can only
+    // render. Say so, or it reads as a second working console.
+    console.log('Preview only — no device service. Start Start-macOS.command and use http://127.0.0.1:8767/ for the real console.');
+  });
 }

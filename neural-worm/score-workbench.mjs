@@ -1,10 +1,11 @@
 import {scoreEvidence,alignScore,scoreAt,scoreExport} from '../src/score-evidence.mjs';
 import {temporalProjection} from '../src/temporal-model.mjs';
 import {wrapText} from '../src/planar-model.mjs';
+import {getLanguage,t} from '../src/i18n.mjs';
 const kinds={repeat:'同音重複',chromatic:'同字母半音變化',step:'二度級進',leap:'三度及以上跳進'};
 const rational=p=>p[1]===1?String(p[0]):p.join('/');
 const fixed=n=>Number(n.toFixed(3)).toString();
-const interval=e=>e.interval?`${e.interval.semitones>0?'+':''}${e.interval.semitones} 半音 · ${kinds[e.interval.kind]}`:'—（起點／休止後）';
+const interval=e=>e.interval?`${e.interval.semitones>0?'+':''}${e.interval.semitones} ${t('半音')} · ${t(kinds[e.interval.kind])}`:t('—（起點／休止後）');
 export function mountScore(host,{seek=()=>{}}={}){
   let score=null,aligned=null,recording=null,time=0,selected=null,key='',modelKey=null,error='',loading=false;
   let camera={yaw:.58,pitch:.38},drag=null,moved=false,hits=[],viewStamp='';
@@ -72,10 +73,11 @@ export function mountScore(host,{seek=()=>{}}={}){
     const available=score&&recording?.workId===score.workId;
     host.dataset.sourceState=error?'error':!score?'loading':!available?'missing-work':!aligned?'unmatched-annotation':
       time<aligned.start||time>=aligned.end?'outside':'ready';
-    state.textContent=error||(!score?'讀取譜面證據…':!available?'此作品尚未提供逐音譜面；可切換 Op.27 No.2 查看已核查譜例。':
-      !aligned?'目前版本缺少匹配的完整拍點，僅呈現譜面；未配對播放時間。':
-      host.dataset.sourceState==='outside'?'目前播放位置超出第1–8小節譜例；逐音讀數留空。':
-      `第 ${scoreAt(aligned,time).bar} 小節 · 拍點插值定位 · 非實測逐音起音${scoreAt(aligned,time).rest?' · 譜面休止':''}`);
+    const position=aligned?scoreAt(aligned,time):null;
+    state.textContent=error?t(error):!score?t('讀取譜面證據…'):!available?t('此作品尚未提供逐音譜面；可切換 Op.27 No.2 查看已核查譜例。'):
+      !aligned?t('目前版本缺少匹配的完整拍點，僅呈現譜面；未配對播放時間。'):
+      host.dataset.sourceState==='outside'?t('目前播放位置超出第1–8小節譜例；逐音讀數留空。'):
+      `${getLanguage()==='en'?`Measure ${position.bar}`:`第 ${position.bar} 小節`} · ${t('拍點插值定位')} · ${t('非實測逐音起音')}${position.rest?` · ${t('譜面休止')}`:''}`;
     canvas.hidden=!available;$('.score-scene').hidden=!available;$('.score-current').hidden=!available;$('.score-legend').hidden=!available;
     for(const s of ['.score-measures','.score-events','.score-method'])$(s).hidden=!available;
     $('[data-score-export]').disabled=!available;

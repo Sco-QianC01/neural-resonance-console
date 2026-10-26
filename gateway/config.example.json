@@ -4,7 +4,7 @@
   "reuseLocalCore": false,
   "eeg": {
     "enabled": true, "vid": 1155, "pid": 22336,
-    "serialNumber": "", "location": "", "baud": 115200,
+    "serialNumber": "", "deviceId": "", "location": "", "baud": 57600,
     "dtr": true, "rts": true, "sampleRate": 512
   },
   "bloodOxygen": {
@@ -18,9 +18,16 @@
   "watch": {
     "enabled": false, "serial": "", "adbPath": ""
   },
+  "storage": {
+    "directory": ""
+  },
+  "acquisition": {
+    "running": false
+  },
   "ble": {
     "enabled": true,
     "address": "",
+    "name": "",
     "namePrefixes": ["HR-S0A", "BrainLink"],
     "serviceUuid": "", "notifyUuid": ""
   }

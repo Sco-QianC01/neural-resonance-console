@@ -51,12 +51,16 @@ class ReconnectionTests(unittest.TestCase):
 
 class GatewayResetTests(unittest.IsolatedAsyncioTestCase):
     async def test_late_ble_notification_from_previous_connection_is_rejected(self):
-        acquisition=Acquisition(validate_config({}))
+        acquisition=Acquisition(validate_config({"acquisition": {"running": True}}))
         callbacks=[];observed=[]
         device=SimpleNamespace(address="AA:01",name="BrainLink")
         advert=SimpleNamespace(local_name="BrainLink")
         characteristic=SimpleNamespace(uuid="notify",properties=["notify"])
-        async def discover(**_kwargs):return {"device":(device,advert)}
+        def scanner(callback):
+            class Listening:
+                async def start(self):callback(device,advert)
+                async def stop(self):return None
+            return Listening()
         def frame(payload):return b"\xaa\xaa"+bytes([len(payload)])+payload+bytes([(~sum(payload))&255])
         class Client:
             def __init__(self,*_args,**_kwargs):
@@ -72,7 +76,9 @@ class GatewayResetTests(unittest.IsolatedAsyncioTestCase):
                     observed.append(acquisition.stream.frames)
                     callback(char,frame(b"\x04\x3e\x05\x4a"))
                     observed.append(acquisition.stream.frames)
-        with patch("device_gateway.BleakScanner.discover",side_effect=discover),patch("device_gateway.BleakClient",Client):
+        with patch("device_gateway.bluetooth_permitted",return_value=True), \
+                patch("device_gateway.listening_scanner",new=scanner), \
+                patch("device_gateway.BleakClient",Client):
             await asyncio.wait_for(acquisition.ble_worker(),2)
         self.assertEqual(observed,[0,1])
 

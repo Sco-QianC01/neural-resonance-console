@@ -1,4 +1,5 @@
 import {MUSIC_LAYERS,validatePerformance,observationAt,layerDescription,extent,intervalPaths} from '../src/performance-model.mjs';
+import {t} from '../src/i18n.mjs';
 
 const icons={
   play:'<polygon points="6 3 20 12 6 21 6 3"/>',
@@ -123,8 +124,8 @@ export function mountResearch(host,{onSelect=()=>{}}={}){
     report('連接音訊…');
     try{await audio.play();report('');}catch{report('音訊未能播放，可重試或開啟Vmus原站。');}
   };
-  audio.addEventListener('play',()=>{action('play').innerHTML=icon('pause');action('play').setAttribute('aria-label','暫停演奏');});
-  audio.addEventListener('pause',()=>{action('play').innerHTML=icon('play');action('play').setAttribute('aria-label','播放演奏');});
+  audio.addEventListener('play',()=>{action('play').innerHTML=icon('pause');action('play').setAttribute('aria-label',t('暫停演奏'));});
+  audio.addEventListener('pause',()=>{action('play').innerHTML=icon('play');action('play').setAttribute('aria-label',t('播放演奏'));});
   audio.addEventListener('waiting',()=>report('音訊緩衝中'));
   audio.addEventListener('playing',()=>report(''));
   audio.addEventListener('error',()=>report('原站音訊暫不可用；觀測資料可查看。'));

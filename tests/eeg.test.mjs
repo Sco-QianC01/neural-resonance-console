@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SCHEMA, StreamState, LiveConnection, normalizeSnapshot, demoSnapshot, parseRecording } from '../src/eeg.mjs';
+import { SCHEMA, StreamState, LiveConnection, normalizeSnapshot, demoSnapshot, parseRecording, backfilledSnapshots } from '../src/eeg.mjs';
 const now=1791266400000;
 const packet=(overrides={})=>({...demoSnapshot(60,70,10,now),source:'core',...overrides});
 test('native ThinkGear needs fresh known contact quality and integer eSense values',()=>{
@@ -104,4 +104,27 @@ test('malformed or oversized socket frames do not reach the data consumer',()=>{
   client.connect('ws://localhost');
   socket.onmessage({data:'not json'});socket.onmessage({data:'x'.repeat(131073)});
   assert.equal(received,0);assert.equal(states.at(-1),'invalid');client.stop();
+});
+
+test('a page that opens late is filled from the collector buffer',()=>{
+  const late=1791266460000;
+  const payload={source:'device',sessionId:'s1',transport:'desktop_ble',connectionEpoch:1,seconds:60,
+    points:[{ts:late/1000-40,attention:0,meditation:0,packets:3,bands:{}},
+            {ts:late/1000-30,attention:62,meditation:71,packets:4,poorSignal:0,
+             bands:{lowAlpha:100,highAlpha:200,lowBeta:50}},
+            {ts:late/1000-600,attention:50,meditation:50,packets:1,bands:{}}]};
+  const {identity,points}=backfilledSnapshots(payload,late);
+  // Older than the window the page draws, so it is not data the chart could use.
+  assert.equal(points.length,2);
+  // ThinkGear reserves zero for "no eSense computed"; buffered data obeys it too.
+  assert.equal(points[0].valid,false);
+  assert.equal(points[1].valid,true);
+  assert.equal(points[1].bands.alpha,300);
+  assert.equal(points[1].spectralBands.lowBeta,50);
+  assert.equal(points[1].indexTimestamp,(late/1000-30)*1000);
+  assert.equal(points[1].packets,4);
+  assert.equal(points[1].backfilled,true);
+  assert.equal(identity,JSON.stringify(['device','s1','desktop_ble',1]));
+  assert.deepEqual(backfilledSnapshots(undefined,late).points,[]);
+  assert.deepEqual(backfilledSnapshots({points:[{ts:'x'}]},late).points,[]);
 });

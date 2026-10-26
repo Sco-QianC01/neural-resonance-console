@@ -117,11 +117,19 @@ async def check(args):
         await expect(page, "正在采集 · 指數有效", "valid")
         await socket.close()
         cases.append(await expect(page, "采集服務重連中", "waiting"))
-        await page.locator("#disconnect").click()
+        # The connection controls live in the sidebar inputs, hidden now that it
+        # is a device-status readout; they stay reachable to scripted clicks.
+        await page.evaluate("()=>document.getElementById('disconnect').click()")
         cases.append(await expect(page, "采集已停止", "waiting"))
-        await page.locator("#demo").click()
-        assert await page.locator("#status").inner_text() == "示範資料"
-        assert await page.locator("#status").get_attribute("data-state") == "waiting"
+        # Demo is no longer offered from the capture view: the sidebar must stay
+        # a waiting device readout rather than falling back to a synthetic feed.
+        assert await page.locator("#source-label").inner_text() == "設備狀態"
+        assert await page.locator("#source").inner_text() == "EEG"
+        for read in ("#read-attention", "#read-relaxation", "#packets"):
+            assert await page.locator(read).inner_text() == "—", read
+        assert await page.locator("#freshness").inner_text() == "等待 / 暫停"
+        assert "等待真實 EEG 設備連接" in await page.locator("#source-note").inner_text()
+        assert await page.locator("#wave-empty").is_visible()
         await page.close()
         await browser.close()
 

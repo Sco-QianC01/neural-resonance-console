@@ -113,34 +113,29 @@ async def verify(args):
     "fieldTimestamps":{k:stamp for k in ["attention","meditation","delta","theta","lowAlpha","highAlpha","lowBeta","highBeta","lowGamma","midGamma","raw"]},"quality":{"eegPackets":seq}}
   first=packet([(-1)**i*(i+1) for i in range(64)]);sockets[-1].send(json.dumps(first));await page.wait_for_timeout(150)
   await page.evaluate("location.hash='waveforms'");await page.wait_for_timeout(300)
-  raw=page.locator("#raw-wave");samples=int(await raw.get_attribute("data-samples"))
-  first["ts"]=time.time();sockets[-1].send(json.dumps(first));await page.wait_for_timeout(200)
-  assert int(await raw.get_attribute("data-samples"))==samples
-  sockets[-1].send(json.dumps(packet([5,-999,6],gap=5)));await page.wait_for_timeout(300)
-  data=await raw.evaluate("(c)=>({...c.dataset})")
-  assert int(data["positive"])>0 and int(data["negative"])>0 and int(data["dropped"])==5 and int(data["segments"])==2
+  derived=page.locator("#derived-wave")
+  data=await derived.evaluate("(c)=>({...c.dataset})")
+  assert abs(float(data["engagement"])-121/99)<1e-9,data
+  assert data["attention"]=="60",data
+  native=page.locator("#indices-wave")
+  native_data=await native.evaluate("(c)=>({...c.dataset})")
+  assert abs(float(native_data["relativeAlpha"])-77/231)<1e-9,native_data
+  assert native_data["relaxation"]=="70",native_data
   visible=await page.locator(".wave-chart:visible canvas").count();assert visible==8,visible
+  assert await page.locator(".band-note").count()==16
+  assert await page.locator("#analysis-blackbox").count()==0
+  assert await page.locator("#raw-wave").count()==0
   await page.select_option("#band-display","baseline")
   await page.wait_for_timeout(150);assert await page.locator("#wave-lowGamma").get_attribute("data-representation")=="baseline-deviation"
-  checks.append("controlled fixture: signed waveform, no raw duplication, missing samples break line, eight distinct bands, source units and gain")
-  before_count=int(data["samples"])
-  await page.click("#analysis-blackbox")
-  assert await raw.is_hidden() and await page.locator(".stream-strip").is_visible()
-  sockets[-1].send(json.dumps(packet([7,-8,9])));await page.wait_for_timeout(150)
-  await page.click("#analysis-whitebox");await page.wait_for_timeout(150)
-  assert int(await raw.get_attribute("data-samples"))==before_count+3
-  assert await page.locator("#wave-lowGamma").get_attribute("data-representation")=="baseline-deviation"
-  checks.append("black/white view switch preserves ongoing raw acquisition and baseline display choice")
+  checks.append("controlled fixture: eight native bands, two documented proxy indices, no black/white layer switch, no raw panel")
+  before_proxy=int(data["proxySamples"]);before_native=int(data["nativeSamples"])
+  sockets[-1].send(json.dumps(first));await page.wait_for_timeout(200)
+  after=await derived.evaluate("(c)=>({...c.dataset})")
+  assert int(after["proxySamples"])==before_proxy,"duplicate field clock must not add a proxy sample"
+  assert int(after["nativeSamples"])==before_native,"duplicate field clock must not add a native sample"
   await page.click("#record")
   break_packet=packet([17,-555,9]);break_packet["rawBreaks"]=[1];break_packet["quality"]["protocolErrors"]=1
   sockets[-1].send(json.dumps(break_packet));await page.wait_for_timeout(250)
-  assert int(await raw.get_attribute("data-discontinuities"))==1
-  assert int(await raw.get_attribute("data-segments"))==3
-  assert int(await raw.get_attribute("data-dropped"))==5
-  assert await raw.get_attribute("data-time-basis")=="declared-sample-rate"
-  assert float(await raw.get_attribute("data-rms"))==282
-  assert float(await raw.get_attribute("data-peak-to-peak"))==564
-  assert "末段 2 樣本" in await page.locator("#raw-detail").inner_text()
   async with page.expect_download() as export:
    await page.click("#export")
   download=await export.value;path=OUT/"protocol-break-export.json";await download.save_as(path)
@@ -161,7 +156,7 @@ async def verify(args):
    await page.set_viewport_size({"width":width,"height":height});await page.wait_for_timeout(150)
    assert not await page.evaluate("document.documentElement.scrollWidth>innerWidth"),("waveforms",width)
   assert not errors,errors
-  report={"pass":True,"engine":args.engine,"channel":args.channel,"url":args.url,"checks":checks,"layouts":layouts,"media":media,"rawFixture":data,"physicalHardwareVerified":False,"errors":errors}
+  report={"pass":True,"engine":args.engine,"channel":args.channel,"url":args.url,"checks":checks,"layouts":layouts,"media":media,"derivedDataset":data,"physicalHardwareVerified":False,"errors":errors}
   (OUT/f"revision-{args.engine}-{args.channel or 'bundled'}.json").write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding="utf-8")
   await browser.close()
   print(json.dumps(report,ensure_ascii=False))

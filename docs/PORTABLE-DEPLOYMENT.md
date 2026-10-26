@@ -16,6 +16,7 @@ chmod +x Start-macOS.command
 ```
 
 后续可双击`Start-macOS.command`。首次联网安装固定版本的uv、托管Python及依赖，保存在本用户`~/Library/Application Support/NeuralResonance/runtime/darwin-<架构>/`。Apple Silicon和Intel分别安装，不能搬移Windows虚拟环境到Mac。启动会核对锁文件摘要、系统架构、依赖版本和实际导入；核对通过后直接启动，不联网同步依赖。
+`Start-macOS.command` 是稳定的薄启动入口；运行时准备与启动逻辑位于`tools/start-macos.sh`。若旁边的`.app`内嵌01 EEG设备模块文件与当前源码不一致，启动器会改用当前源码版，避免旧应用包遮蔽更新。重复启动由采集器的单实例锁处理；启动脚本不会按进程名强制终止已有采集器。
 
 macOS原生`.app`需在Mac构建；仓库的“Portable desktop packages”工作流提供Apple Silicon和Intel构建任务。构建通过与真实USB/BLE采集是两个验证阶段。
 

@@ -1,5 +1,6 @@
 import {MUSIC_LAYERS,validatePerformance,observationAt,layerDescription,extent,intervalPaths} from '../src/performance-model.mjs';
 import {chord,triad,transform,fifth,chordName,scale,PITCH_NAMES,frequency} from '../src/tonal-model.mjs';
+import {t} from '../src/i18n.mjs';
 const icons={
   play:'<path d="m8 5 11 7-11 7Z"/>',pause:'<path d="M8 5v14M16 5v14"/>',
   reset:'<path d="M3 11a9 9 0 1 1 2.6 6.4M3 4v7h7"/>',
@@ -173,8 +174,8 @@ export function mountResearch(host,{onSelect=()=>{}}={}){
     if(!audio.paused){audio.pause();return;}if(audio.ended){audio.currentTime=0;time=0;}
     report('連接音訊…');try{await audio.play();report('');}catch{report('音訊未能播放，可重試或開啟Vmus原站。');}
   };
-  audio.addEventListener('play',()=>{action('play').innerHTML=icon('pause');action('play').setAttribute('aria-label','暫停演奏樣例');},{signal});
-  audio.addEventListener('pause',()=>{action('play').innerHTML=icon('play');action('play').setAttribute('aria-label','播放演奏樣例');},{signal});
+  audio.addEventListener('play',()=>{action('play').innerHTML=icon('pause');action('play').setAttribute('aria-label',t('暫停演奏樣例'));},{signal});
+  audio.addEventListener('pause',()=>{action('play').innerHTML=icon('play');action('play').setAttribute('aria-label',t('播放演奏樣例'));},{signal});
   for(const [event,message] of [['waiting','音訊緩衝中'],['playing',''],['error','原站音訊暫不可用；觀測資料可查看。'],['ended','播放完畢']])
     audio.addEventListener(event,()=>report(message),{signal});
   audio.addEventListener('timeupdate',()=>{time=audio.currentTime;$('seek').value=String(time);updateDetails();},{signal});

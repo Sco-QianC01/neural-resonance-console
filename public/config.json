@@ -1,5 +1,5 @@
 {
-  "startupMode": "demo",
+  "startupMode": "live",
   "endpoint": "",
   "autoConnect": false
 }

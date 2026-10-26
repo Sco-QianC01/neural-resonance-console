@@ -1,6 +1,6 @@
 {
-  "build": "clarity-stream-20261021-v1",
-  "version": "0.11.6",
+  "build": "waveform-20261027-v1",
+  "version": "0.11.7",
   "defaultMode": "standalone",
   "singleInstance": true
 }

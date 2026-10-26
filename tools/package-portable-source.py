@@ -7,7 +7,8 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 FILES = ("README.md", "LICENSE", "package.json", "index.html",
          "Start-Windows.ps1", "Start-Windows.cmd", "Start-macOS.command",
-         "gateway/acquisition.py", "gateway/device_gateway.py", "gateway/protocols.py",
+         "tools/start-macos.sh",
+         "gateway/acquisition.py", "gateway/device_gateway.py", "gateway/eeg_recording.py", "gateway/protocols.py",
          "gateway/runtime_support.py", "gateway/experiments.py", "gateway/config.example.json",
          "gateway/watch.py", "gateway/music_prompt_workbench.py",
          "gateway/music_score.py", "gateway/music_score_runtime.py",

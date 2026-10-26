@@ -1,6 +1,28 @@
 import {normalizeSnapshot} from './eeg.mjs';
 import {SensorState} from './sensors.mjs';
 import {observationNow} from './stream-clock.mjs';
+
+
+/**
+ * The one naming rule for a recording device label.
+ *
+ * Mirrors `safe_device_id()` in `gateway/eeg_recording.py` exactly, so the name
+ * the operator sees in 01 is the name that lands in the .tgam header and file
+ * name: keep ASCII letters, digits, dot, underscore and hyphen; collapse any
+ * other run into a single hyphen; trim leading and trailing `-._`; cap at 64
+ * characters; fall back to `unknown-device`. Sessions are written as
+ * `eeg-<deviceId>-<YYYYMMDD-HHMMSS>[-NN].tgam`.
+ */
+export function normalizeDeviceId(value){
+  const label=String(value??'').trim()
+    .replace(/[^A-Za-z0-9._-]+/g,'-')
+    .replace(/^[-._]+|[-._]+$/g,'');
+  return label.slice(0,64)||'unknown-device';
+}
+/** True when typing the value would change it, so the operator can be told. */
+export function deviceIdNeedsNormalizing(value){
+  return String(value??'').trim()!==normalizeDeviceId(value);
+}
 /** Preserve the native packet fields needed by normalizeSnapshot on replay. */
 export function captureSnapshot(packet, snapshot, networks=null) {
   const timed=snapshot.raw??packet;

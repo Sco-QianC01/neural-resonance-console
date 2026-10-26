@@ -37,11 +37,44 @@ function Invoke-LocalRuntime {
     if ($stderr.Result) { Write-Host $stderr.Result.TrimEnd() }
     return $process.ExitCode
 }
+function Test-CurrentAssets {
+    param([string]$BundleRoot)
+    # Mirrors gateway/package.spec and tools/start-macos.sh: index.html plus the
+    # four asset trees the gateway serves. A file allowlist silently misses new
+    # modules, so the comparison is tree-wide and by content hash.
+    foreach ($entry in @('index.html', 'src', 'neural-worm', 'public', 'docs')) {
+        $source = Join-Path $root $entry
+        $target = Join-Path $BundleRoot $entry
+        if (Test-Path -LiteralPath $source -PathType Leaf) {
+            if (-not (Test-Path -LiteralPath $target -PathType Leaf)) { return $false }
+            if ((Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash -ne
+                (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash) { return $false }
+            continue
+        }
+        if (-not (Test-Path -LiteralPath $source -PathType Container)) { continue }
+        $filter = { $_.Name -ne '.DS_Store' -and $_.Extension -ne '.pyc' -and $_.FullName -notmatch '__pycache__' }
+        $sourceFiles = @(Get-ChildItem -LiteralPath $source -Recurse -File | Where-Object -FilterScript $filter)
+        $targetFiles = @(Get-ChildItem -LiteralPath $target -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object -FilterScript $filter)
+        if ($sourceFiles.Count -ne $targetFiles.Count) { return $false }
+        foreach ($file in $sourceFiles) {
+            $relative = $file.FullName.Substring($source.Length).TrimStart([char[]]@('\', '/'))
+            $copy = Join-Path $target $relative
+            if (-not (Test-Path -LiteralPath $copy -PathType Leaf)) { return $false }
+            if ((Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash -ne
+                (Get-FileHash -LiteralPath $copy -Algorithm SHA256).Hash) { return $false }
+        }
+    }
+    return $true
+}
 $package = Join-Path $root 'NeuralResonance\NeuralResonance.exe'
 $manifest = Join-Path $root 'NeuralResonance\_internal\gateway\build-manifest.json'
 $currentPackage = $false
 if ((Test-Path -LiteralPath $package) -and (Test-Path -LiteralPath $manifest)) {
-    try { $currentPackage = (Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).build -eq 'portable-20261016-v1' } catch {}
+    try {
+        $currentPackage = ((Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).build -eq 'portable-20261017-eeg-autosave-v1') -and
+            (Test-CurrentAssets (Join-Path $root 'NeuralResonance\_internal'))
+    } catch {}
 }
 if ($currentPackage) {
     if ($SetupOnly) { Write-Output 'Portable application is ready.'; exit 0 }
