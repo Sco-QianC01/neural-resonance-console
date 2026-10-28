@@ -14,19 +14,22 @@ export function mountPromptSection(root = document, host = window) {
   const retry = root.getElementById('annotation-retry');
   const help = root.getElementById('annotation-help');
   let visible = false;
+  let ready = false;
   let timer;
-  function notify(active = visible) {
+  function notify(active = visible && !frame.hidden) {
     if (!frame.hasAttribute('src')) return;
     frame.contentWindow?.postMessage({ type: 'nr-prompt-visibility', visible: active }, origin);
   }
   function unavailable() {
     clearTimeout(timer);
+    notify(false);
     connection.hidden = false;
     frame.hidden = true;
     status.textContent = '提示词页面未载入，请刷新或重新连接。蠕虫与采集可继续使用。';
     retry.hidden = help.hidden = false;
   }
   function connect() {
+    ready = false;
     connection.hidden = false;
     retry.hidden = help.hidden = true;
     status.textContent = '正在载入数据标注与提示词';
@@ -39,14 +42,23 @@ export function mountPromptSection(root = document, host = window) {
   host.addEventListener('message', (event) => {
     const height = promptMessage(event, frame.contentWindow, origin);
     if (height === null) return;
+    const wasHidden = frame.hidden;
+    ready = true;
     clearTimeout(timer);
     frame.style.height = `${height}px`;
     frame.hidden = false;
     connection.hidden = true;
+    if (wasHidden) notify();
   });
   retry.addEventListener('click', connect);
   host.addEventListener('pagehide', () => { clearTimeout(timer); notify(false); });
-  host.addEventListener('pageshow', () => notify());
+  host.addEventListener('pageshow', () => {
+    if (frame.hasAttribute('src') && !ready) {
+      clearTimeout(timer);
+      timer = setTimeout(unavailable, 8000);
+    }
+    notify();
+  });
   return {
     setVisible(next) {
       visible = next;

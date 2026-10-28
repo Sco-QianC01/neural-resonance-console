@@ -50,6 +50,73 @@ test('annotation loads lazily and switching sections keeps the same edited frame
   assert.equal(messages.at(-1).data.visible,true);
 });
 
+function pendingFrame(){
+  const elements=new Map();
+  for(const id of ['annotation-frame','annotation-status','annotation-connection','annotation-retry','annotation-help'])
+    elements.set(id,{hidden:true,style:{},listeners:{},addEventListener(name,fn){this.listeners[name]=fn;}});
+  const frame=elements.get('annotation-frame'),messages=[];
+  frame.contentWindow={postMessage(data){messages.push(data);}};
+  frame.hasAttribute=()=>Boolean(frame.src);
+  const host={location:{origin:'http://127.0.0.1:8767'},listeners:{},
+    addEventListener(name,fn){this.listeners[name]=fn;}};
+  const section=mountPromptSection({baseURI:host.location.origin+'/',
+    getElementById:id=>elements.get(id)},host);
+  section.setVisible(true);
+  frame.listeners.load();
+  return {elements,frame,messages,host};
+}
+
+test('a timed-out frame receives hidden visibility and retry restores it',context=>{
+  context.mock.timers.enable({apis:['setTimeout']});
+  const {elements,frame,messages}=pendingFrame();
+  context.mock.timers.tick(8000);
+  assert.equal(frame.hidden,true);
+  assert.equal(messages.at(-1).visible,false);
+  assert.equal(elements.get('annotation-retry').hidden,false);
+  elements.get('annotation-retry').listeners.click();
+  frame.listeners.load();
+  assert.equal(messages.at(-1).visible,true);
+});
+
+test('restoring a page during frame startup restores its retry timeout',context=>{
+  context.mock.timers.enable({apis:['setTimeout']});
+  const {elements,frame,host}=pendingFrame();
+  host.listeners.pagehide();
+  context.mock.timers.tick(9000);
+  assert.equal(elements.get('annotation-retry').hidden,true);
+  host.listeners.pageshow();
+  context.mock.timers.tick(8000);
+  assert.equal(frame.hidden,true);
+  assert.equal(elements.get('annotation-retry').hidden,false);
+});
+
+test('restoring a ready frame does not replace it with a false timeout',context=>{
+  context.mock.timers.enable({apis:['setTimeout']});
+  const {elements,frame,host}=pendingFrame();
+  host.listeners.message({source:frame.contentWindow,origin:host.location.origin,
+    data:{type:'nr-prompt-ready',height:800}});
+  host.listeners.pagehide();
+  host.listeners.pageshow();
+  context.mock.timers.tick(9000);
+  assert.equal(frame.hidden,false);
+  assert.equal(elements.get('annotation-connection').hidden,true);
+});
+
+test('a delayed ready message restores child visibility without a message loop',context=>{
+  context.mock.timers.enable({apis:['setTimeout']});
+  const {frame,host,messages}=pendingFrame();
+  context.mock.timers.tick(8000);
+  assert.equal(messages.at(-1).visible,false);
+  const event={source:frame.contentWindow,origin:host.location.origin,
+    data:{type:'nr-prompt-ready',height:800}};
+  host.listeners.message(event);
+  assert.equal(frame.hidden,false);
+  assert.equal(messages.at(-1).visible,true);
+  const count=messages.length;
+  host.listeners.message(event);
+  assert.equal(messages.length,count);
+});
+
 test('annotation is the next navigation section after the worm',async()=>{
   const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
   assert.deepEqual([...html.matchAll(/data-view="([^"]+)"/g)].map(m=>m[1]),

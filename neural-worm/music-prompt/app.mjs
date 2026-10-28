@@ -2,7 +2,7 @@ import {ELEMENTS,readObservations,readWorkspace,selectTags,compilePrompt} from '
 import {parseUtf8Json} from '../../src/json-io.mjs';
 
 const $=id=>document.getElementById(id);
-let catalogue=null,result=null,revision=0,inputTask=0,busy=false;
+let catalogue=null,result=null,revision=0,inputTask=0,busy=false,reading=false;
 if(new URLSearchParams(location.search).get('embedded')==='1'&&window.parent!==window){
   document.body.classList.add('embedded');
   let visible=false;
@@ -28,6 +28,15 @@ function invalidate(){
   $('prompt-en').value='';$('ace-json').textContent='等待生成';$('suno-json').textContent='等待生成';
   $('output-engine').textContent='等待生成';
   for(const id of ['copy-prompt','copy-ace','download-json'])$(id).disabled=true;
+}
+function beginInput(){
+  invalidate();reading=true;$('preview').disabled=true;
+  status('正在读入观测数据…');
+  return ++inputTask;
+}
+function finishInput(task){
+  if(task!==inputTask)return;
+  reading=false;$('preview').disabled=busy;
 }
 function intent(){
   return {style:$('style').value,duration:$('duration').value===''?null:Number($('duration').value),
@@ -84,7 +93,7 @@ async function hashText(text){
   return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 async function generate(){
-  if(busy)return;
+  if(busy||reading)return;
   invalidate();
   const startedRevision=revision;
   busy=true;$('preview').disabled=true;
@@ -103,11 +112,11 @@ async function generate(){
     if(revision!==startedRevision)return;
     status(error.message,true);
   }finally{
-    busy=false;$('preview').disabled=false;
+    busy=false;$('preview').disabled=reading;
   }
 }
 async function loadReference(){
-  const task=++inputTask,startedRevision=revision;
+  const task=beginInput(),startedRevision=revision;
   try{
     const response=await fetch('../../public/research/vmus-reference-cases.json');
     if(!response.ok)throw new Error('已有标注文件读取失败。');
@@ -121,7 +130,8 @@ async function loadReference(){
         reference:recording.annotationReference},
       windowSeconds:times.at(-1)-times[0],music:{tempo:{values,unit:'eighth-notes/min'}}},null,2);
     refresh();status('已读入既有标注前60秒内的完整拍间隔；不是实时设备数据。未加载或播放音频。');
-  }catch(error){if(task===inputTask&&revision===startedRevision)status(error.message,true);}
+  }catch(error){if(task===inputTask&&revision===startedRevision)status(error.message+' 未替换原输入。',true);}
+  finally{finishInput(task);}
 }
 async function copy(text){
   try{await navigator.clipboard.writeText(text);status('已复制。');}catch{status('无法写入剪贴板，可选中文字复制或下载JSON。',true);}
@@ -159,7 +169,7 @@ async function init(){
     });
     $('input-file').addEventListener('change',async event=>{
       const file=event.target.files[0];if(!file)return;
-      const task=++inputTask,startedRevision=revision;
+      const task=beginInput(),startedRevision=revision;
       try{
         if(file.size>1048576)throw new Error('JSON文件需小于1 MiB。');
         const text=await file.text();
@@ -172,8 +182,8 @@ async function init(){
           for(const [key] of ELEMENTS)$(`level-${key}`).value=supplied.levels?.[key]??'';
         }
         refresh();
-      }catch(error){if(task===inputTask&&revision===startedRevision)status(error.message,true);}
-      finally{if(task===inputTask)event.target.value='';}
+      }catch(error){if(task===inputTask&&revision===startedRevision)status(error.message+' 未替换原输入。',true);}
+      finally{finishInput(task);if(task===inputTask)event.target.value='';}
     });
     $('copy-prompt').addEventListener('click',()=>result&&copy(result.promptEn));
     $('copy-ace').addEventListener('click',()=>result&&copy(JSON.stringify(result.aceRequest,null,2)));
