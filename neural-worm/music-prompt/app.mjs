@@ -39,6 +39,8 @@ function finishInput(task){
   reading=false;$('preview').disabled=busy;
 }
 function intent(){
+  if(['duration','tempo-bpm'].some(id=>$(id).validity.badInput))
+    throw new Error('时长与目标速度需输入完整有效的数字；目标速度也可留空。');
   return {style:$('style').value,duration:$('duration').value===''?null:Number($('duration').value),
     tempoBpm:$('tempo-bpm').value===''?null:Number($('tempo-bpm').value),
     levels:Object.fromEntries(ELEMENTS.map(([key])=>[key,$(`level-${key}`).value===''?null:Number($(`level-${key}`).value)]))};

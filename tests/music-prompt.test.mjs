@@ -27,6 +27,29 @@ test('valid positive tempo endpoints cannot overflow the adjacent log change',()
   assert.equal(JSON.parse(JSON.stringify(s)).adjacentChangeMean,s.adjacentChangeMean);
 });
 
+test('tempo dispersion remains proportional at very small positive scales',()=>{
+  const reference=tempoStatistics([1,2,3],'BPM');
+  const input={schemaVersion:'music-prompt-input-v1',
+    music:{tempo:{values:[1e-200,2e-200,3e-200],unit:'BPM'}}};
+  const scaled=readObservations(JSON.stringify(input)).tempo;
+  assert.ok(scaled.sd>0);
+  assert.ok(Math.abs(scaled.sd/1e-200-reference.sd)<1e-14);
+  assert.ok(Math.abs(scaled.cv-reference.cv)<1e-14);
+  const subnormal=tempoStatistics(
+    [Number.MIN_VALUE,Number.MIN_VALUE,2*Number.MIN_VALUE],'BPM');
+  assert.ok(Math.abs(subnormal.cv-tempoStatistics([1,1,2],'BPM').cv)<1e-14);
+});
+
+test('tempo arrays require explicit nulls for missing samples',()=>{
+  for(const values of [[60,,120],[,60,120],[60,120,,],Array(3)]){
+    assert.throws(()=>tempoStatistics(values,'BPM'),/缺失请用null/);
+  }
+  const stats=tempoStatistics([60,null,120],'BPM');
+  assert.equal(stats.missing,1);
+  assert.equal(stats.adjacentPairs,0);
+  assert.equal(stats.adjacentChangeMean,null);
+});
+
 test('existing neural summary does not create music or invent dispersion levels',()=>{
   const s=readObservations(JSON.stringify({
     schemaVersion:'neural-observation-summary-v2',source:'device',

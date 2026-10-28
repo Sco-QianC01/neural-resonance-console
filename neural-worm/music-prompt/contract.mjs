@@ -12,14 +12,16 @@ const cleanText=(value,fallback)=>typeof value==='string'&&value.length<=512?val
 /** Descriptive per-sample statistics, not a validated musical dispersion scale. */
 export function tempoStatistics(values,unit){
   if(!units.includes(unit)||!Array.isArray(values)||values.length>10000
-    ||values.some(x=>x!==null&&(!finite(x)||x<=0||x>10000)))
+    ||[...values].some(x=>x!==null&&(!finite(x)||x<=0||x>10000)))
     throw new Error('速度需有明确单位、正值样本，且最多10000项；缺失请用null。');
   const valid=values.filter(x=>x!==null),n=valid.length;
   if(!n)return null;
-  const mean=valid.reduce((a,b)=>a+b,0)/n;
-  const sd=Math.sqrt(valid.reduce((s,x)=>s+(x-mean)**2,0)/n);
+  const scale=Math.max(...valid);
+  const scaledMean=valid.reduce((s,x)=>s+x/scale,0)/n;
+  const scaledSd=Math.sqrt(valid.reduce((s,x)=>s+(x/scale-scaledMean)**2,0)/n);
+  const mean=scaledMean*scale,sd=scaledSd*scale;
   const changes=values.slice(1).flatMap((x,i)=>x===null||values[i]===null?[]:[Math.abs(Math.log2(x)-Math.log2(values[i]))]);
-  return {n,missing:values.length-n,unit,mean,sd,cv:n>=3?sd/mean:null,
+  return {n,missing:values.length-n,unit,mean,sd,cv:n>=3?scaledSd/scaledMean:null,
     adjacentChangeMean:changes.length?changes.reduce((s,x)=>s+x,0)/changes.length:null,
     adjacentPairs:changes.length,method:'per-sample-population-sd-cv-v1',dispersionLevel:null};
 }

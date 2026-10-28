@@ -26,7 +26,13 @@ async def verify(args):
                 proof["modelRequests"].append(route.request.url)
                 await route.abort()
 
+            async def unavailable_media(route):
+                proof["mediaProbeRequests"].append(route.request.url)
+                await route.fulfill(status=404, content_type="application/json",
+                                    body='{"error":"No media proxy in static preview"}')
+
             await page.route("**/api/**", reject_model)
+            await page.route("**/api/research-media/**", unavailable_media)
             await page.goto(args.url.rstrip("/") + "/#annotation")
             frame = page.frame_locator("#annotation-frame")
             await frame.locator("#level-articulation").wait_for()
@@ -39,6 +45,21 @@ async def verify(args):
             async def generate():
                 await frame.locator("#preview").click()
                 await frame.locator("#download-json:not([disabled])").wait_for()
+
+            for invalid in ("-", "1e"):
+                await frame.locator("#tempo-bpm").fill("")
+                await frame.locator("#tempo-bpm").press_sequentially(invalid)
+                assert await frame.locator("#tempo-bpm").evaluate("e => e.validity.badInput")
+                await frame.locator("#preview").click()
+                proof["checks"]["invalidTempo" + invalid + "BlocksExport"] = (
+                    await frame.locator("#operation-status").evaluate(
+                        "e => e.classList.contains('error')")
+                    and await frame.locator("#download-json").is_disabled()
+                    and await frame.locator("#prompt-en").input_value() == "")
+            await frame.locator("#tempo-bpm").fill("")
+            await generate()
+            proof["checks"]["emptyOptionalTempoRemainsValid"] = (
+                "Target tempo:" not in await frame.locator("#prompt-en").input_value())
 
             for name, data in [("invalidFileClearsOutput", b"{broken"),
                                ("oversizeFileClearsOutput", b" " * 1048577)]:
@@ -84,6 +105,27 @@ async def verify(args):
                 saved["inputDocument"]["source"]["id"] == "completed-import"
                 and saved["engine"] == "rules" and saved["model"] is None)
 
+            await frame.locator("#input-file").set_input_files({
+                "name": "restored.json", "mimeType": "application/json",
+                "buffer": target.read_bytes()})
+            await frame.locator("#preview:not([disabled])").wait_for()
+            await generate()
+            async with page.expect_download() as download:
+                await frame.locator("#download-json").click()
+            restored_target = output.with_name(output.stem + "-restored.json")
+            await (await download.value).save_as(str(restored_target))
+            restored = json.loads(restored_target.read_text(encoding="utf-8"))
+            proof["checks"]["savedInputAndHashSurviveRestore"] = all(
+                restored[key] == saved[key]
+                for key in ("inputDocument", "inputHash", "intent", "promptEn", "aceRequest"))
+            await page.locator('[data-view="settings"]').click()
+            await page.locator("#view-settings").wait_for(state="visible")
+            await page.locator('[data-view="annotation"]').click()
+            await page.locator("#view-annotation").wait_for(state="visible")
+            proof["checks"]["navigationRetainsGeneratedOutput"] = (
+                not await frame.locator("#download-json").is_disabled()
+                and await frame.locator("#prompt-en").input_value() == restored["promptEn"])
+
             await generate()
             async def reject_reference(route):
                 await route.fulfill(status=503, body="test unavailable")
@@ -95,11 +137,6 @@ async def verify(args):
                 and await frame.locator("#prompt-en").input_value() == "")
 
             # Use the real static config: live mode, no endpoint or auto-connect.
-            async def unavailable_media(route):
-                proof["mediaProbeRequests"].append(route.request.url)
-                await route.fulfill(status=404, content_type="application/json",
-                                    body='{"error":"No media proxy in static preview"}')
-
             for initial in ("settings", "waveforms", "worm"):
                 console = await browser.new_page(viewport={"width": 1366, "height": 768})
                 console.on("pageerror", lambda error: proof["consoleErrors"].append(str(error))
@@ -141,7 +178,7 @@ async def verify(args):
             raise
         finally:
             await browser.close()
-            proof["passed"] = (len(proof["checks"]) == 5 and all(proof["checks"].values())
+            proof["passed"] = (len(proof["checks"]) == 10 and all(proof["checks"].values())
                                and len(proof["consoleStartup"]) == 3
                                and len(proof["consoleNavigation"]) == 4
                                and not proof["pageErrors"] and not proof["consoleErrors"]
