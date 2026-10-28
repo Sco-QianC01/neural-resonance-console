@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
 import { SensorState } from '../src/sensors.mjs';
 const now=1791266400000;
 const packet=(overrides={})=>({ts:now/1000,source:'core',spo2:97,pr:73,hrv:null,gsr:null,
@@ -30,4 +32,30 @@ test('watch heart rate retains its source and never creates EEG or oxygen values
   assert.equal(state.current(now).pr.value,72);
   assert.equal(state.current(now).spo2.value,null);
   assert.equal(state.current(now+3001).pr.source,null);
+});
+
+const application=readFileSync(new URL('../neural-worm/app.mjs',import.meta.url),'utf8');
+const sensorStart=application.indexOf('  const sensorValues=sensors.current();');
+const sensorEnd=application.indexOf('  for(const [key,value]',sensorStart);
+assert.ok(sensorStart>=0&&sensorEnd>sensorStart,'Find the actual shared sensor renderer');
+const sensorRenderer=application.slice(sensorStart,sensorEnd);
+const renderSensors=(nodes,source='watch')=>runInNewContext(sensorRenderer,{
+  $:id=>nodes[id]??null,sensors:{current:()=>({
+    spo2:{valid:false},pr:{valid:true,value:72,source},hrv:{valid:false},gsr:{valid:false},
+  })},
+});
+
+test('a removed optional pulse label does not interrupt surviving sensor readouts',()=>{
+  const pulse={textContent:'',parentElement:{hidden:true}};
+  renderSensors({'sensor-pr':pulse});
+  assert.equal(pulse.textContent,'72');
+  assert.equal(pulse.parentElement.hidden,false);
+});
+
+test('the optional pulse label still follows its actual watch or pulse source',()=>{
+  const label={textContent:''};
+  renderSensors({'sensor-pr-label':label},'watch');
+  assert.equal(label.textContent,'手表心率');
+  renderSensors({'sensor-pr-label':label},'core');
+  assert.equal(label.textContent,'脈率');
 });

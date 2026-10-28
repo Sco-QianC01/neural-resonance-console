@@ -19,7 +19,10 @@ test('annotation preserves upstream acquisition, waveform and worm source',async
       content=content.replaceAll("['waveforms','worm','settings','annotation']","['waveforms','worm','settings']")
         .replace("['settings','waveforms','worm','annotation']","['settings','waveforms','worm']")
         .replace(",annotation:'數據標註'",'')
-        .replace(",annotation:'ANNOTATION / PROMPT'",'');
+        .replace(",annotation:'ANNOTATION / PROMPT'",'')
+        // The requested startup fix only guards an optional, removed label.
+        .replace("  const prLabel=$('sensor-pr-label');\n  if(prLabel)prLabel.textContent=",
+          "  $('sensor-pr-label').textContent=");
     }else if(name==='src/i18n.mjs'){
       content=content
         .replace('  "數據標註": {"zh-Hans": "数据标注", "en": "Data Annotation"},\n','')

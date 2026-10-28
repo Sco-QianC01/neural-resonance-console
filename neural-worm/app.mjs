@@ -289,7 +289,8 @@ function update(){
     output.textContent=sensorValues[key].valid?String(sensorValues[key].value):'—';
     output.parentElement.hidden=!sensorValues[key].valid;
   }
-  $('sensor-pr-label').textContent=sensorValues.pr.source==='watch'?'手表心率':'脈率';
+  const prLabel=$('sensor-pr-label');
+  if(prLabel)prLabel.textContent=sensorValues.pr.source==='watch'?'手表心率':'脈率';
   for(const [key,value] of Object.entries(current?.latestIndices??{attention:null,relaxation:null})){
     const available=current?.signalValid&&Number.isFinite(value)&&(current.metricOrigin!=='thinkgear-esense'||value>0);
     $(`read-${key}`).textContent=available?Math.round(value):'—';

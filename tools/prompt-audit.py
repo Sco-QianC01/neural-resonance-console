@@ -1,4 +1,4 @@
-"""Browser regression for annotation imports; uses no device or model service."""
+"""Browser regression for annotation imports and console startup; opens no hardware."""
 import argparse
 import asyncio
 import json
@@ -8,7 +8,9 @@ from playwright.async_api import async_playwright
 
 
 async def verify(args):
-    proof = {"checks": {}, "pageErrors": [], "modelRequests": [], "hardwareOpened": False}
+    proof = {"checks": {}, "pageErrors": [], "consoleErrors": [], "consoleStartup": [],
+             "consoleNavigation": [], "emptyDeviceState": [],
+             "modelRequests": [], "mediaProbeRequests": [], "hardwareOpened": False}
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     async with async_playwright() as playwright:
@@ -91,6 +93,43 @@ async def verify(args):
             proof["checks"]["failedReferenceClearsOutput"] = (
                 await frame.locator("#download-json").is_disabled()
                 and await frame.locator("#prompt-en").input_value() == "")
+
+            # Use the real static config: live mode, no endpoint or auto-connect.
+            async def unavailable_media(route):
+                proof["mediaProbeRequests"].append(route.request.url)
+                await route.fulfill(status=404, content_type="application/json",
+                                    body='{"error":"No media proxy in static preview"}')
+
+            for initial in ("settings", "waveforms", "worm"):
+                console = await browser.new_page(viewport={"width": 1366, "height": 768})
+                console.on("pageerror", lambda error: proof["consoleErrors"].append(str(error))
+                           if len(proof["consoleErrors"]) < 10 else None)
+                await console.route("**/api/**", reject_model)
+                await console.route("**/api/research-media/**", unavailable_media)
+                await console.goto(args.url.rstrip("/") + "/#" + initial)
+                await console.wait_for_function(
+                    "view => document.body.dataset.view === view", arg=initial, timeout=5000)
+                # Observe more than one 100 ms update, not just the first paint.
+                await console.wait_for_timeout(350)
+                state = {"view": initial,
+                         "attention": await console.locator("#read-attention").inner_text(),
+                         "relaxation": await console.locator("#read-relaxation").inner_text(),
+                         "packets": await console.locator("#monitor-packets").inner_text(),
+                         "status": await console.locator("#status").get_attribute("data-state")}
+                proof["emptyDeviceState"].append(state)
+                assert state["attention"] == state["relaxation"] == "—"
+                assert state["packets"] == "0" and state["status"] in ("waiting", "stopped")
+                if initial == "settings":
+                    for view in ("waveforms", "worm", "annotation", "settings"):
+                        await console.locator(f'[data-view="{view}"]').click()
+                        await console.locator(f"#view-{view}").wait_for(state="visible")
+                        if view == "annotation":
+                            await console.frame_locator("#annotation-frame").locator(
+                                "#level-articulation").wait_for()
+                        proof["consoleNavigation"].append(view)
+                    assert (await console.locator("#count").inner_text()).split()[0] == "0"
+                proof["consoleStartup"].append(initial)
+                await console.close()
         except Exception as error:
             proof["failure"] = str(error)
             if "frame" in locals():
@@ -103,7 +142,10 @@ async def verify(args):
         finally:
             await browser.close()
             proof["passed"] = (len(proof["checks"]) == 5 and all(proof["checks"].values())
-                               and not proof["pageErrors"] and not proof["modelRequests"])
+                               and len(proof["consoleStartup"]) == 3
+                               and len(proof["consoleNavigation"]) == 4
+                               and not proof["pageErrors"] and not proof["consoleErrors"]
+                               and not proof["modelRequests"])
             output.write_text(json.dumps(proof, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             print(json.dumps(proof, ensure_ascii=False))
     if not proof["passed"]:
