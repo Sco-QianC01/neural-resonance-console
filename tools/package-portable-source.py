@@ -24,7 +24,7 @@ FILES = ("README.md", "LICENSE", "package.json", "index.html",
          "tools/verify-teacher-workflow.py", "tools/verify-teacher-revision.py", "tools/build-chopin-score.py",
          "tools/verify-score-evidence.py", "tools/build-method-docs.py",
          ".github/workflows/compatibility.yml")
-TREES = ("src", "public", "docs", "neural-worm", "music-prompt", "music-score", "tests", "gateway/tests")
+TREES = ("src", "public", "docs", "neural-worm", "music-score", "tests", "gateway/tests")
 
 
 def package(output):

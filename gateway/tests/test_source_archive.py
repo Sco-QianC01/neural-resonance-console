@@ -33,6 +33,9 @@ class SourceArchiveTests(unittest.TestCase):
                  str(root / "gateway")],
                 cwd=root, env=env, capture_output=True, text=True, encoding="utf-8", timeout=20)
             self.assertEqual(imported.returncode, 0, imported.stderr)
+            legacy = root / "dist/music-prompt/index.html"
+            legacy.parent.mkdir(parents=True)
+            legacy.write_text("retired model UI", encoding="utf-8")
             for entry in ("tools/start-music-prompt.py", "tools/build-watch.py",
                           "gateway/music_score.py", "gateway/music_score_runtime.py",
                           "music-score/index.html", "music-score/vendor/OSMD-LICENSE",
@@ -42,6 +45,8 @@ class SourceArchiveTests(unittest.TestCase):
                 result = subprocess.run(["node", *arguments], cwd=root, env=env, capture_output=True,
                                         text=True, encoding="utf-8", timeout=30)
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertFalse(legacy.exists(), "incremental builds must retire the old model UI")
+            self.assertTrue((root / "dist/neural-worm/music-prompt/index.html").is_file())
 
 
 if __name__ == "__main__":

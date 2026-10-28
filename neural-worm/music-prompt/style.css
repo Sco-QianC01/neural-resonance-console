@@ -3,3 +3,9 @@
 @media(max-width:1450px){.workspace{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}.output-panel{grid-column:1/-1}#prompt-en{min-height:140px}.output-panel .panel-title{margin-bottom:16px}.generation-actions{max-width:390px}.operation-status{min-height:0}.tags{margin-bottom:14px}}
 @media(max-width:760px){header{height:auto;min-height:78px;padding:16px 20px;flex-wrap:wrap;gap:12px}.runtime{flex-wrap:wrap}.runtime #runtime-status{max-width:245px}.workspace{grid-template-columns:minmax(0,1fr);gap:16px}.output-panel{grid-column:auto}main{padding:25px 16px 0}.page-title{margin-bottom:22px}h1{font-size:23px}.version{display:none}.panel{padding:19px}.intro{font-size:12px}.preset-row{gap:12px}.level-row{grid-template-columns:66px minmax(0,1fr)}footer{gap:12px}footer span:last-child{margin-left:0}.generation-actions{max-width:none}#prompt-en{min-height:230px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+.generation-actions{grid-template-columns:minmax(0,1fr)}
+.embedded{--radius:3px}
+.embedded header,.embedded .page-title{display:none}
+.embedded main{margin:0;padding:0;max-width:none}
+.embedded button,.embedded input,.embedded select,.embedded textarea{border-radius:3px}
+.embedded footer{padding-bottom:0}

@@ -159,8 +159,8 @@ class ScoreRoutesTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
-        (self.root / "music-prompt").mkdir()
-        (self.root / "music-prompt/tags.json").write_text('{"tags":[]}')
+        (self.root / "neural-worm/music-prompt").mkdir(parents=True)
+        (self.root / "neural-worm/music-prompt/tags.json").write_text('{"tags":[]}')
         (self.root / "music-score").mkdir()
         (self.root / "music-score/index.html").write_text("<title>score</title>")
         self.client = TestClient(TestServer(workbench.create_app(

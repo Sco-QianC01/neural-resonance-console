@@ -656,7 +656,7 @@ $('replay-seek').oninput=()=>{
 };
 $('replay-jump').onclick=()=>{setView('settings');$('replay-file').click();};
 function setView(next){
-  if(!['waveforms','worm','settings'].includes(next))next='settings';
+  if(!['waveforms','worm','settings','annotation'].includes(next))next='settings';
   view=next;
   document.body.dataset.view=view;
   // The sidebar always reads as device status; the badge carries the active
@@ -678,10 +678,10 @@ function setView(next){
     $('source').textContent='DEMO';$('source-note').textContent=t('合成示範已暫停；按上方資料入口的「示範」可重新啟動。');
     $('status').textContent=t('示範已暫停');
   }
-  for(const name of ['waveforms','worm','settings'])$(`view-${name}`).hidden=name!==view;
+  for(const name of ['waveforms','worm','settings','annotation'])$(`view-${name}`).hidden=name!==view;
   document.querySelectorAll('[data-view]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.view===view)));
-  const title={waveforms:'波形捕獲',worm:'音樂與神經響應',settings:'設備設定'}[view];
-  $('page-title').replaceChildren(document.createTextNode(t(title)),Object.assign(document.createElement('span'),{textContent:t({waveforms:'EEG / LIVE SIGNAL',worm:'音樂參考 · 現場響應 · 版本實驗',settings:'DEVICE / INTERFACES'}[view])}));
+  const title={waveforms:'波形捕獲',worm:'音樂與神經響應',settings:'設備設定',annotation:'數據標註'}[view];
+  $('page-title').replaceChildren(document.createTextNode(t(title)),Object.assign(document.createElement('span'),{textContent:t({waveforms:'EEG / LIVE SIGNAL',worm:'音樂參考 · 現場響應 · 版本實驗',settings:'DEVICE / INTERFACES',annotation:'ANNOTATION / PROMPT'}[view])}));
   if(view==='settings')refreshGateway();
 }
 document.querySelectorAll('[data-view]').forEach(button=>button.onclick=()=>{location.hash=button.dataset.view;});
@@ -1197,7 +1197,7 @@ async function initialize(){
     // next frame.
     $('eeg-profile-status').textContent=eegDeviceId?labelPreview(eegDeviceId):t('未設置設備標識，記錄文件名將使用 unknown-device');
   }catch(error){$('eeg-profile-status').textContent=`${t('設備標識暫不可用')} · ${error.message}`;}
-  const initialView=['settings','waveforms','worm'].includes(location.hash.slice(1))
+  const initialView=['settings','waveforms','worm','annotation'].includes(location.hash.slice(1))
     ?location.hash.slice(1):'settings';
   // Device views must not fall back to the synthetic demo; the research panel
   // keeps demo reachability on its own.

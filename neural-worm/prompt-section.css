@@ -1,0 +1,10 @@
+.annotation-toolbar{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-bottom:18px;font-size:12px;color:var(--muted)}
+.annotation-toolbar p{margin:0;line-height:1.7}
+.annotation-toolbar a{white-space:nowrap}
+.annotation-connection{padding:24px;border:1px solid var(--line);border-radius:3px;color:var(--muted);font-size:12px}
+.annotation-connection p{margin:0 0 14px;line-height:1.7}
+.annotation-connection a{display:inline-block;margin-left:14px}
+.annotation-frame{display:block;width:100%;height:760px;min-width:0;border:0;color-scheme:dark}
+body.annotation-active .sidebar .input,body.annotation-active #status{display:none}
+@media(max-width:760px){.annotation-toolbar{align-items:flex-start;flex-direction:column;gap:8px}.annotation-connection{padding:18px}}
+@media(max-width:760px){body.annotation-active .heading{padding-top:42px}}

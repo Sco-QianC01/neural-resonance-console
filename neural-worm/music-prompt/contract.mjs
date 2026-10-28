@@ -1,4 +1,4 @@
-import {parseUtf8Json} from '../src/json-io.mjs';
+import {parseUtf8Json} from '../../src/json-io.mjs';
 
 export const ELEMENTS=[
   ['melody','旋律'],['rhythm','节奏'],['harmony','和声'],['dynamics','力度变化'],
@@ -40,6 +40,10 @@ export function readObservations(text){
     source={id:cleanText(data.source,'unattributed-import'),
       kind:data.source==='demo'?'demo':data.source==='replay'?'recording':'imported-neural-summary'};
     const nonnegative=n=>finite(n)&&n>=0?n:null;
+    for(const key of ['firstTimestamp','lastTimestamp','observedCoverageSeconds']){
+      if(data[key]!=null&&(!finite(data[key])||data[key]<0))
+        throw new Error('观测时间与有效覆盖需为非负有限数，缺失请用null。');
+    }
     provenance={schemaVersion:data.schemaVersion,sessionId:cleanText(data.sessionId,null),
       transport:cleanText(data.transport,null),createdAt:cleanText(data.createdAt,null),
       firstTimestamp:nonnegative(data.firstTimestamp),lastTimestamp:nonnegative(data.lastTimestamp),
@@ -47,6 +51,12 @@ export function readObservations(text){
     if(provenance.firstTimestamp!==null&&provenance.lastTimestamp!==null
       &&provenance.firstTimestamp>provenance.lastTimestamp)
       throw new Error('观测首末时间次序无效。');
+    const coverage=provenance.observedCoverageSeconds;
+    const span=provenance.firstTimestamp!==null&&provenance.lastTimestamp!==null
+      ?(provenance.lastTimestamp-provenance.firstTimestamp)/1000:null;
+    if(coverage!==null&&(coverage>data.windowSeconds+1e-6
+      ||span!==null&&coverage>span+1e-6||data.observedSamples===1&&coverage>1e-6))
+      throw new Error('有效覆盖时间不能超过观察窗口或首末样本跨度；单个样本不构成连续覆盖。');
     samples=data.observedSamples;windowSeconds=data.windowSeconds;
   }else if(data.schemaVersion==='music-prompt-input-v1'){
     source={id:cleanText(data.source?.id,'unattributed-import'),kind:cleanText(data.source?.kind,'unknown'),
@@ -118,7 +128,7 @@ export function validateOrder(order,ids){
   return [...order];
 }
 
-export function compilePrompt({observations,inputDocument=null,intent,tags,order,engine='rules',model=null,inputHash=null}){
+export function compilePrompt({observations,inputDocument=null,intent,tags,order,engine='rules',model=null,inputHash=null,catalogueEvidence=null}){
   if(!['rules','ollama'].includes(engine))throw new Error('未知生成来源。');
   const approved=validateOrder(order,tags.map(t=>t.id));
   const text=approved.map(id=>tags.find(t=>t.id===id).phrase).join('; ')+'.'
@@ -128,6 +138,8 @@ export function compilePrompt({observations,inputDocument=null,intent,tags,order
     ...(inputDocument?{inputDocument:structuredClone(inputDocument)}:{}),
     intent:{kind:'creative-intent',...structuredClone(intent),inferredFromEeg:false},
     tagIds:approved,catalogueVersion:'20261021-v1',promptEn:text,
+    annotations:approved.map(id=>structuredClone(tags.find(t=>t.id===id))),
+    catalogueEvidence:catalogueEvidence?structuredClone(catalogueEvidence):null,
     aceRequest:{ditModel:'acestep-v15-xl-sft',customMode:false,instrumental:true,title:'器乐创作',
       songDescription:text,style:text,lyrics:'',duration:intent.duration,
       ...(finite(intent.tempoBpm)?{bpm:intent.tempoBpm}:{}),

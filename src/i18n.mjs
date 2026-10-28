@@ -397,6 +397,8 @@ export function toSimplified(text) {
 }
 
 export const TRANSLATIONS = {
+  "數據標註": {"zh-Hans": "数据标注", "en": "Data Annotation"},
+  "ANNOTATION / PROMPT": {"zh-Hans": "标注 / 提示词", "en": "ANNOTATION / PROMPT"},
   "神經共振": {
     "zh-Hans": "神经共振",
     "en": "Neural Resonance"

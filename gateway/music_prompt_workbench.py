@@ -112,7 +112,7 @@ async def generate_order(tags):
 
 def create_app(root=ROOT, score_output=None):
     root = Path(root).resolve()
-    catalogue_path = root / "music-prompt" / "tags.json"
+    catalogue_path = root / "neural-worm" / "music-prompt" / "tags.json"
     catalogue_bytes = catalogue_path.read_bytes()
     catalogue = json.loads(catalogue_bytes)
     catalogue_hash = hashlib.sha256(catalogue_bytes).hexdigest()
@@ -208,10 +208,12 @@ def create_app(root=ROOT, score_output=None):
             raise web.HTTPFound("/music-prompt/")
         if name.endswith("/"):
             name += "index.html"
+        if name.startswith("music-prompt/"):
+            name = "neural-worm/" + name
         allowed_src = {"src/json-io.mjs"}
         allowed_public = {"public/research/vmus-reference-cases.json"}
         allowed_docs = {"docs/MUSIC-PROMPT.md", "docs/MUSIC-PROMPT-RUNTIME.md", "docs/MUSIC-SCORE.md"}
-        if not (name.startswith(("music-prompt/", "music-score/")) or name in allowed_src or name in allowed_public or name in allowed_docs):
+        if not (name.startswith(("neural-worm/music-prompt/", "music-score/")) or name in allowed_src or name in allowed_public or name in allowed_docs):
             raise web.HTTPNotFound()
         target = (root / name).resolve()
         allowed_root = root / name.split("/", 1)[0]

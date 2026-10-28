@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {
   readObservations,readWorkspace,tempoStatistics,selectTags,compilePrompt,validateOrder,
-} from '../music-prompt/contract.mjs';
+} from '../neural-worm/music-prompt/contract.mjs';
 
-const catalogue=JSON.parse(await readFile(new URL('../music-prompt/tags.json',import.meta.url),'utf8'));
+const catalogue=JSON.parse(await readFile(new URL('../neural-worm/music-prompt/tags.json',import.meta.url),'utf8'));
 const intent={style:'solo-piano',duration:30,tempoBpm:72,levels:{tempo:1,melody:2,harmony:1}};
 
 test('tempo statistics preserve beat units and never span missing adjacent samples',()=>{
@@ -52,6 +52,24 @@ test('historical demo provenance survives import without becoming live hardware 
   assert.equal(s.provenance.sessionId,'demo-run');
   assert.equal(s.provenance.createdAt,data.createdAt);
   assert.equal(s.verification,'source-declared-not-independently-validated');
+});
+
+test('neural coverage cannot exceed its window, timestamp span or single-sample duration',()=>{
+  const input={schemaVersion:'neural-observation-summary-v2',source:'device',
+    firstTimestamp:1000,lastTimestamp:5000,observedCoverageSeconds:3,
+    observedSamples:4,windowSeconds:10,inputs:{attention:50,relaxation:50}};
+  for(const change of [
+    {observedCoverageSeconds:999},
+    {observedCoverageSeconds:5},
+    {observedSamples:1},
+    {firstTimestamp:5000,lastTimestamp:5000,observedCoverageSeconds:1},
+  ])assert.throws(()=>readObservations(JSON.stringify({...input,...change})),/覆盖时间/);
+  assert.equal(readObservations(JSON.stringify({...input,lastTimestamp:4000})).provenance.observedCoverageSeconds,3);
+  assert.equal(readObservations(JSON.stringify({...input,observedSamples:1,
+    lastTimestamp:1000,observedCoverageSeconds:0})).provenance.observedCoverageSeconds,0);
+  assert.equal(readObservations(JSON.stringify({...input,observedCoverageSeconds:undefined})).provenance.observedCoverageSeconds,null);
+  for(const change of [{observedCoverageSeconds:-1},{firstTimestamp:'1000'},{lastTimestamp:-1}])
+    assert.throws(()=>readObservations(JSON.stringify({...input,...change})),/非负有限数/);
 });
 
 test('typed JSON has independent sample statistics and bounded parsing',()=>{
@@ -102,6 +120,19 @@ test('ACE request keeps duration and tempo deterministic without neural interpre
   assert.equal(result.sunoFields.Instrumental,true);
   assert.ok(result.sunoFields.Exclude.includes('vinyl'));
   assert.throws(()=>compilePrompt({observations,intent,tags,order:[],engine:'ollama'}));
+});
+
+test('exported annotations keep exact phrases, source IDs and catalogue provenance',()=>{
+  const tags=selectTags(intent,catalogue),order=tags.map(t=>t.id);
+  const provenance={version:catalogue.version,sha256:'a'.repeat(64),sources:catalogue.sources};
+  const result=compilePrompt({intent,tags,order,observations:{},catalogueEvidence:provenance});
+  assert.deepEqual(result.annotations,tags);
+  assert.deepEqual(result.catalogueEvidence,provenance);
+  for(const tag of result.annotations)
+    assert.ok(tag.sourceIds.every(id=>result.catalogueEvidence.sources.some(s=>s.id===id)));
+  tags[0].phrase='changed after export';provenance.sources=[];
+  assert.notEqual(result.annotations[0].phrase,tags[0].phrase);
+  assert.ok(result.catalogueEvidence.sources.length);
 });
 
 test('saved workspace restores original tempo samples and creative targets without accepting old AI output',()=>{

@@ -46,6 +46,9 @@ test('portable static server serves its own UI and never exposes private runtime
     const page=await fetch(base);assert.equal(page.status,200);
     assert.ok((await page.text()).includes('id="view-waveforms"'));
     assert.equal((await fetch(`${base}/src/eeg.mjs`)).headers.get('content-type'),'text/javascript; charset=utf-8');
+    for(const name of ['index.html','app.mjs','contract.mjs','tags.json','style.css']){
+      assert.equal((await fetch(`${base}/neural-worm/music-prompt/${name}`)).status,200,name);
+    }
     assert.equal((await fetch(`${base}/api/runtime`)).status,404);
     assert.equal((await fetch(`${base}/.git/config`)).status,404);
     assert.equal((await fetch(`${base}/public/config.json`,{method:'POST'})).status,405);

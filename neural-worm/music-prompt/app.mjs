@@ -1,8 +1,23 @@
-import {ELEMENTS,readObservations,readWorkspace,selectTags,compilePrompt,validateOrder} from './contract.mjs';
-import {parseUtf8Json} from '../src/json-io.mjs';
+import {ELEMENTS,readObservations,readWorkspace,selectTags,compilePrompt} from './contract.mjs';
+import {parseUtf8Json} from '../../src/json-io.mjs';
 
 const $=id=>document.getElementById(id);
-let catalogue=null,catalogueHash=null,result=null,revision=0,inputTask=0,busy=false,requestController=null;
+let catalogue=null,result=null,revision=0,inputTask=0,busy=false;
+if(new URLSearchParams(location.search).get('embedded')==='1'&&window.parent!==window){
+  document.body.classList.add('embedded');
+  let visible=false;
+  const resize=()=>{
+    if(visible)window.parent.postMessage({type:'nr-prompt-ready',
+      height:Math.ceil(document.body.getBoundingClientRect().height)},location.origin);
+  };
+  window.addEventListener('message',event=>{
+    if(event.source!==window.parent||event.origin!==location.origin||
+      event.data?.type!=='nr-prompt-visibility'||typeof event.data.visible!=='boolean')return;
+    visible=event.data.visible;
+    if(visible)requestAnimationFrame(resize);
+  });
+  new ResizeObserver(resize).observe(document.body);
+}
 const emptyInput=()=>JSON.stringify({schemaVersion:'music-prompt-input-v1',
   source:{id:'未提供观测',kind:'not-provided'}});
 const numberText=(n,digits=3)=>Number.isFinite(n)?Number(n.toFixed(digits)).toString():'—';
@@ -10,7 +25,6 @@ const unitText=unit=>({'BPM':'BPM','eighth-notes/min':'八分音符/分钟','sou
 function status(text,error=false){$('operation-status').textContent=text;$('operation-status').classList.toggle('error',error);}
 function invalidate(){
   revision++;result=null;
-  requestController?.abort();
   $('prompt-en').value='';$('ace-json').textContent='等待生成';$('suno-json').textContent='等待生成';
   $('output-engine').textContent='等待生成';
   for(const id of ['copy-prompt','copy-ace','download-json'])$(id).disabled=true;
@@ -51,7 +65,7 @@ function updateTags(tags){
 }
 function refresh(){
   invalidate();
-  try{updateMetrics(observation());updateTags(selectTags(intent(),catalogue));status('选择目标后预览；Ollama只编排已选音乐标签。');}
+  try{updateMetrics(observation());updateTags(selectTags(intent(),catalogue));status('选择音乐标签后生成 Prompt；不调用语言模型。');}
   catch(error){
     updateMetrics(readObservations(emptyInput()));
     $('selected-tags').replaceChildren();
@@ -62,78 +76,40 @@ function present(value){
   result=value;$('prompt-en').value=value.promptEn;
   $('ace-json').textContent=JSON.stringify(value.aceRequest,null,2);
   $('suno-json').textContent=JSON.stringify(value.sunoFields,null,2);
-  $('output-engine').textContent=value.engine==='ollama'?(value.model?.cacheHit?'Ollama · 本地复用':'Ollama · 本地'):'规则草稿';
+  $('output-engine').textContent='规则生成';
   for(const id of ['copy-prompt','copy-ace','download-json'])$(id).disabled=false;
 }
 async function hashText(text){
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
   return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
 }
-async function generate(useModel){
+async function generate(){
   if(busy)return;
   invalidate();
   const startedRevision=revision;
-  const controller=useModel?new AbortController():null;
-  requestController=controller;
-  let timedOut=false;
-  const timeout=useModel?setTimeout(()=>{timedOut=true;controller.abort();},95000):null;
-  busy=true;$('arrange').disabled=!useModel;$('preview').disabled=true;
-  $('arrange').textContent=useModel?'取消编排':'Ollama 编排';
+  busy=true;$('preview').disabled=true;
   try{
     const {observations:obs,inputDocument}=workspace(),target=intent(),tags=selectTags(target,catalogue);
     updateMetrics(obs);updateTags(tags);
     const inputHash=await hashText(JSON.stringify({inputDocument,intent:target}));
-    let order=tags.map(t=>t.id),model=null,engine='rules';
-    if(useModel){
-      status('正在本机编排音乐标签…');
-      const response=await fetch('/api/music-prompt/arrange',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({tagIds:order,inputHash}),signal:controller.signal});
-      const body=await response.json();
-      if(!response.ok)throw new Error(body.error??'本地模型未返回有效结果。');
-      if(body.engine!=='ollama'||body.catalogueHash!==catalogueHash
-        ||typeof body.model!=='string'||!/^[a-f0-9]{64}$/.test(body.digest??''))
-        throw new Error('模型身份或标签库版本不一致，请重新检查独立服务。');
-      order=validateOrder(body.order,order);
-      model={name:body.model,digest:body.digest,durationMs:body.durationMs,catalogueHash:body.catalogueHash,
-        cacheHit:body.cacheHit===true,inferenceDurationMs:body.inferenceDurationMs??body.durationMs,
-        promptRevision:body.promptRevision??null};
-      engine='ollama';
-      if(body.inputHash!==inputHash)throw new Error('结果与输入版本不一致，已拒绝。');
-    }
+    const catalogueEvidence={version:catalogue.version,
+      sha256:await hashText(JSON.stringify(catalogue)),hashEncoding:'UTF-8 JSON.stringify(parsed-catalogue)',
+      sources:structuredClone(catalogue.sources)};
     if(revision!==startedRevision)throw new Error('输入已变化，请重新生成。');
-    present(compilePrompt({observations:obs,inputDocument,intent:target,tags,order,engine,model,inputHash}));
-    status(useModel?(model.cacheHit
-      ?'已复用相同标签的本机模型结果；当前目标数值已重新校验。'
-      :`本地模型编排完成；标签与数值已校验${Number.isFinite(model.durationMs)?` · ${(model.durationMs/1000).toFixed(1)} 秒`:''}。`)
-      :'规则预览已生成，尚未调用语言模型。');
+    present(compilePrompt({observations:obs,inputDocument,intent:target,tags,
+      order:tags.map(t=>t.id),engine:'rules',model:null,inputHash,catalogueEvidence}));
+    status('Prompt 已生成，可复制提示词或导出 JSON。');
   }catch(error){
     if(revision!==startedRevision)return;
-    status(timedOut?'本地模型响应超时，请检查运行状态；可先使用规则预览。':
-      error.name==='AbortError'?'已取消本次编排，未接受旧结果。':error.message,error.name!=='AbortError'||timedOut);
+    status(error.message,true);
   }finally{
-    clearTimeout(timeout);
-    if(requestController===controller)requestController=null;
-    busy=false;$('arrange').disabled=false;$('preview').disabled=false;$('arrange').textContent='Ollama 编排';
-  }
-}
-async function checkRuntime(){
-  $('runtime-status').textContent='正在检查本地模型';
-  try{
-    const response=await fetch('/api/music-prompt/health',{signal:AbortSignal.timeout(6000)});
-    if(!response.ok)throw new Error('工作台服务不可用');
-    const health=await response.json();
-    const ready=Boolean(health.ollamaAvailable&&health.modelAvailable);
-    $('runtime-dot').classList.toggle('ready',ready);
-    $('runtime-status').textContent=ready?`${health.model} · 本机就绪`:'Ollama 未就绪 · 可用规则预览';
-    $('runtime-status').title=health.detail??'';
-  }catch{
-    $('runtime-dot').classList.remove('ready');$('runtime-status').textContent='独立模型服务未连接 · 可用规则预览';
+    busy=false;$('preview').disabled=false;
   }
 }
 async function loadReference(){
   const task=++inputTask,startedRevision=revision;
   try{
-    const response=await fetch('/public/research/vmus-reference-cases.json');
+    const response=await fetch('../../public/research/vmus-reference-cases.json');
     if(!response.ok)throw new Error('已有标注文件读取失败。');
     const data=await response.json(),recording=data.recordings.find(r=>r.id==='c27_langlang2003');
     if(task!==inputTask||revision!==startedRevision)return;
@@ -154,7 +130,7 @@ async function init(){
   try{
     const response=await fetch('./tags.json');
     if(!response.ok)throw new Error('音乐标签库读取失败。');
-    const text=await response.text();catalogue=parseUtf8Json(text);catalogueHash=await hashText(text);
+    const text=await response.text();catalogue=parseUtf8Json(text);
     for(const [key,label] of ELEMENTS){
       const row=document.createElement('div');row.className='level-row';
       const name=document.createElement('label');name.htmlFor=`level-${key}`;name.textContent=label;
@@ -168,12 +144,7 @@ async function init(){
     }
     for(const id of ['observation-json','style','duration','tempo-bpm'])
       $(id).addEventListener(id==='style'?'change':'input',refresh);
-    $('preview').addEventListener('click',()=>generate(false));
-    $('arrange').addEventListener('click',()=>{
-      if(busy){requestController?.abort();return;}
-      generate(true);
-    });
-    $('check-runtime').addEventListener('click',checkRuntime);
+    $('preview').addEventListener('click',generate);
     $('load-reference').addEventListener('click',loadReference);
     $('choose-file').addEventListener('click',()=>$('input-file').click());
     $('gentle-preset').addEventListener('click',()=>{
@@ -212,8 +183,7 @@ async function init(){
         [JSON.stringify(result,null,2)],{type:'application/json;charset=utf-8'}));
       link.href=url;link.download='music-prompt.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     });
-    refresh();checkRuntime();
-  }catch(error){status(error.message,true);$('arrange').disabled=true;$('preview').disabled=true;}
+    refresh();
+  }catch(error){status(error.message,true);$('preview').disabled=true;}
 }
-window.addEventListener('pagehide',()=>requestController?.abort());
 init();

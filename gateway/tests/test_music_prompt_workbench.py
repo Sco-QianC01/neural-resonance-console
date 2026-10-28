@@ -56,9 +56,9 @@ class ProxyTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.root = Path(self.directory.name)
-        (self.root / "music-prompt").mkdir()
-        (self.root / "music-prompt" / "tags.json").write_text(json.dumps(CATALOGUE))
-        (self.root / "music-prompt" / "index.html").write_text("<title>Workbench</title>")
+        (self.root / "neural-worm/music-prompt").mkdir(parents=True)
+        (self.root / "neural-worm/music-prompt" / "tags.json").write_text(json.dumps(CATALOGUE))
+        (self.root / "neural-worm/music-prompt" / "index.html").write_text("<title>Workbench</title>")
         (self.root / "secret.txt").write_text("not exposed")
         self.client = TestClient(TestServer(workbench.create_app(self.root), handler_cancellation=True))
         await self.client.start_server()
@@ -69,6 +69,7 @@ class ProxyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_origin_host_static_allowlist_and_body_boundary(self):
         self.assertEqual((await self.client.get("/music-prompt/")).status, 200)
+        self.assertEqual((await self.client.get("/neural-worm/music-prompt/index.html")).status, 200)
         self.assertEqual((await self.client.get("/secret.txt")).status, 404)
         self.assertEqual((await self.client.get("/music-prompt/", headers={"Host": "evil.test"})).status, 403)
         self.assertEqual((await self.client.post("/api/music-prompt/arrange", json=BODY,
@@ -130,7 +131,7 @@ class ProxyTests(unittest.IsolatedAsyncioTestCase):
     async def test_lru_evicts_oldest_and_refreshes_recent_hits(self):
         await self.client.close()
         catalogue = {"tags": [{"id": f"tag.{i}", "phrase": f"phrase {i}"} for i in range(33)]}
-        (self.root / "music-prompt" / "tags.json").write_text(json.dumps(catalogue))
+        (self.root / "neural-worm/music-prompt" / "tags.json").write_text(json.dumps(catalogue))
         self.client = TestClient(TestServer(workbench.create_app(self.root), handler_cancellation=True))
         await self.client.start_server()
         async def generate(tags):
